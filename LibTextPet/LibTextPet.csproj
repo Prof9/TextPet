@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{055AE216-3A29-4075-9600-7A278E15B8A3}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>LibTextPet</RootNamespace>
+    <AssemblyName>libtxtpt</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>3</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <PlatformTarget>x86</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="General\GameInfo.cs" />
+    <Compile Include="General\NamedCollection.cs" />
+    <Compile Include="IO\IPatcher.cs" />
+    <Compile Include="IO\Msg\ROMManager.cs" />
+    <Compile Include="IO\Msg\ROMTextArchiveReader.cs" />
+    <Compile Include="IO\Msg\ROMTextArchiveWriter.cs" />
+    <Compile Include="IO\ROMEntry.cs" />
+    <Compile Include="IO\ROMEntryCollection.cs" />
+    <Compile Include="IO\ROMEntriesReader.cs" />
+    <Compile Include="IO\SingleManager.cs" />
+    <Compile Include="IO\Msg\BinaryTextArchiveWriter.cs" />
+    <Compile Include="IO\TextArchiveTextBoxPatcher.cs" />
+    <Compile Include="IO\TextBox\TextBoxScriptWriter.cs" />
+    <Compile Include="IO\TextBox\TextBoxCommandWriter.cs" />
+    <Compile Include="IO\TextBox\TextBoxTemplateReader.cs" />
+    <Compile Include="IO\TextBox\TextBoxTextArchiveWriter.cs" />
+    <Compile Include="IO\TextBox\TextBoxScriptTemplateReader.cs" />
+    <Compile Include="IO\TextBox\TextBoxTokenType.cs" />
+    <Compile Include="IO\TextBox\TextBoxTextArchiveTemplateReader.cs" />
+    <Compile Include="IO\Token.cs" />
+    <Compile Include="IO\TokenReader.cs" />
+    <Compile Include="IO\TPL\TPLTokenType.cs" />
+    <Compile Include="IO\TPL\TPLCommandReader.cs" />
+    <Compile Include="IO\TPL\TPLReader.cs" />
+    <Compile Include="IO\TPL\TPLScriptReader.cs" />
+    <Compile Include="IO\TPL\TPLTextArchiveReader.cs" />
+    <Compile Include="IO\TPL\TPLTextArchiveWriter.cs" />
+    <Compile Include="IO\IReader.cs" />
+    <Compile Include="IO\IWriter.cs" />
+    <Compile Include="IO\TPL\IndentedWriter.cs" />
+    <Compile Include="IO\TPL\TPLCommandWriter.cs" />
+    <Compile Include="IO\TPL\TPLScriptWriter.cs" />
+    <Compile Include="Msg\DirectiveElement.cs" />
+    <Compile Include="Msg\DirectiveType.cs" />
+    <Compile Include="Plugins\GameLoader.cs" />
+    <Compile Include="IO\ScriptTextBoxPatcher.cs" />
+    <Compile Include="Text\ConservativeStreamReader.cs" />
+    <Compile Include="Text\CustomFallbackEncoding.cs" />
+    <Compile Include="IO\Msg\BinaryCommandReader.cs" />
+    <Compile Include="IO\Msg\BinaryCommandWriter.cs" />
+    <Compile Include="IO\Msg\BinaryScriptReader.cs" />
+    <Compile Include="IO\Msg\BinaryScriptWriter.cs" />
+    <Compile Include="IO\Msg\FixedSizeScriptReader.cs" />
+    <Compile Include="IO\Manager.cs" />
+    <Compile Include="IO\ScriptReader.cs" />
+    <Compile Include="IO\ScriptWriter.cs" />
+    <Compile Include="IO\Msg\BinaryTextArchiveReader.cs" />
+    <Compile Include="Msg\ByteElement.cs" />
+    <Compile Include="Msg\CommandDatabase.cs" />
+    <Compile Include="Msg\DataEntryCollection.cs" />
+    <Compile Include="Msg\EndType.cs" />
+    <Compile Include="General\ByteSequenceEqualityComparer.cs" />
+    <Compile Include="Msg\CommandDefinition.cs" />
+    <Compile Include="General\IDefined.cs" />
+    <Compile Include="General\IDefinition.cs" />
+    <Compile Include="General\INameable.cs" />
+    <Compile Include="General\LZ77.cs" />
+    <Compile Include="Msg\Command.cs" />
+    <Compile Include="General\ReadOnlyNamedCollection.cs" />
+    <Compile Include="General\ReadOnlyKeyedCollection.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Msg\Script.cs" />
+    <Compile Include="Msg\TextArchive.cs" />
+    <Compile Include="Plugins\CommandDatabaseLoader.cs" />
+    <Compile Include="Plugins\IniFile.cs" />
+    <Compile Include="Plugins\IniSection.cs" />
+    <Compile Include="Plugins\IPlugin.cs" />
+    <Compile Include="Plugins\IniLoader.cs" />
+    <Compile Include="Plugins\PluginLoader.cs" />
+    <Compile Include="Msg\TextElement.cs" />
+    <Compile Include="Text\LookupTableEncoding.cs" />
+    <Compile Include="Text\LookupTableEncodingBuilder.cs" />
+    <Compile Include="Msg\Parameter.cs" />
+    <Compile Include="Msg\ParameterDefinition.cs" />
+    <Compile Include="Msg\IScriptElement.cs" />
+    <Compile Include="General\NumberParser.cs" />
+    <Compile Include="Plugins\TableFileLoader.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="key.snk" />
+    <EmbeddedResource Include="Plugins\BuiltIn\bool.ini" />
+  </ItemGroup>
+  <ItemGroup>
+    <CodeAnalysisDictionary Include="CustomDictionary.xml" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

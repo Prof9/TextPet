@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Dictionary>
+  <Words>
+    <Recognized>
+      <Word>Heredoc</Word>
+      <Word>IgnorePointerSyncErrors</Word>
+      <Word>Ini</Word>
+      <Word>LibTxtPt</Word>
+      <Word>Msg</Word>
+      <Word>Mugshot</Word>
+      <Word>Patcher</Word>
+      <Word>Sync</Word>
+      <Word>Tokenizer</Word>
+    </Recognized>
+    <DiscreteExceptions>
+      <Term>scriptwriter</Term>
+    </DiscreteExceptions>
+  </Words>
+  <Acronyms>
+    <CasingExceptions>
+      <Acronym>libtxtpt</Acronym>
+      <Acronym>ROM</Acronym>
+      <Acronym>TPL</Acronym>
+    </CasingExceptions>
+  </Acronyms>
+</Dictionary>
