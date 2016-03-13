@@ -90,9 +90,10 @@ namespace TextPet {
 		/// Loads all TextPet plugins from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or a folder.</param>
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		/// <returns>The plugins that were loaded.</returns>
-		public void LoadPlugins(string path) {
-			ICollection<string> files = GetReadFiles(path);
+		public void LoadPlugins(string path, bool recursive) {
+			ICollection<string> files = GetReadFiles(path, recursive);
 			BeginLoadingPlugins?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
 			// Load the plugins.
@@ -117,8 +118,9 @@ namespace TextPet {
 		/// Loads all ROM entries from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		public void LoadROMEntries(string path) {
-			ICollection<string> files = GetReadFiles(path);
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
+		public void LoadROMEntries(string path, bool recursive) {
+			ICollection<string> files = GetReadFiles(path, recursive);
 			BeginLoadingROMEntries?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
 			// Load the ROM entries.
@@ -156,8 +158,9 @@ namespace TextPet {
 		/// Reads text archives from the specified path.
 		/// </summary>
 		/// <param name="path">The path to read from; can be a file or folder.</param>
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		/// <param name="readDelegate">The read delegate that reads a text archive with the specified name from the specified stream.</param>
-		public void ReadTextArchives(string path, Func<MemoryStream, string, TextArchive[]> readDelegate) {
+		public void ReadTextArchives(string path, bool recursive, Func<MemoryStream, string, TextArchive[]> readDelegate) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The path cannot be null.");
 			if (readDelegate == null)
@@ -165,7 +168,7 @@ namespace TextPet {
 
 			VerifyGameInitialized();
 
-			ICollection<string> files = GetReadFiles(path);
+			ICollection<string> files = GetReadFiles(path, recursive);
 
 			BeginReadingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
@@ -201,8 +204,9 @@ namespace TextPet {
 		/// Reads binary text archives from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		public void ReadTextArchivesBinary(string path) {
-			ReadTextArchives(path, delegate (MemoryStream ms, string file) {
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
+		public void ReadTextArchivesBinary(string path, bool recursive) {
+			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				BinaryTextArchiveReader reader = new BinaryTextArchiveReader(ms, this.Game);
 				reader.IgnorePointerSyncErrors = true;
 				TextArchive ta = reader.Read((int)ms.Length);
@@ -215,11 +219,12 @@ namespace TextPet {
 		/// Reads TextPet Language text archives from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		public void ReadTextArchivesTPL(string path) {
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
+		public void ReadTextArchivesTPL(string path, bool recursive) {
 			VerifyGameInitialized();
 			CommandDatabase[] databases = this.Game.Databases.ToArray();
 
-			ReadTextArchives(path, delegate (MemoryStream ms, string file) {
+			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				TPLTextArchiveReader reader = new TPLTextArchiveReader(ms, databases);
 				TextArchive ta = reader.Read();
 				return new TextArchive[] { ta };
@@ -230,11 +235,12 @@ namespace TextPet {
 		/// Reads text box template text archives from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		public void ReadTextArchivesTextBoxes(string path) {
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
+		public void ReadTextArchivesTextBoxes(string path, bool recursive) {
 			VerifyGameInitialized();
 			CommandDatabase[] databases = this.Game.Databases.ToArray();
 
-			ReadTextArchives(path, delegate (MemoryStream ms, string file) {
+			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
 				TextArchive ta = reader.Read();
 				return new TextArchive[] { ta };
@@ -281,12 +287,12 @@ namespace TextPet {
 		/// Inserts text boxes from patch text archives read the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		public void InsertTextArchivesTextBoxes(string path) {
+		public void InsertTextArchivesTextBoxes(string path, bool recursive) {
 			VerifyGameInitialized();
 			CommandDatabase[] databases = this.Game.Databases.ToArray();
 			List<string> patchedIDs = new List<string>(this.TextArchives.Count);
 
-			ReadTextArchives(path, delegate (MemoryStream ms, string file) {
+			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				IReader<TextArchive> reader = new TextBoxTextArchiveTemplateReader(ms, databases);
 				TextArchive patchTA = reader.Read();
 
@@ -461,14 +467,15 @@ namespace TextPet {
 		/// formats, then verifying that the input and output are the same. Any failing text archives are not loaded.
 		/// </summary>
 		/// <param name="path">The path to read from.</param>
-		public void TestTextArchivesIO(string path) {
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
+		public void TestTextArchivesIO(string path, bool recursive) {
 			VerifyGameInitialized();
 
-			ICollection<string> files = GetReadFiles(path);
+			ICollection<string> files = GetReadFiles(path, recursive);
 			BeginTestingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
 			List<TextArchive> testedTAs = new List<TextArchive>();
-			ReadTextArchives(path, delegate (MemoryStream ms, string file) {
+			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				TextArchive ta1, ta2;
 				byte[] before = ms.ToArray();
 				byte[] after;
@@ -542,15 +549,16 @@ namespace TextPet {
 		/// Gets all files that exist in the specified path.
 		/// </summary>
 		/// <param name="path">The path. If this is a folder, all files in the folder will be returned.</param>
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		/// <returns>The files.</returns>
-		private static ICollection<string> GetReadFiles(string path) {
+		private static ICollection<string> GetReadFiles(string path, bool recursive) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The path cannot be null.");
 
 			string absolutePath = Path.Combine(Directory.GetCurrentDirectory(), path);
 
 			if (Directory.Exists(absolutePath)) {
-				return Directory.GetFiles(absolutePath);
+				return Directory.GetFiles(absolutePath, "*", recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 			} else if (File.Exists(absolutePath)) {
 				return new string[] { absolutePath };
 			} else {

@@ -12,15 +12,20 @@ namespace TextPet.Commands {
 		public override string RunString => "Loading plugins...";
 
 		private const string pathArg = "path";
+		private const string recursiveArg = "recursive";
 
 		public LoadPluginsCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
 				pathArg,
+			}, new OptionalArgument[] {
+				new OptionalArgument(recursiveArg, 'r'),
 			}) { }
 
 		protected override void RunImplementation() {
 			string path = GetRequiredValue(pathArg);
-			this.Core.LoadPlugins(path);
+			bool recursive = GetOptionalValues(recursiveArg) != null;
+
+			this.Core.LoadPlugins(path, recursive);
 		}
 	}
 }

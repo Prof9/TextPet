@@ -17,16 +17,20 @@ namespace TextPet.Commands {
 		}
 
 		private const string pathArg = "path";
+		private const string recursiveArg = "recursive";
 
 		public InsertTextBoxesCommand(CommandLineInterface cli, TextPetCore core)
 			: base (cli, core, new string[] {
 				pathArg,
+			}, new OptionalArgument[] {
+				new OptionalArgument(recursiveArg, 'r'),
 			}) { }
 
 		protected override void RunImplementation() {
 			string path = GetRequiredValue(pathArg);
+			bool recursive = GetOptionalValues(recursiveArg) != null;
 
-			this.Core.InsertTextArchivesTextBoxes(path);
+			this.Core.InsertTextArchivesTextBoxes(path, recursive);
 		}
 	}
 }

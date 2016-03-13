@@ -19,6 +19,7 @@ namespace TextPet.Commands {
 
 		private const string formatArg = "format";
 		private const string pathArg = "path";
+		private const string recursiveArg = "recursive";
 
 		private readonly string[] binFormats = new string[] {
 			"BIN", "BINARY", "DMP", "DUMP", "MSG", "MESSAGE",
@@ -38,11 +39,13 @@ namespace TextPet.Commands {
 				pathArg,
 			}, new OptionalArgument[] {
 				new OptionalArgument(formatArg, 'f', "format"),
+				new OptionalArgument(recursiveArg, 'r'),
 			}) { }
 
 		protected override void RunImplementation() {
 			string manualFormat = GetOptionalValues(formatArg)?[0];
 			string path = GetRequiredValue(pathArg);
+			bool recursive = GetOptionalValues(recursiveArg) != null;
 
 			// If format is not specified, use file extension.
 			string format;
@@ -62,11 +65,11 @@ namespace TextPet.Commands {
 			format = format.ToUpperInvariant().Replace("-", "");
 
 			if (binFormats.Contains(format)) {
-				this.Core.ReadTextArchivesBinary(path);
+				this.Core.ReadTextArchivesBinary(path, recursive);
 			} else if (tplFormats.Contains(format)) {
-				this.Core.ReadTextArchivesTPL(path);
+				this.Core.ReadTextArchivesTPL(path, recursive);
 			} else if (txtFormats.Contains(format)) {
-				this.Core.ReadTextArchivesTextBoxes(path);
+				this.Core.ReadTextArchivesTextBoxes(path, recursive);
 			} else if (romFormats.Contains(format)) {
 				this.Core.ReadTextArchivesROM(path);
 			} else if (manualFormat == null) {
