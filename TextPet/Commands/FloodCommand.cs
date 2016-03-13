@@ -28,19 +28,21 @@ namespace TextPet.Commands {
 
 					foreach (IScriptElement elem in script) {
 						TextElement textElem = elem as TextElement;
-						if (textElem != null) {
-							string[] lines = textElem.Text.Split(new string[] { "\\n" }, StringSplitOptions.None);
-							for (int i = 0; i < lines.Length; i++) {
-								char[] l = new string('W', lines[i].Length).ToCharArray();
-
-								for (int j = 0; j < lines[i].Length && posStrIndex < posStr.Length; j++, posStrIndex++) {
-									l[j] = posStr[posStrIndex];
-								}
-
-								lines[i] = new string(l);
-							}
-							textElem.Text = String.Join("\\n", lines);
+						if (textElem == null) {
+							continue;
 						}
+
+						string[] lines = textElem.Text.Split(new string[] { "\\n" }, StringSplitOptions.None);
+						for (int i = 0; i < lines.Length; i++) {
+							char[] l = new string('W', lines[i].Length).ToCharArray();
+
+							for (int j = 0; j < lines[i].Length && posStrIndex < posStr.Length; j++, posStrIndex++) {
+								l[j] = posStr[posStrIndex];
+							}
+
+							lines[i] = new string(l);
+						}
+						textElem.Text = String.Join("\\n", lines);
 					}
 				}
 			}

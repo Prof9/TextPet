@@ -86,6 +86,7 @@ namespace TextPet {
 				new LoadPluginsCommand(this, this.Core),
 				new LoadROMEntriesCommand(this, this.Core),
 				new ReadTextArchivesCommand(this, this.Core),
+				new RegexCommand(this, this.Core),
 				new RunScriptCommand(this, this.Core),
 				new SilentCommand(this, this.Core),
 				new TestTextArchivesCommand(this, this.Core),
@@ -122,6 +123,7 @@ namespace TextPet {
 		public void Run(IList<string> args) {
 			bool suppressDone = false;
 
+			// Print usage if no arguments were provided.
 			if (args.Count <= 0) {
 				args = new string[] {
 					"help"

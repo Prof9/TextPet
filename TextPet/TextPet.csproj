@@ -83,6 +83,7 @@
     <Compile Include="Commands\InsertTextBoxesCommand.cs" />
     <Compile Include="Commands\LoadROMEntriesCommand.cs" />
     <Compile Include="Commands\ReadTextArchivesCommand.cs" />
+    <Compile Include="Commands\RegexCommand.cs" />
     <Compile Include="Commands\RunScriptCommand.cs" />
     <Compile Include="Commands\SilentCommand.cs" />
     <Compile Include="Commands\TestTextArchivesCommand.cs" />
