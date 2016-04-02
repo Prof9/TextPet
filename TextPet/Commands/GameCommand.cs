@@ -23,6 +23,7 @@ namespace TextPet.Commands {
 			if (!this.Core.SetActiveGame(gameCode)) {
 				Console.ForegroundColor = ConsoleColor.Red;
 				Console.WriteLine("ERROR: Unrecognized game name \"" + gameCode + "\".");
+				Console.ResetColor();
 			}
 		}
 	}
