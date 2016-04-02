@@ -113,6 +113,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="key.snk" />
+    <None Include="plugins\bn1-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\exe1-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="plugins\exe45t-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -120,6 +126,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\games.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\mmbn1.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\mmbn45.ini">
