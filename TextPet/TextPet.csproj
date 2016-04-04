@@ -141,6 +141,9 @@
   <ItemGroup>
     <CodeAnalysisDictionary Include="CustomDictionary.xml" />
     <Content Include="icon.ico" />
+    <None Include="plugins\mmbn2.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="script.tps">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
