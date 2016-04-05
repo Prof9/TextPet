@@ -46,12 +46,16 @@ namespace LibTextPet.IO.Msg {
 			List<long> offsets = new List<long>(obj.Count);
 			
 			// Write all scripts.
-			foreach (Script script in obj) {
+			for (int i = 0; i < obj.Count; i++) {
 				// Save the script offset.
 				offsets.Add(this.BaseStream.Position - start);
 
-				// Write the script to the stream.
-				this.ScriptWriter.Write(script);
+				Script script = obj[i];
+				try {
+					this.ScriptWriter.Write(script);
+				} catch (EncoderFallbackException ex) {
+					throw new InvalidDataException("Could not encode character " + ex.CharUnknown + " in script " + i + " of text archive " + obj.Identifier + ".", ex);
+				}
 			}
 
 			// Save the end position.
