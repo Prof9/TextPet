@@ -11,7 +11,7 @@ namespace LibTextPet.Msg {
 	/// A text archive containing scripts.
 	/// </summary>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix")]
-	public class TextArchive : Collection<Script> {
+	public class TextArchive : Collection<Script>, INameable {
 		private string identifier;
 		/// <summary>
 		/// Gets or sets the identifier for this text archive. This must be non-null, non-empty and cannot contain any whitespace.
@@ -29,6 +29,11 @@ namespace LibTextPet.Msg {
 				this.identifier = value;
 			}
 		}
+
+		/// <summary>
+		/// Gets the identifier for this text archive.
+		/// </summary>
+		public string Name => this.Identifier;
 
 		/// <summary>
 		/// Creates a new empty text archive with a random identifier.
