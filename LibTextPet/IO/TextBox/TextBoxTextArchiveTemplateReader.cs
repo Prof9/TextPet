@@ -98,7 +98,7 @@ namespace LibTextPet.IO.TextBox {
 				ta.Resize(scriptNum + 1);
 			}
 
-			ta[scriptNum] = this.ScriptReader.Read(currentScriptTokens);
+			ta[scriptNum] = this.ScriptReader.Read(currentScriptTokens)[0];
 		}
 	}
 }

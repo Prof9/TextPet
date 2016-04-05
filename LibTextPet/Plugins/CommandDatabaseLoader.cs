@@ -78,7 +78,14 @@ namespace LibTextPet.Plugins {
 
 					// Parse the split script.
 					TPLScriptReader scriptReader = new TPLScriptReader(splitScriptStream, db);
-					splitScript = scriptReader.Read();
+					IList<Script> readScripts = scriptReader.Read();
+					if (readScripts.Count == 0) {
+						splitScript = new Script();
+					} else if (readScripts.Count == 1) {
+						splitScript = readScripts[0];
+					} else {
+						throw new InvalidDataException("Only one split script can be defined.");
+					}
 				}
 
 				splitScript.DatabaseName = db.Name;

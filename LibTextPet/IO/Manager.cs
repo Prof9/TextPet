@@ -117,6 +117,15 @@ namespace LibTextPet.IO {
 			throw new KeyNotFoundException("No command database found with name \"" + dbName + "\".");
 		}
 
+		/// <summary>
+		/// Gets a boolean that indicates whether this manager has finished reading the underlying base stream.
+		/// </summary>
+		public bool AtEnd {
+			get {
+				return this.BaseStream.Position >= this.BaseStream.Length;
+			}
+		}
+
 		private static GameInfo VerifyGameLoaded(GameInfo game) {
 			if (game == null)
 				throw new ArgumentNullException(nameof(game), "The game info cannot be null.");

@@ -160,7 +160,7 @@ namespace TextPet {
 		/// <param name="path">The path to read from; can be a file or folder.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		/// <param name="readDelegate">The read delegate that reads a text archive with the specified name from the specified stream.</param>
-		public void ReadTextArchives(string path, bool recursive, Func<MemoryStream, string, TextArchive[]> readDelegate) {
+		public void ReadTextArchives(string path, bool recursive, Func<MemoryStream, string, IList<TextArchive>> readDelegate) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The path cannot be null.");
 			if (readDelegate == null)
@@ -226,8 +226,12 @@ namespace TextPet {
 
 			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				TPLTextArchiveReader reader = new TPLTextArchiveReader(ms, databases);
-				TextArchive ta = reader.Read();
-				return new TextArchive[] { ta };
+
+				List<TextArchive> tas = new List<TextArchive>();
+				while (!reader.AtEnd) {
+					tas.AddRange(reader.Read());
+				}
+				return tas;
 			});
 		}
 
@@ -242,8 +246,12 @@ namespace TextPet {
 
 			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
-				TextArchive ta = reader.Read();
-				return new TextArchive[] { ta };
+
+				List<TextArchive> tas = new List<TextArchive>();
+				while (!reader.AtEnd) {
+					tas.AddRange(reader.Read());
+				}
+				return tas;
 			});
 		}
 
@@ -290,36 +298,43 @@ namespace TextPet {
 		public void InsertTextArchivesTextBoxes(string path, bool recursive) {
 			VerifyGameInitialized();
 			CommandDatabase[] databases = this.Game.Databases.ToArray();
-			List<string> patchedIDs = new List<string>(this.TextArchives.Count);
+			IPatcher<TextArchive> patcher = new TextArchiveTextBoxPatcher(databases);
 
 			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
-				IReader<TextArchive> reader = new TextBoxTextArchiveTemplateReader(ms, databases);
-				TextArchive patchTA = reader.Read();
+				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
+				NamedCollection<TextArchive> patchedTAs = new NamedCollection<TextArchive>();
 
-				if (patchedIDs.Contains(patchTA.Identifier, StringComparer.OrdinalIgnoreCase)) {
-					throw new InvalidOperationException("Text archive " + patchTA.Identifier + " has already been patched.");
+				// Read all templates.
+				List<TextArchive> patchTAs = new List<TextArchive>();
+				while (!reader.AtEnd) {
+					patchTAs.AddRange(reader.Read());
 				}
 
-				IPatcher<TextArchive> patcher = new TextArchiveTextBoxPatcher(databases);
+				foreach (TextArchive patchTA in patchTAs) {
+					if (patchedTAs.Contains(patchTA.Identifier)) {
+						throw new InvalidOperationException("Text archive " + patchTA.Identifier + " has already been patched.");
+					}
 
-				TextArchive patched = null;
-				for (int i = 0; i < this.TextArchives.Count; i++) {
-					TextArchive baseTA = this.TextArchives[i];
-					if (baseTA.Identifier.Equals(patchTA.Identifier, StringComparison.OrdinalIgnoreCase)) {
-						if (patched != null) {
-							throw new InvalidOperationException("Cannot patch multiple text archives with identifier " + patchTA.Identifier + ".");
+					TextArchive patchedTA = null;
+					for (int i = 0; i < this.TextArchives.Count; i++) {
+						TextArchive baseTA = this.TextArchives[i];
+						if (baseTA.Identifier.Equals(patchTA.Identifier, StringComparison.OrdinalIgnoreCase)) {
+							if (patchedTA != null) {
+								throw new InvalidOperationException("Cannot patch multiple text archives with identifier " + patchTA.Identifier + ".");
+							}
+							this.TextArchives.RemoveAt(i--);
+							patcher.Patch(baseTA, patchTA);
+							patchedTA = baseTA;
 						}
-						this.TextArchives.RemoveAt(i--);
-						patcher.Patch(baseTA, patchTA);
-						patched = baseTA;
+					}
+
+					if (patchedTA != null) {
+						patchedTAs.Add(patchedTA);
+					} else {
+						throw new InvalidOperationException("Could not find base text archive with identifier " + patchTA.Identifier + ".");
 					}
 				}
-
-				if (patched != null) {
-					return new TextArchive[] { patched };
-				}
-
-				throw new InvalidOperationException("Could not find base text archive with identifier " + patchTA.Identifier + ".");
+				return patchedTAs;
 			});
 		}
 
@@ -499,7 +514,7 @@ namespace TextPet {
 					// Could be done by re-using the ReadTextArchiveTPL delegate?
 					msTemp.Position = 0;
 					TPLTextArchiveReader tplReader = new TPLTextArchiveReader(msTemp, this.Game.Databases.ToArray());
-					ta2 = tplReader.Read();
+					ta2 = tplReader.ReadSingle();
 				}
 
 				using (MemoryStream msTemp = new MemoryStream()) {
@@ -510,7 +525,7 @@ namespace TextPet {
 					// ...and insert them again.
 					msTemp.Position = 0;
 					TextBoxTextArchiveTemplateReader tbReader = new TextBoxTextArchiveTemplateReader(msTemp, this.Game.Databases.ToArray());
-					TextArchive patchTA = tbReader.Read();
+					TextArchive patchTA = tbReader.ReadSingle();
 					TextArchiveTextBoxPatcher patcher = new TextArchiveTextBoxPatcher(this.Game.Databases.ToArray());
 					patcher.Patch(ta2, patchTA);
 				}

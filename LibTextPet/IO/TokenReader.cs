@@ -11,7 +11,7 @@ namespace LibTextPet.IO {
 	/// A token reader that reads string tokens from an input stream and parses them as the specified type.
 	/// </summary>
 	/// <typeparam name="T">The type of object read by this reader.</typeparam>
-	public abstract class TokenReader<T> : Manager, IReader<T> {
+	public abstract class TokenReader<T> : Manager, IReader<IList<T>> {
 		/// <summary>
 		/// A value that indicates the result of processing a single token.
 		/// </summary>
@@ -160,41 +160,74 @@ namespace LibTextPet.IO {
 		}
 
 		/// <summary>
-		/// Reads a tokenized object from the input stream.
+		/// Reads tokenized objects from the input stream.
 		/// </summary>
-		/// <returns>The object that was read.</returns>
-		public T Read() {
+		/// <returns>The objects that were read.</returns>
+		public IList<T> Read() {
 			return Read(this.TextReader.ReadToEnd());
 		}
 
 		/// <summary>
-		/// Reads a tokenized object from the given text.
+		/// Reads tokenized objects from the given text.
 		/// </summary>
 		/// <param name="fullText">The text to read from.</param>
-		/// <returns>The object that was read.</returns>
-		protected internal T Read(string fullText) {
+		/// <returns>The objects that were read.</returns>
+		protected internal IList<T> Read(string fullText) {
+			if (fullText == null)
+				throw new ArgumentNullException(fullText, "The full text cannot be null.");
+
 			// Tokenize the full text.
-			IEnumerable<Token> tokens = Tokenize(fullText).ToList();
+			IList<Token> tokens = Tokenize(fullText).ToList();
 
 			return Read(tokens);
 		}
 
 		/// <summary>
-		/// Reads a tokenized object from the given tokens.
+		/// Reads multiple tokenized objects from the given tokens.
+		/// </summary>
+		/// <param name="tokens">The tokens to read from.</param>
+		/// <returns>The objects that were read.</returns>
+		protected internal IList<T> Read(IList<Token> tokens) {
+			if (tokens == null)
+				throw new ArgumentNullException(nameof(tokens), "The tokens cannot be null.");
+
+			List<T> readObjects = new List<T>();
+			while (tokens.Any()) {
+				// Read objects until no tokens are left.
+				readObjects.Add(ReadSingle(ref tokens));
+			}
+			return readObjects;
+		}
+
+		/// <summary>
+		/// Reads a single tokenized object from the input stream. If no objects or read or more than one object was read, an exception is thrown.
+		/// </summary>
+		/// <returns>The object that was read.</returns>
+		public T ReadSingle() {
+			IList<T> readObjects = this.Read();
+			if (readObjects.Count != 1) {
+				throw new InvalidDataException("Expected exactly 1 tokenized " + nameof(T) + " but read " + readObjects.Count + ".");
+			}
+			return readObjects[0];
+		}
+
+		/// <summary>
+		/// Reads tokenized objects from the given tokens.
 		/// </summary>
 		/// <param name="tokens">The tokens to read from.</param>
 		/// <returns>The object that was read.</returns>
-		protected internal T Read(IEnumerable<Token> tokens) {
+		protected internal T ReadSingle(ref IList<Token> tokens) {
 			if (tokens == null)
 				throw new ArgumentNullException(nameof(tokens), "The tokens cannot be null.");
 
 			// Read text archives using each database until success.
 			object result = null;
 			List<Token> failedTokens = new List<Token>(this.Databases.Count);
+			IEnumerator<Token> tokenEnumerator = null;
 
 			foreach (CommandDatabase db in this.Databases) {
 				// Get the token enumerator.
-				IEnumerator<Token> tokenEnumerator = tokens.GetEnumerator();
+				tokenEnumerator = tokens.GetEnumerator();
 
 				result = Read(tokenEnumerator, db, true);
 
@@ -205,7 +238,19 @@ namespace LibTextPet.IO {
 				failedTokens.Add(tokenEnumerator.Current);
 			}
 
-			if (result == null) {
+			if (result != null) {
+				// Get all remaining tokens.
+				List<Token> remaining = new List<Token>(tokens.Count);
+				while (!this.Consumed || tokenEnumerator.MoveNext()) {
+					remaining.Add(tokenEnumerator.Current);
+					this.Consumed = true;
+				}
+
+				// Remove all remaining tokens and return result.
+				tokens = remaining;
+				return (T)result;
+			} else {
+				// Find out what token(s) we failed on.
 				bool allMatched = true;
 				foreach (Token failedToken in failedTokens) {
 					if (failedToken != failedTokens[0]) {
@@ -231,8 +276,6 @@ namespace LibTextPet.IO {
 					throw new FormatException(builder.ToString());
 				}
 			}
-
-			return (T)result;
 		}
 
 		/// <summary>
