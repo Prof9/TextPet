@@ -194,7 +194,15 @@ namespace LibTextPet.IO {
 			List<T> readObjects = new List<T>();
 			while (tokens.Any()) {
 				// Read objects until no tokens are left.
-				readObjects.Add(ReadSingle(ref tokens));
+				readObjects.Add(ReadSingle(tokens));
+
+				// Get the remaining tokens.
+				List<Token> remaining = new List<Token>(tokens.Count);
+				while (!this.Consumed || this.TokenEnumerator.MoveNext()) {
+					remaining.Add(this.TokenEnumerator.Current);
+					this.Consumed = true;
+				}
+				tokens = remaining;
 			}
 			return readObjects;
 		}
@@ -216,7 +224,7 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <param name="tokens">The tokens to read from.</param>
 		/// <returns>The object that was read.</returns>
-		protected internal T ReadSingle(ref IList<Token> tokens) {
+		protected internal T ReadSingle(IList<Token> tokens) {
 			if (tokens == null)
 				throw new ArgumentNullException(nameof(tokens), "The tokens cannot be null.");
 
@@ -238,18 +246,7 @@ namespace LibTextPet.IO {
 				failedTokens.Add(tokenEnumerator.Current);
 			}
 
-			if (result != null) {
-				// Get all remaining tokens.
-				List<Token> remaining = new List<Token>(tokens.Count);
-				while (!this.Consumed || tokenEnumerator.MoveNext()) {
-					remaining.Add(tokenEnumerator.Current);
-					this.Consumed = true;
-				}
-
-				// Remove all remaining tokens and return result.
-				tokens = remaining;
-				return (T)result;
-			} else {
+			if (result == null) {
 				// Find out what token(s) we failed on.
 				bool allMatched = true;
 				foreach (Token failedToken in failedTokens) {
@@ -276,6 +273,8 @@ namespace LibTextPet.IO {
 					throw new FormatException(builder.ToString());
 				}
 			}
+
+			return (T)result;
 		}
 
 		/// <summary>

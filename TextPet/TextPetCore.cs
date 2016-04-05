@@ -155,12 +155,20 @@ namespace TextPet {
 		}
 
 		/// <summary>
+		/// A delegate that reads text archives from the specified input stream.
+		/// </summary>
+		/// <param name="stream">The input stream to read from.</param>
+		/// <param name="path">The path of the text archive.</param>
+		/// <returns>The text archives that were read.</returns>
+		internal delegate IList<TextArchive> TextArchiveFileHandler(MemoryStream stream, string path);
+
+		/// <summary>
 		/// Reads text archives from the specified path.
 		/// </summary>
 		/// <param name="path">The path to read from; can be a file or folder.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		/// <param name="readDelegate">The read delegate that reads a text archive with the specified name from the specified stream.</param>
-		public void ReadTextArchives(string path, bool recursive, Func<MemoryStream, string, IList<TextArchive>> readDelegate) {
+		internal void ReadTextArchives(string path, bool recursive, TextArchiveFileHandler readDelegate) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The path cannot be null.");
 			if (readDelegate == null)
