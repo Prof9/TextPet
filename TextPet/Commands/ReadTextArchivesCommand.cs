@@ -1,4 +1,8 @@
-﻿using System;
+﻿using LibTextPet.IO.Msg;
+using LibTextPet.IO.TextBox;
+using LibTextPet.IO.TPL;
+using LibTextPet.Msg;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -34,18 +38,22 @@ namespace TextPet.Commands {
 			"ROM", "READONLYMEMORY", "GBA", "AGB", "GAMEBOYADVANCE",
 		};
 
+		protected bool Recursive { get; set; }
+
 		public ReadTextArchivesCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
 				pathArg,
 			}, new OptionalArgument[] {
 				new OptionalArgument(formatArg, 'f', "format"),
 				new OptionalArgument(recursiveArg, 'r'),
-			}) { }
+			}) {
+			this.Recursive = false;
+		}
 
 		protected override void RunImplementation() {
 			string manualFormat = GetOptionalValues(formatArg)?[0];
 			string path = GetRequiredValue(pathArg);
-			bool recursive = GetOptionalValues(recursiveArg) != null;
+			this.Recursive = GetOptionalValues(recursiveArg) != null;
 
 			// If format is not specified, use file extension.
 			string format;
@@ -65,11 +73,11 @@ namespace TextPet.Commands {
 			format = format.ToUpperInvariant().Replace("-", "");
 
 			if (binFormats.Contains(format)) {
-				this.Core.ReadTextArchivesBinary(path, recursive);
+				ReadTextArchivesBinary(path);
 			} else if (tplFormats.Contains(format)) {
-				this.Core.ReadTextArchivesTPL(path, recursive);
+				this.ReadTextArchivesTPL(path);
 			} else if (txtFormats.Contains(format)) {
-				this.Core.ReadTextArchivesTextBoxes(path, recursive);
+				this.ReadTextArchivesTextBoxes(path);
 			} else if (romFormats.Contains(format)) {
 				this.Core.ReadTextArchivesROM(path);
 			} else if (manualFormat == null) {
@@ -77,6 +85,77 @@ namespace TextPet.Commands {
 			} else {
 				Console.WriteLine("ERROR: Unknown text archive format \"" + format + "\".");
 			}
+		}
+
+		/// <summary>
+		/// Verifies whether the active game has been initialized, printing an error an exception if it has not.
+		/// </summary>
+		protected bool VerifyGameInitialized() {
+			if (this.Core.Game == null) {
+				Console.ForegroundColor = ConsoleColor.Red;
+				Console.WriteLine("ERROR: No active game has been set.");
+				Console.ResetColor();
+				return false;
+			} else {
+				return true;
+			}
+		}
+
+		/// <summary>
+		/// Reads binary text archives from the specified path.
+		/// </summary>
+		/// <param name="path">The path to load from. Can be a file or folder.</param>
+		public void ReadTextArchivesBinary(string path) {
+			this.Core.ReadTextArchives(path, this.Recursive, delegate (MemoryStream ms, string file) {
+				BinaryTextArchiveReader reader = new BinaryTextArchiveReader(ms, this.Core.Game);
+				reader.IgnorePointerSyncErrors = true;
+				TextArchive ta = reader.Read((int)ms.Length);
+				ta.Identifier = Path.GetFileNameWithoutExtension(file);
+				return new TextArchive[] { ta };
+			});
+		}
+
+		/// <summary>
+		/// Reads TextPet Language text archives from the specified path.
+		/// </summary>
+		/// <param name="path">The path to load from. Can be a file or folder.</param>
+		public void ReadTextArchivesTPL(string path) {
+			if (!VerifyGameInitialized()) {
+				return;
+			}
+			CommandDatabase[] databases = this.Core.Game.Databases.ToArray();
+
+			this.Core.ReadTextArchives(path, this.Recursive, delegate (MemoryStream ms, string file) {
+				TPLTextArchiveReader reader = new TPLTextArchiveReader(ms, databases);
+
+				List<TextArchive> tas = new List<TextArchive>();
+				while (!reader.AtEnd) {
+					tas.AddRange(reader.Read());
+				}
+				return tas;
+			});
+		}
+
+		/// <summary>
+		/// Reads text box template text archives from the specified path.
+		/// </summary>
+		/// <param name="path">The path to load from. Can be a file or folder.</param>
+		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
+		public void ReadTextArchivesTextBoxes(string path) {
+			if (!VerifyGameInitialized()) {
+				return;
+			}
+			CommandDatabase[] databases = this.Core.Game.Databases.ToArray();
+
+			this.Core.ReadTextArchives(path, this.Recursive, delegate (MemoryStream ms, string file) {
+				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
+
+				List<TextArchive> tas = new List<TextArchive>();
+				while (!reader.AtEnd) {
+					tas.AddRange(reader.Read());
+				}
+				return tas;
+			});
 		}
 	}
 }

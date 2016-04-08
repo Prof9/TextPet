@@ -209,61 +209,6 @@ namespace TextPet {
 		}
 
 		/// <summary>
-		/// Reads binary text archives from the specified path.
-		/// </summary>
-		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
-		public void ReadTextArchivesBinary(string path, bool recursive) {
-			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
-				BinaryTextArchiveReader reader = new BinaryTextArchiveReader(ms, this.Game);
-				reader.IgnorePointerSyncErrors = true;
-				TextArchive ta = reader.Read((int)ms.Length);
-				ta.Identifier = Path.GetFileNameWithoutExtension(file);
-				return new TextArchive[] { ta };
-			});
-		}
-
-		/// <summary>
-		/// Reads TextPet Language text archives from the specified path.
-		/// </summary>
-		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
-		public void ReadTextArchivesTPL(string path, bool recursive) {
-			VerifyGameInitialized();
-			CommandDatabase[] databases = this.Game.Databases.ToArray();
-
-			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
-				TPLTextArchiveReader reader = new TPLTextArchiveReader(ms, databases);
-
-				List<TextArchive> tas = new List<TextArchive>();
-				while (!reader.AtEnd) {
-					tas.AddRange(reader.Read());
-				}
-				return tas;
-			});
-		}
-
-		/// <summary>
-		/// Reads text box template text archives from the specified path.
-		/// </summary>
-		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
-		public void ReadTextArchivesTextBoxes(string path, bool recursive) {
-			VerifyGameInitialized();
-			CommandDatabase[] databases = this.Game.Databases.ToArray();
-
-			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
-				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
-
-				List<TextArchive> tas = new List<TextArchive>();
-				while (!reader.AtEnd) {
-					tas.AddRange(reader.Read());
-				}
-				return tas;
-			});
-		}
-
-		/// <summary>
 		/// Reads binary text archives from the specified ROM file using the currently loaded ROM entries.
 		/// </summary>
 		/// <param name="file">The path to the ROM file.</param>
