@@ -51,7 +51,7 @@ namespace LibTextPet.IO.TextBox {
 							} else {
 								// Start of the current text archive.
 								if (directive.HasNonemptyValue) {
-									obj.Identifier = directive.Value;
+									obj.Identifier = directive.Value.Trim();
 								}
 								identifierRead = true;
 								return ProcessResult.ConsumeAndContinue;
@@ -63,13 +63,15 @@ namespace LibTextPet.IO.TextBox {
 							if (!directive.HasNonemptyValue) {
 								throw new FormatException("Script number is missing.");
 							}
-							if (!NumberParser.TryParseInt32(directive.Value, out scriptNum)) {
-								throw new FormatException("Could not parse script number \"" + directive.Value + "\".");
+							if (!NumberParser.TryParseInt32(directive.Value.Trim(), out scriptNum)) {
+								throw new FormatException("Could not parse script number \"" + directive.Value.Trim() + "\".");
 							}
 							currentScriptTokens = new List<Token>();
 							return ProcessResult.ConsumeAndContinue;
 					}
 					break;
+				case (int)TextBoxTokenType.Comment:
+					return ProcessResult.ConsumeAndContinue;
 			}
 
 			if (currentScriptTokens == null) {

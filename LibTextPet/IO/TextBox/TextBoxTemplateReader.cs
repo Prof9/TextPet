@@ -96,11 +96,11 @@ namespace LibTextPet.IO.TextBox {
 			// Extract the directive name and value.
 			int valueIndex = token.Value.IndexOf(':');
 			if (valueIndex < 0) {
-				dName = token.Value;
+				dName = token.Value.Trim();
 				dValue = null;
 			} else {
-				dName = token.Value.Substring(0, valueIndex);
-				dValue = token.Value.Substring(valueIndex + 1);
+				dName = token.Value.Substring(0, valueIndex).Trim();
+				dValue = token.Value.Substring(valueIndex + 1).Trim();
 			}
 
 			// Handle special cases for TextBoxSeparator and TextBoxSplit.
