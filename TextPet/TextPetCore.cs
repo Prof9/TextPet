@@ -13,6 +13,7 @@ using TextPet.Events;
 using System.ComponentModel;
 using LibTextPet.IO;
 using LibTextPet.IO.TextBox;
+using System.Text;
 
 namespace TextPet {
 	/// <summary>
@@ -59,8 +60,9 @@ namespace TextPet {
 		/// Retrieves the game with the specified name and initializes it, if needed.
 		/// </summary>
 		/// <param name="name">The game name, case insensitive.</param>
+		/// <param name="ignoreUnknownChars">If true, unrecognized characters will be skipped; otherwise, an error will be thrown if one is encountered.</param>
 		/// <returns>true if the active game was changed; false if the specified game name was not recognized.</returns>
-		public bool SetActiveGame(string name) {
+		public bool SetActiveGame(string name, bool ignoreUnknownChars) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The game name cannot be null.");
 
@@ -81,6 +83,7 @@ namespace TextPet {
 
 				GameInitialized?.Invoke(this, new GameInfoEventArgs(game));
 			}
+			game.Encoding.IgnoreUnknownChars = ignoreUnknownChars;
 
 			this.Game = game;
 			return true;
@@ -296,8 +299,9 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="path">The path to write to; can be a file or folder.</param>
 		/// <param name="extension">The extension to use in case the write path points to a folder.</param>
-		/// <param name="writerDelegate">The write delegate that writes the specified text archive to the specified stream.</param>
-		public void WriteTextArchives(string path, string extension, Action<MemoryStream, TextArchive> writeDelegate) {
+		/// <param name="single">If true, all text archives are written to a single file; otherwise, each text archive is written to a separate file.</param>
+		/// <param name="writeDelegate">The write delegate that writes the specified text archive to the specified stream.</param>
+		public void WriteTextArchives(string path, string extension, bool single, Action<MemoryStream, TextArchive> writeDelegate) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The path cannot be null.");
 			if (writeDelegate == null)
@@ -306,13 +310,16 @@ namespace TextPet {
 			VerifyGameInitialized();
 
 			// Are we writing to a file or a folder?
-			bool toFolder = IsFolderWrite(path);
+			bool toFolder = single ? false : IsFolderWrite(path);
 
 			// Create the (containing directory).
 			if (toFolder) {
 				Directory.CreateDirectory(path);
 			} else {
-				Directory.CreateDirectory(Path.GetDirectoryName(path));
+				string directory = Path.GetDirectoryName(path);
+				if (directory.Length > 0) {
+					Directory.CreateDirectory(directory);
+				}
 			}
 
 			// Determine the output file paths.
@@ -343,11 +350,15 @@ namespace TextPet {
 				// Begin writing the text archive.
 				WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, ta));
 
+				// Append if this is a single file write and we're past the first file, otherwise create separate files for every text archive.
+				bool append = !toFolder && i > 0;
+
 				// Write the text archive using the write delegate, then copy it to the file.
 				using (MemoryStream ms = new MemoryStream()) {
 					writeDelegate(ms, ta);
 
-					using (FileStream fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.None)) {
+					using (FileStream fs = new FileStream(file, append ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.None)) {
+						fs.Position = fs.Length;
 						ms.WriteTo(fs);
 					}
 				}
@@ -365,7 +376,7 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="path">The path to write to; can be a file or folder.</param>
 		public void WriteTextArchivesBinary(string path) {
-			WriteTextArchives(path, "msg", delegate (MemoryStream ms, TextArchive ta) {
+			WriteTextArchives(path, "msg", false, delegate (MemoryStream ms, TextArchive ta) {
 				IWriter<TextArchive> writer = new BinaryTextArchiveWriter(ms, this.Game.Encoding);
 				writer.Write(ta);
 			});
@@ -375,8 +386,9 @@ namespace TextPet {
 		/// Writes TextPet Language text archives to the specified path.
 		/// </summary>
 		/// <param name="path">The path to write to; can be a file or folder.</param>
-		public void WriteTextArchivesTPL(string path) {
-			WriteTextArchives(path, "tpl", delegate (MemoryStream ms, TextArchive ta) {
+		/// <param name="single">If true, all text archives are written to a single file; otherwise, each text archive is written to a separate file.</param>
+		public void WriteTextArchivesTPL(string path, bool single) {
+			WriteTextArchives(path, "tpl", single, delegate (MemoryStream ms, TextArchive ta) {
 				IWriter<TextArchive> writer = new TPLTextArchiveWriter(ms);
 				writer.Write(ta);
 			});
@@ -506,8 +518,9 @@ namespace TextPet {
 		/// Extracts text boxes from text archives and writes them to the specified path.
 		/// </summary>
 		/// <param name="path">The path to write to; can be a file or folder.</param>
-		public void ExtractTextBoxes(string path) {
-			WriteTextArchives(path, "txt", delegate (MemoryStream ms, TextArchive ta) {
+		/// <param name="single">If true, all text archives are written to a single file; otherwise, each text archive is written to a separate file.</param>
+		public void ExtractTextBoxes(string path, bool single) {
+			WriteTextArchives(path, "txt", single, delegate (MemoryStream ms, TextArchive ta) {
 				IWriter<TextArchive> writer = new TextBoxTextArchiveWriter(ms);
 				writer.Write(ta);
 			});

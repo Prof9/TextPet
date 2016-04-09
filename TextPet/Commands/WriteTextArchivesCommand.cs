@@ -20,6 +20,7 @@ namespace TextPet.Commands {
 
 		private const string formatArg = "format";
 		private const string freeSpaceArg = "free-space";
+		private const string singleArg = "single";
 		private const string pathArg = "path";
 
 		private readonly string[] binFormats = new string[] {
@@ -40,7 +41,8 @@ namespace TextPet.Commands {
 				pathArg,
 			}, new OptionalArgument[] {
 				new OptionalArgument(formatArg, 'f', "format"),
-				new OptionalArgument(freeSpaceArg, 's', "offset"),
+				new OptionalArgument(freeSpaceArg, 'o', "offset"),
+				new OptionalArgument(singleArg, 's'),
 			}) { }
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1303:Do not pass literals as localized parameters", MessageId = "System.Console.WriteLine(System.String)")]
@@ -56,7 +58,9 @@ namespace TextPet.Commands {
 				string extension = Path.GetExtension(path);
 
 				if (extension.Length <= 1 || extension[0] != '.') {
+					Console.ForegroundColor = ConsoleColor.Red;
 					Console.WriteLine("ERROR: Text archive format not specified.");
+					Console.ResetColor();
 					return;
 				}
 
@@ -68,17 +72,23 @@ namespace TextPet.Commands {
 			if (binFormats.Contains(format)) {
 				this.Core.WriteTextArchivesBinary(path);
 			} else if (tplFormats.Contains(format)) {
-				this.Core.WriteTextArchivesTPL(path);
+				bool single = GetOptionalValues(singleArg) != null;
+				this.Core.WriteTextArchivesTPL(path, single);
 			} else if (txtFormats.Contains(format)) {
-				this.Core.ExtractTextBoxes(path);
+				bool single = GetOptionalValues(singleArg) != null;
+				this.Core.ExtractTextBoxes(path, single);
 			} else if (romFormats.Contains(format)) {
 				string fspaceVal = GetOptionalValues(freeSpaceArg)?[0] ?? "-1";
 				long fspace = NumberParser.ParseInt64(fspaceVal);
 				this.Core.WriteTextArchivesROM(path, fspace);
 			} else if (manualFormat == null) {
+				Console.ForegroundColor = ConsoleColor.Red;
 				Console.WriteLine("ERROR: Unknown text archive extension \"" + format + "\". Change the file extension or specify the format manually.");
+				Console.ResetColor();
 			} else {
+				Console.ForegroundColor = ConsoleColor.Red;
 				Console.WriteLine("ERROR: Unknown text archive format \"" + format + "\".");
+				Console.ResetColor();
 			}
 		}
 	}
