@@ -184,8 +184,11 @@ namespace LibTextPet.Text {
 								// Is the fallback char in the lookup table?
 								if (stringToByteDictionary.TryGetValue(nextKey, out nextValue)) {
 									stream.Write(nextValue, 0, nextValue.Length);
-								} else
+									pos++;
+									found = true;
+								} else {
 									throw new EncoderFallbackException("Could not encode " + fallbackChar + ".");
+								}
 							}
 						} else {
 							throw new EncoderFallbackException("Could not encode " + fallbackChar + ".");
