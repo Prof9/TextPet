@@ -69,7 +69,8 @@ namespace LibTextPet.IO.Msg {
 				long offset;
 				if (writeStream.Length > entry.Size) {
 					// Align to multiple of 4 bytes.
-					offset = (this.FreeSpaceOffset + 3) & ~3;
+					this.FreeSpaceOffset = (this.FreeSpaceOffset + 3) & ~3;
+					offset = this.FreeSpaceOffset;
 					this.FreeSpaceOffset += writeStream.Length;
 				} else {
 					offset = entry.Offset;
