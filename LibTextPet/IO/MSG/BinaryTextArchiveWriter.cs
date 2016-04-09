@@ -51,11 +51,15 @@ namespace LibTextPet.IO.Msg {
 				offsets.Add(this.BaseStream.Position - start);
 
 				Script script = obj[i];
+#if !DEBUG
 				try {
+#endif
 					this.ScriptWriter.Write(script);
+#if !DEBUG
 				} catch (EncoderFallbackException ex) {
 					throw new InvalidDataException("Could not encode character " + ex.CharUnknown + " in script " + i + " of text archive " + obj.Identifier + ".", ex);
 				}
+#endif
 			}
 
 			// Save the end position.
