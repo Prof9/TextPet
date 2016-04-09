@@ -86,6 +86,10 @@ namespace TextPet {
 		/// Gets the current values of the optional arguments of this command.
 		/// </summary>
 		private IDictionary<string, IList<string>> OptionalValues { get; }
+		/// <summary>
+		/// 
+		/// </summary>
+		private ICollection<string> UsedOptionalValues { get; }
 
 		/// <summary>
 		/// Creates a new command line interface command with no arguments.
@@ -132,6 +136,7 @@ namespace TextPet {
 
 			this.RequiredValues = new Dictionary<string, string>(requiredArguments.Count, StringComparer.OrdinalIgnoreCase);
 			this.OptionalValues = new Dictionary<string, IList<string>>(optionalArguments.Count, StringComparer.OrdinalIgnoreCase);
+			this.UsedOptionalValues = new HashSet<string>();
 		}
 
 		/// <summary>
@@ -154,9 +159,55 @@ namespace TextPet {
 			pos += ParseRequiredArguments(args, pos);
 			pos += ParseOptionalArguments(args, pos);
 
+			// Clear the optional arguments usage flags and run the implementation.
+			this.UsedOptionalValues.Clear();
 			RunImplementation();
 
+			PrintIgnoredOptionalArguments();
+
 			return pos - start;
+		}
+
+		/// <summary>
+		/// Prints a warning to the console if any optional arguments that were provided by the user were not used when this
+		/// command's implementation was last run.
+		/// </summary>
+		private void PrintIgnoredOptionalArguments() {
+			// Check which optional arguments were not used.
+			IList<string> unused = new List<string>(this.OptionalArguments.Count);
+			foreach (string longName in this.OptionalValues.Keys) {
+				if (!this.UsedOptionalValues.Contains(longName)) {
+					unused.Add(longName);
+				}
+			}
+			// Print a warning if some optional arguments were unused.
+			if (unused.Any()) {
+				Console.ForegroundColor = ConsoleColor.Yellow;
+				Console.Write("WARNING: Argument");
+				if (unused.Count != 1) {
+					Console.Write('s');
+				}
+				for (int i = 0; i < unused.Count; i++) {
+					if (unused.Count != 1 && i == unused.Count - 1) {
+						Console.Write(" and");
+					} else if (i != 0) {
+						Console.Write(',');
+					}
+
+					Console.Write(' ');
+					Console.ForegroundColor = ConsoleColor.DarkYellow;
+					Console.Write(unused[i]);
+					Console.ForegroundColor = ConsoleColor.Yellow;
+				}
+				Console.Write(' ');
+				if (unused.Count != 1) {
+					Console.Write("were");
+				} else {
+					Console.Write("was");
+				}
+				Console.WriteLine(" ignored.");
+				Console.ResetColor();
+			}
 		}
 
 		/// <summary>
@@ -293,6 +344,7 @@ namespace TextPet {
 		protected IList<string> GetOptionalValues(string longName) {
 			IList<string> values;
 			if (this.OptionalValues.TryGetValue(longName, out values)) {
+				this.UsedOptionalValues.Add(longName);
 				return values;
 			} else {
 				return null;
