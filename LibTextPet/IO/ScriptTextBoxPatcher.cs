@@ -1,7 +1,9 @@
 ﻿using LibTextPet.General;
+using LibTextPet.IO.Msg;
 using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -36,17 +38,38 @@ namespace LibTextPet.IO {
 				throw new ArgumentNullException(nameof(baseObj), "The base script cannot be null.");
 			if (patchObj == null)
 				throw new ArgumentNullException(nameof(patchObj), "The patch script cannot be null.");
-
+			
 			IList<Command> boxA;
 			Script boxB;
+
+			// Load the text box split script, if there is one.
+			Script textBoxSplitScript = null;
+			byte[] writtenTextBoxSplitScript = null;
+			if (this.Databases.Contains(baseObj.DatabaseName)) {
+				// Load the database.
+				CommandDatabase db = this.Databases[baseObj.DatabaseName];
+				if (db.TextBoxSplitScript != null && db.TextBoxSplitScript.Any()) {
+					textBoxSplitScript = db.TextBoxSplitScript;
+
+					// Write the text box split script to a byte array.
+					using (MemoryStream ms = new MemoryStream()) {
+						BinaryScriptWriter writer = new BinaryScriptWriter(ms, new UTF8Encoding(false, true));
+						writer.Write(textBoxSplitScript);
+						writtenTextBoxSplitScript = ms.ToArray();
+					}
+				}
+			}
 
 			for (int a = 0, b = 0; a < baseObj.Count; a++) {
 				// Skip any elements that are not part of a text box.
 				if (IsPrinted(baseObj[a])) {
 					// Start of a new text box.
 					// Advance B to the next text box.
-					while (!IsPrinted(patchObj[b]) && b < patchObj.Count) {
-						b++;
+					while (b != 0 && b < patchObj.Count) {
+						DirectiveElement directive = patchObj[b++] as DirectiveElement;
+						if (directive != null && directive.DirectiveType == DirectiveType.TextBoxSeparator) {
+							break;
+						}
 					}
 
 					// Do we have text left in B?
@@ -54,36 +77,17 @@ namespace LibTextPet.IO {
 						throw new ArgumentException("The patch script must have the same number of text boxes as the base script.", nameof(patchObj));
 					}
 
-					// Extract printed commands box from A.
-					boxA = new List<Command>();
-					while (a < baseObj.Count && !EndsTextBox(baseObj[a])) {
-						// We only need to copy the commands, so discard the other elements.
-						Command cmdA = baseObj[a] as Command;
-						if (cmdA != null) {
-							// Extract the command from A.
-							boxA.Add(cmdA);
-						}
-						// Discard the printed element.
-						baseObj.RemoveAt(a);
-					}
-
 					// Extract text box from B.
 					boxB = new Script(baseObj.DatabaseName);
 					while (b < patchObj.Count && !EndsTextBox(patchObj[b])) {
 						if (SplitsTextBox(patchObj[b])) {
-							// Do we have this database?
-							if (!this.Databases.Contains(baseObj.DatabaseName)) {
-								throw new ArgumentException("Unknown command database \"" + baseObj.DatabaseName + "\"; text box splitting is not supported.", nameof(patchObj));
-							}
-							CommandDatabase db = this.Databases[baseObj.DatabaseName];
-
 							// Do we have a split script?
-							if (db.TextBoxSplitScript == null) {
-								throw new ArgumentException("Command database \"" + db.Name + "\" does not support text box splitting.", nameof(patchObj));
+							if (textBoxSplitScript == null) {
+								throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box splitting is not supported.", nameof(patchObj));
 							}
 
 							// Apply the text box split script to extend the current text box.
-							foreach (IScriptElement elem in db.TextBoxSplitScript) {
+							foreach (IScriptElement elem in textBoxSplitScript) {
 								boxB.Add(elem);
 							}
 						} else if (IsPrinted(patchObj[b])) {
@@ -93,11 +97,68 @@ namespace LibTextPet.IO {
 						b++;
 					}
 
-					// Patch box B commands with commands in A.
-					PatchTextBox(boxB, boxA);
+					// If box B is empty, check if the next few commands match the text box split script.
+					if (!boxB.Any()) {
+						// Do we have a split script?
+						if (textBoxSplitScript == null) {
+							throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box merging is not supported.", nameof(patchObj));
+						}
 
-					foreach (IScriptElement elem in boxB) {
-						baseObj.Insert(a++, elem);
+						// Extract the next few commands from the base object.
+						Script nextCommands = new Script(baseObj.DatabaseName);
+						for (int i = 0, j = 0; i < textBoxSplitScript.Count && (i + j + a) < baseObj.Count; i++) {
+							// Skip printed commands (j is used as skipped counter).
+							if (IsPrinted(baseObj[i + j + a])) {
+								j++;
+								i--;
+								continue;
+							}
+							nextCommands.Add(baseObj[i + j + a]);
+						}
+
+						// Write the next few commands to a byte array.
+						byte[] writtenNextCommands;
+						using (MemoryStream ms = new MemoryStream()) {
+							BinaryScriptWriter writer = new BinaryScriptWriter(ms, new UTF8Encoding(false, true));
+							writer.Write(nextCommands);
+							writtenNextCommands = ms.ToArray();
+						}
+
+						// Check if equal.
+						if (!ByteSequenceEqualityComparer.Instance.Equals(writtenTextBoxSplitScript, writtenNextCommands)) {
+							throw new ArgumentException("Next commands following empty text box do not match text box split script. Could not merge text boxes.");
+						}
+
+						// Merge with the next text box by removing the split script commands.
+						for (int i = 0, j = 0; i < textBoxSplitScript.Count; i++) {
+							// Don't discard printed commands.
+							if (IsPrinted(baseObj[a + j])) {
+								j++;
+								i--;
+							} else {
+								baseObj.RemoveAt(a + j);
+							}
+						}
+					} else {
+						// Extract printed commands box from A.
+						boxA = new List<Command>();
+						while (a < baseObj.Count && !EndsTextBox(baseObj[a])) {
+							// We only need to copy the commands, so discard the other elements.
+							Command cmdA = baseObj[a] as Command;
+							if (cmdA != null) {
+								// Extract the command from A.
+								boxA.Add(cmdA);
+							}
+							// Discard the printed element.
+							baseObj.RemoveAt(a);
+						}
+
+						// Patch box B commands with commands in A.
+						PatchTextBox(boxB, boxA);
+
+						foreach (IScriptElement elem in boxB) {
+							baseObj.Insert(a++, elem);
+						}
 					}
 
 					// Rewind a by 1 so the text box-ending element is used as the next element.
