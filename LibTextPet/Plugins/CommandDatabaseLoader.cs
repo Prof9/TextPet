@@ -77,6 +77,7 @@ namespace LibTextPet.Plugins {
 					writer.Flush();
 
 					// Parse the split script.
+					splitScriptStream.Position = 0;
 					TPLScriptReader scriptReader = new TPLScriptReader(splitScriptStream, db);
 					IList<Script> readScripts = scriptReader.Read();
 					if (readScripts.Count == 0) {
