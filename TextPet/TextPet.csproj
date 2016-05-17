@@ -116,7 +116,13 @@
     <None Include="plugins\bn1-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="plugins\bn2-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="plugins\exe1-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\exe2-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\exe45t-utf8.tbl">
