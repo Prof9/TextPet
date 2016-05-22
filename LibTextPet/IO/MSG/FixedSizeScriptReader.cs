@@ -37,11 +37,6 @@ namespace LibTextPet.IO.Msg {
 		}
 
 		/// <summary>
-		/// The starting position of the script currently being read in the input stream.
-		/// </summary>
-		protected long StartPosition { get; private set; }
-
-		/// <summary>
 		/// Creates a new fixed size binary script reader that reads from the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
@@ -70,17 +65,6 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		public void ClearFixedLength() {
 			this.UseFixedLength = false;
-		}
-
-		/// <summary>
-		/// Reads a script from the current input stream.
-		/// </summary>
-		/// <returns>The script that was read.</returns>
-		public override Script Read() {
-			// Save the start position of the current script to keep track of the running length.
-			this.StartPosition = this.BaseStream.Position;
-
-			return base.Read();
 		}
 
 		/// <summary>

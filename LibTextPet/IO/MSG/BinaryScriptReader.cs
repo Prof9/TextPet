@@ -13,6 +13,11 @@ namespace LibTextPet.IO.Msg {
 	/// </summary>
 	public class BinaryScriptReader : ScriptReader<BinaryCommandReader> {
 		/// <summary>
+		/// Gets the starting position of the last script read or the script currently being read from the input stream.
+		/// </summary>
+		public long StartPosition { get; private set; }
+
+		/// <summary>
 		/// Creates a new binary script reader that reads from the specified input stream, using the specified game info.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
@@ -28,6 +33,17 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="databases">The command databases to use, in order of preference.</param>
 		public BinaryScriptReader(Stream stream, CustomFallbackEncoding encoding, params CommandDatabase[] databases)
 			: base(stream, encoding, CreateCommandReaders(stream, databases)) { }
+
+		/// <summary>
+		/// Reads a script from the current input stream.
+		/// </summary>
+		/// <returns>The script that was read.</returns>
+		public override Script Read() {
+			// Save the start position of the current script to keep track of the running length.
+			this.StartPosition = this.BaseStream.Position;
+
+			return base.Read();
+		}
 
 		/// <summary>
 		/// Reads the next fallback element from the input stream.
