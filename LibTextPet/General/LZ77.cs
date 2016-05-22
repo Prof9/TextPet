@@ -14,7 +14,7 @@ namespace LibTextPet.General {
 		/// Decompresses LZ77-compressed data from the given input stream.
 		/// </summary>
 		/// <param name="input">The input stream to read from.</param>
-		/// <returns>The decompressed data.</returns>
+		/// <returns>A stream containing the decompressed data, or null if the data in the given input stream was not LZ77-compressed.</returns>
 		public static MemoryStream Decompress(Stream input) {
 			if (input == null)
 				throw new ArgumentNullException(nameof(input), "The input stream cannot be null.");
@@ -25,60 +25,61 @@ namespace LibTextPet.General {
 			BinaryReader reader = new BinaryReader(input);
 
 			// Check LZ77 type.
-			if (reader.ReadByte() != 0x10)
-				throw new ArgumentException("The input stream does not contain LZ77-compressed data.", nameof(input));
+			if (reader.ReadByte() != 0x10) {
+				return null;
+			}
 
 			// Read the decompressed size.
 			int size = reader.ReadUInt16() | (reader.ReadByte() << 16);
 
 			// Create output stream.
 			MemoryStream output = new MemoryStream(size);
+			
+			// Begin decompression.
+			while (output.Length < size) {
+				// Load flags for the next 8 blocks.
+				int flagByte = reader.ReadByte();
 
-			try {
-				// Begin decompression.
-				while (output.Length < size) {
-					// Load flags for the next 8 blocks.
-					int flagByte = reader.ReadByte();
+				// Process the next 8 blocks unless all data has been decompressed.
+				for (int i = 0; i < 8 && output.Length < size; i++) {
+					// Check if the block is compressed.
+					if ((flagByte & (0x80 >> i)) == 0) {
+						// Uncompressed block; copy single byte.
+						output.WriteByte(reader.ReadByte());
+					} else {
+						// Compressed block; read block.
+						ushort block = reader.ReadUInt16();
+						// Get byte count.
+						int count = ((block >> 4) & 0xF) + 3;
+						// Get displacement.
+						int disp = ((block & 0xF) << 8) | (block >> 8);
 
-					// Process the next 8 blocks unless all data has been decompressed.
-					for (int i = 0; i < 8 && output.Length < size; i++) {
-						// Check if the block is compressed.
-						if ((flagByte & (0x80 >> i)) == 0) {
-							// Uncompressed block; copy single byte.
-							output.WriteByte(reader.ReadByte());
-						} else {
-							// Compressed block; read block.
-							ushort block = reader.ReadUInt16();
-							// Get byte count.
-							int count = ((block >> 4) & 0xF) + 3;
-							// Get displacement.
-							int disp = ((block & 0xF) << 8) | (block >> 8);
+						// Check for invalid displacement.
+						if (disp > output.Position) {
+							return null;
+						}
 
-							// Save current position and copying position.
-							long outPos = output.Position;
-							long copyPos = output.Position - disp - 1;
+						// Save current position and copying position.
+						long outPos = output.Position;
+						long copyPos = output.Position - disp - 1;
 
-							// Copy all bytes.
-							for (int j = 0; j < count; j++) {
-								// Read byte to be copied.
-								output.Position = copyPos++;
-								byte b = (byte)output.ReadByte();
+						// Copy all bytes.
+						for (int j = 0; j < count; j++) {
+							// Read byte to be copied.
+							output.Position = copyPos++;
+							byte b = (byte)output.ReadByte();
 
-								// Write byte to be copied.
-								output.Position = outPos++;
-								output.WriteByte(b);
-							}
+							// Write byte to be copied.
+							output.Position = outPos++;
+							output.WriteByte(b);
 						}
 					}
 				}
-
-				// Return the decompressed data.
-				output.Position = 0;
-				return output;
-			} catch (Exception) {
-				output.Dispose();
-				throw;
 			}
+
+			// Return the decompressed data.
+			output.Position = 0;
+			return output;
 		}
 
 		/// <summary>
@@ -131,55 +132,6 @@ namespace LibTextPet.General {
 				output.Dispose();
 				throw;
 			}
-		}
-
-		/// <summary>
-		/// Gets the compressed size of LZ77-compressed data from the given input stream.
-		/// </summary>
-		/// <param name="input">The input stream to read from.</param>
-		/// <returns>The compressed size of the data.</returns>
-		public static int GetCompressedSize(Stream input) {
-			if (input == null)
-				throw new ArgumentNullException(nameof(input), "The input stream cannot be null.");
-			if (!input.CanRead)
-				throw new ArgumentException("The input stream does not support reading.", nameof(input));
-
-			// Create input reader.
-			BinaryReader reader = new BinaryReader(input);
-			long start = input.Position;
-
-			// Check LZ77 type.
-			if (reader.ReadByte() != 0x10)
-				throw new ArgumentException("The input stream does not contain LZ77-compressed data.", nameof(input));
-
-			// Read the decompressed size.
-			int size = reader.ReadUInt16() | (reader.ReadByte() << 16);
-
-			// Begin processing.
-			while (size > 0) {
-				// Load flags for the next 8 blocks.
-				int flagByte = reader.ReadByte();
-
-				// Process the next 8 blocks unless all data has been processed.
-				for (int i = 0; i < 8 && size > 0; i++) {
-					// Check if the block is compressed.
-					if ((flagByte & (0x80 >> i)) == 0) {
-						// Uncompressed block; copy single byte.
-						input.Position++;
-						size--;
-					} else {
-						// Compressed block; read block.
-						ushort block = reader.ReadUInt16();
-						// Get byte count.
-						int count = ((block >> 4) & 0xF) + 3;
-
-						size -= count;
-					}
-				}
-			}
-
-			// Return the size of the compressed data.
-			return (int)(input.Position - start);
 		}
 	}
 }
