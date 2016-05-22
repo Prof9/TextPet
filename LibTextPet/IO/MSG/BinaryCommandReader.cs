@@ -95,6 +95,12 @@ namespace LibTextPet.IO.Msg {
 			long length = 0;
 			if (definition.HasData) {
 				length = ReadParameterValueFromBytes(bytes, definition.LengthParameter, 0) + definition.DataCountOffset;
+
+				// If length is invalid, the command cannot be read.
+				if (length <= 0) {
+					return null;
+				}
+
 				buffer = new byte[length * definition.TotalDataEntryLength];
 				if (this.BaseStream.Read(buffer, 0, buffer.Length) < buffer.Length) {
 					throw new InvalidDataException(ioExceptionMessage);
