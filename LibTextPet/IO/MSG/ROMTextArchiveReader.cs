@@ -48,8 +48,18 @@ namespace LibTextPet.IO.Msg {
 			TextArchive ta;
 			if (entry.Compressed) {
 				using (MemoryStream ms = LZ77.Decompress(this.BaseStream)) {
-					ms.Position = 0;
-					ta = new BinaryTextArchiveReader(ms, this.Game).Read((int)ms.Length);
+					BinaryReader binReader = new BinaryReader(ms);
+					int offset = 0;
+					int length = (int)ms.Length;
+
+					// Skip length header, if present.
+					if (binReader.ReadByte() == 0 && (binReader.ReadUInt16() + (binReader.ReadByte() << 16)) == ms.Length) {
+						offset = 4;
+						length -= 4;
+					}
+
+					ms.Position = offset;
+					ta = new BinaryTextArchiveReader(ms, this.Game).Read(length);
 				}
 			} else {
 				ta = this.TextArchiveReader.Read(entry.Size);
