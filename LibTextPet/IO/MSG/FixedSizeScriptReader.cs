@@ -48,6 +48,17 @@ namespace LibTextPet.IO.Msg {
 			this.UseFixedLength = false;
 		}
 
+		public override Script Read() {
+			Script script = base.Read();
+
+			// Check if the fixed length was exceeded.
+			if (this.BaseStream.Position - this.StartPosition > this.FixedLength) {
+				script = null;
+			}
+
+			return script;
+		}
+
 		/// <summary>
 		/// Enables the use of a maximum byte length for read scripts, and sets the maximum length to the specified value.
 		/// </summary>
