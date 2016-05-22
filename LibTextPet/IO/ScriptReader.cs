@@ -70,10 +70,6 @@ namespace LibTextPet.IO {
 				}
 			}
 
-			// Check if the script was read properly.
-			if (script == null)
-				throw new InvalidDataException("Could not parse the script.");
-
 			return script;
 		}
 
