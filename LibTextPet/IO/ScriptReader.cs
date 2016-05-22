@@ -85,7 +85,7 @@ namespace LibTextPet.IO {
 			this.LastElement = null;
 			while (this.HasNext()) {
 				if (this.BaseStream.Position >= this.BaseStream.Length) {
-					throw new EndOfStreamException();
+					return null;
 				}
 
 				IScriptElement elem = this.ReadElement(commandReader, abortOnFallback);
