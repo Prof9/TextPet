@@ -21,11 +21,15 @@ namespace LibTextPet.General {
 			if (!input.CanRead)
 				throw new ArgumentException("The input stream does not support reading.", nameof(input));
 
+			if (input.Length - input.Position < 4) {
+				return null;
+			}
+
 			// Create input reader.
 			BinaryReader reader = new BinaryReader(input);
 
 			// Check LZ77 type.
-			if (reader.ReadByte() != 0x10) {
+			if (input.ReadByte() != 0x10) {
 				return null;
 			}
 
@@ -38,15 +42,27 @@ namespace LibTextPet.General {
 			// Begin decompression.
 			while (output.Length < size) {
 				// Load flags for the next 8 blocks.
-				int flagByte = reader.ReadByte();
+				int flagByte = input.ReadByte();
+				if (flagByte < 0) {
+					return null;
+				}
 
 				// Process the next 8 blocks unless all data has been decompressed.
 				for (int i = 0; i < 8 && output.Length < size; i++) {
 					// Check if the block is compressed.
 					if ((flagByte & (0x80 >> i)) == 0) {
 						// Uncompressed block; copy single byte.
-						output.WriteByte(reader.ReadByte());
+						int b = input.ReadByte();
+						if (b < 0) {
+							return null;
+						}
+
+						output.WriteByte((byte)b);
 					} else {
+						if (input.Length - input.Position < 2) {
+							return null;
+						}
+
 						// Compressed block; read block.
 						ushort block = reader.ReadUInt16();
 						// Get byte count.
@@ -55,7 +71,7 @@ namespace LibTextPet.General {
 						int disp = ((block & 0xF) << 8) | (block >> 8);
 
 						// Check for invalid displacement.
-						if (disp > output.Position) {
+						if (disp + 1 > output.Position) {
 							return null;
 						}
 
@@ -67,11 +83,15 @@ namespace LibTextPet.General {
 						for (int j = 0; j < count; j++) {
 							// Read byte to be copied.
 							output.Position = copyPos++;
-							byte b = (byte)output.ReadByte();
+							int b = output.ReadByte();
+
+							if (b < 0) {
+								return null;
+							}
 
 							// Write byte to be copied.
 							output.Position = outPos++;
-							output.WriteByte(b);
+							output.WriteByte((byte)b);
 						}
 					}
 				}
