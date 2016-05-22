@@ -88,6 +88,7 @@ namespace TextPet {
 				new ReadTextArchivesCommand(this, this.Core),
 				new RegexCommand(this, this.Core),
 				new RunScriptCommand(this, this.Core),
+				new SearchCommand(this, this.Core),
 				new SilentCommand(this, this.Core),
 				new TestTextArchivesCommand(this, this.Core),
 				new VerboseCommand(this, this.Core),

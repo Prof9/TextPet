@@ -85,6 +85,7 @@
     <Compile Include="Commands\ReadTextArchivesCommand.cs" />
     <Compile Include="Commands\RegexCommand.cs" />
     <Compile Include="Commands\RunScriptCommand.cs" />
+    <Compile Include="Commands\SearchCommand.cs" />
     <Compile Include="Commands\SilentCommand.cs" />
     <Compile Include="Commands\TestTextArchivesCommand.cs" />
     <Compile Include="Commands\VerboseCommand.cs" />
