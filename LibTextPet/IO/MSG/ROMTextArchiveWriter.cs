@@ -13,11 +13,6 @@ namespace LibTextPet.IO.Msg {
 	/// </summary>
 	public class ROMTextArchiveWriter : ROMManager, IWriter<TextArchive> {
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether the currently loaded ROM entries and the identifiers of written text archives will be updated after writing.
-		/// </summary>
-		public bool UpdateROMEntriesAndIdentifiers { get; set; }
-
-		/// <summary>
 		/// Gets or sets the current free space offset.
 		/// </summary>
 		public long FreeSpaceOffset { get; set; }

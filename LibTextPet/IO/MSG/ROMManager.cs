@@ -31,6 +31,11 @@ namespace LibTextPet.IO.Msg {
 		public ROMEntryCollection ROMEntries { get; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether the currently loaded ROM entries and the identifiers of written text archives will be updated after writing.
+		/// </summary>
+		public bool UpdateROMEntriesAndIdentifiers { get; set; }
+
+		/// <summary>
 		/// Creates a new ROM manager that reads to and/or writes from the specified stream.
 		/// </summary>
 		/// <param name="stream">The stream to read from or write to.</param>
@@ -51,6 +56,7 @@ namespace LibTextPet.IO.Msg {
 
 			this.Game = game;
 			this.ROMEntries = romEntries;
+			this.UpdateROMEntriesAndIdentifiers = true;
 		}
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "<BinaryReader>k__BackingField")]
