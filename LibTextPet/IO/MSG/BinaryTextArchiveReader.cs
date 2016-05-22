@@ -109,6 +109,7 @@ namespace LibTextPet.IO.Msg {
 			scriptEntries.OrderBy(entry => entry.Offset);
 
 			// Read all scripts.
+			bool isUnknownLengthLastScript = false;
 			for (int i = 0; i < scriptEntries.Count; i++) {
 				ScriptEntry entry = scriptEntries[i];
 
@@ -131,8 +132,9 @@ namespace LibTextPet.IO.Msg {
 					}
 				} else {
 					// Last script.
-					// Stop at the first ending script element.
+					// Stop at the first ending script element, or read an empty script if the script is invalid.
 					this.ScriptReader.ClearFixedLength();
+					isUnknownLengthLastScript = true;
 				}
 
 				// Make sure we're at the right position.
@@ -146,7 +148,19 @@ namespace LibTextPet.IO.Msg {
 				}
 
 				// Read the script.
-				ta[entry.ScriptNumber] = this.ScriptReader.Read();
+				Script script = this.ScriptReader.Read();
+
+				// Check if the script was valid.
+				if (script == null) {
+					if (isUnknownLengthLastScript) {
+						// Set an empty script with the first database name.
+						script = new Script(this.Databases[0].Name);
+					} else {
+						throw new InvalidDataException("Could not parse script " + i + ".");
+					}
+				}
+				
+				ta[entry.ScriptNumber] = script;
 			}
 
 			return ta;
