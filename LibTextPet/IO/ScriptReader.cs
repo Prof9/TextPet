@@ -86,6 +86,7 @@ namespace LibTextPet.IO {
 		private Script Read(IReader<Command> commandReader, bool abortOnFallback) {
 			Script script = new Script();
 
+			this.LastElement = null;
 			while (this.HasNext()) {
 				if (this.BaseStream.Position >= this.BaseStream.Length) {
 					throw new EndOfStreamException();
