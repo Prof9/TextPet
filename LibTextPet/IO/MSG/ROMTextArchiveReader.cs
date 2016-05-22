@@ -13,9 +13,9 @@ namespace LibTextPet.IO.Msg {
 	/// </summary>
 	public class ROMTextArchiveReader : ROMManager, IReader<TextArchive> {
 		/// <summary>
-		/// Gets the text archive reader that is used to read text archives from the input stream.
+		/// Gets the underlying text archive reader that is used to read text archives from the input stream.
 		/// </summary>
-		protected BinaryTextArchiveReader TextArchiveReader { get; }
+		public BinaryTextArchiveReader TextArchiveReader { get; }
 
 		/// <summary>
 		/// Creates a new ROM text archive reader that reads from the specified input stream and uses the specified game info.
@@ -57,7 +57,7 @@ namespace LibTextPet.IO.Msg {
 			if (!entryExists || entry.Compressed) {
 				this.BaseStream.Position = start;
 				using (MemoryStream ms = LZ77.Decompress(this.BaseStream)) {
-					if (ms != null) {
+					if (ms != null && ms.Length > 4) {
 						BinaryReader binReader = new BinaryReader(ms);
 						int offset = 0;
 						int length = (int)ms.Length;
@@ -98,24 +98,86 @@ namespace LibTextPet.IO.Msg {
 					this.BaseStream.Position = start;
 					ta = this.TextArchiveReader.Read();
 
-					// Get the size.
-					size = (int)(this.BaseStream.Position - start);
+					if (ta != null) {
+						// Get the size.
+						size = (int)(this.BaseStream.Position - start);
 
-					// Check if the text archive encroaches on any other known ROM entries.
-					foreach (ROMEntry otherEntry in this.ROMEntries) {
-						// Ignore any entry for a text archive at or before this entry.
-						if (otherEntry.Offset <= entry.Offset) {
-							continue;
-						}
+						// Check if the text archive encroaches on any other known ROM entries.
+						foreach (ROMEntry otherEntry in this.ROMEntries) {
+							// Ignore any entry for a text archive at or before this entry.
+							if (otherEntry.Offset <= entry.Offset) {
+								continue;
+							}
 
-						if (this.BaseStream.Position > otherEntry.Offset) {
-							// Clear the last script.
-							ta[ta.Count - 1] = new Script(this.Databases[0].Name);
+							if (this.BaseStream.Position > otherEntry.Offset) {
+								// Clear the last script.
+								ta[ta.Count - 1] = new Script(this.Databases[0].Name);
 
-							// Subtract the size of the last script from the text archive size.
-							size -= (int)(this.BaseStream.Position - this.TextArchiveReader.ScriptReader.StartPosition);
+								// Subtract the size of the last script from the text archive size.
+								size -= (int)(this.BaseStream.Position - this.TextArchiveReader.ScriptReader.StartPosition);
+							}
 						}
 					}
+				}
+			}
+
+			// Check if any script contains a script-ending command.
+			if (ta != null) {
+				bool found = false;
+				bool outOfBoundsJump = false;
+				int maxOverflow = 0;
+				foreach (Script script in ta) {
+					int currentOverflow = 0;
+					bool ended = false;
+
+					// Cycle through all elements in the script.
+					foreach (IScriptElement elem in script) {
+						// Keep track of the number of elements past the script-ending element.
+						if (ended) {
+							currentOverflow++;
+						}
+
+						Command cmd = elem as Command;
+						if (cmd != null) {
+							if (cmd.EndsScript) {
+								ended = true;
+							}
+							if (cmd.Definition.EndType == EndType.Always) {
+								found = true;
+							}
+							foreach (Parameter par in cmd.Parameters) {
+								if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= ta.Count) {
+									outOfBoundsJump = true;
+								}
+							}
+							foreach (IEnumerable<Parameter> dataEntry in cmd.Data) {
+								foreach (Parameter par in dataEntry) {
+									if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= ta.Count) {
+										outOfBoundsJump = true;
+									}
+								}
+							}
+						}
+					}
+					
+					if (currentOverflow > maxOverflow) {
+						maxOverflow = currentOverflow;
+					}
+				}
+
+				// If the text archive contains no script-ending elements, it's probably not a text archive.
+				if (!found) {
+					ta = null;
+				}
+
+				// If the 'overflow' is too high, it's probably not a text archive.
+				if (maxOverflow > 2) {
+					ta = null;
+				}
+
+				// If there are out-of-bounds jumps, it's probably not a text archive.
+				if (outOfBoundsJump) {
+					ta = null;
 				}
 			}
 
@@ -125,7 +187,11 @@ namespace LibTextPet.IO.Msg {
 				entry = new ROMEntry((int)start, size, compressed, new int[0]);
 			}
 
-			ta.Identifier = entry.Offset.ToString("X6", CultureInfo.InvariantCulture);
+			// Set the identifier of the text archive if it could be read.
+			if (ta != null) {
+				ta.Identifier = entry.Offset.ToString("X6", CultureInfo.InvariantCulture);
+			}
+
 			return ta;
 		}
 	}
