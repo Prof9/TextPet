@@ -50,6 +50,11 @@ namespace LibTextPet.IO.Msg {
 		public bool IgnorePointerSyncErrors { get; set; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether script pointers are automatically sorted. If the script pointers are not sorted and a text archive is read where the script pointers are not in ascending order, the text archive is deemed to be invalid. By default, this is true.
+		/// </summary>
+		public bool AutoSortPointers { get; set; }
+
+		/// <summary>
 		/// Creates a new binary text archive reader that reads from the specified input stream, using the specified game info.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
@@ -67,13 +72,14 @@ namespace LibTextPet.IO.Msg {
 			: base(stream, true, FileAccess.Read, encoding, databases) {
 			this.ScriptReader = new FixedSizeScriptReader(stream, encoding, databases);
 			this.IgnorePointerSyncErrors = false;
+			this.AutoSortPointers = true;
 		}
 
 		/// <summary>
 		/// Reads a text archive from the input stream, optionally reading exactly the specified size.
 		/// </summary>
 		/// <param name="fixedSize">The fixed size of the text archive in bytes, or 0 to read normally.</param>
-		/// <returns>The text archive that was read.</returns>
+		/// <returns>The text archive that was read, or null if no text archive could be read.</returns>
 		public TextArchive Read(int fixedSize) {
 			long start = this.BaseStream.Position;
 
@@ -86,6 +92,12 @@ namespace LibTextPet.IO.Msg {
 			do {
 				// Read the next offset.
 				int offset = this.ReadOffset();
+
+				// If the offset is invalid, the text archive cannot be read.
+				if (offset < 0) {
+					return null;
+				}
+
 				scriptEntries.Add(new ScriptEntry(scriptNum++, offset));
 
 				// Update the offset of the first script.
@@ -96,8 +108,9 @@ namespace LibTextPet.IO.Msg {
 			} while (this.BaseStream.Position - start < firstScriptOffset);
 
 			// Check if this is a valid text archive.
-			if (this.BaseStream.Position - start != firstScriptOffset || firstScriptOffset % 2 != 0)
-				throw new InvalidDataException("The stream does not contain a valid text archive.");
+			if (this.BaseStream.Position - start != firstScriptOffset || firstScriptOffset % 2 != 0) {
+				return null;
+			}
 
 			// Create the text archive.
 			int count = firstScriptOffset / 2;
@@ -106,7 +119,9 @@ namespace LibTextPet.IO.Msg {
 
 			// Sort the script entries by offset ascending.
 			// OrderBy must be used, as this produces a stable sort.
-			scriptEntries.OrderBy(entry => entry.Offset);
+			if (this.AutoSortPointers) {
+				scriptEntries.OrderBy(entry => entry.Offset);
+			}
 
 			// Read all scripts.
 			bool isUnknownLengthLastScript = false;
@@ -119,6 +134,10 @@ namespace LibTextPet.IO.Msg {
 					ScriptEntry next = scriptEntries[i + 1];
 					// Set the length to the number of bytes until the next script starts.
 					int length = next.Offset - entry.Offset;
+					// If the number of bytes is negative, this is an invalid text archive.
+					if (length < 0) {
+						return null;
+					}
 					this.ScriptReader.SetFixedLength(length);
 				} else if (fixedSize > 0) {
 					// Last script.
@@ -156,7 +175,7 @@ namespace LibTextPet.IO.Msg {
 						// Set an empty script with the first database name.
 						script = new Script(this.Databases[0].Name);
 					} else {
-						throw new InvalidDataException("Could not parse script " + i + ".");
+						return null;
 					}
 				}
 				
@@ -177,15 +196,17 @@ namespace LibTextPet.IO.Msg {
 		/// <summary>
 		/// Reads the next script offset from the input stream.
 		/// </summary>
-		/// <returns>The next script offset.</returns>
+		/// <returns>The next script offset, or -1 if no script offset could be read.</returns>
 		private int ReadOffset() {
 			int lower = this.BaseStream.ReadByte();
-			if (lower < 0)
-				throw new EndOfStreamException("The end of the stream was reached unexpectedly.");
+			if (lower < 0) {
+				return -1;
+			}
 
 			int upper = this.BaseStream.ReadByte();
-			if (upper < 0)
-				throw new EndOfStreamException("The end of the stream was reached unexpectedly.");
+			if (upper < 0) {
+				return -1;
+			}
 
 			return lower + (upper << 8);
 		}
