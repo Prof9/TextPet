@@ -225,10 +225,7 @@ namespace TextPet {
 
 			BeginReadingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(file, false, this.ROMEntries.Count));
 
-			this.ROM = new MemoryStream();
-			using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-				fs.CopyTo(this.ROM);
-			}
+			LoadROM(file);
 
 			ROMTextArchiveReader reader = new ROMTextArchiveReader(this.ROM, this.Game, this.ROMEntries);
 
@@ -245,6 +242,17 @@ namespace TextPet {
 			}
 
 			FinishedReadingTextArchives?.Invoke(this, new TextArchivesEventArgs(file, textArchives));
+		}
+
+		/// <summary>
+		/// Loads the specified ROM file into memory.
+		/// </summary>
+		/// <param name="file">The path of the ROM file.</param>
+		public void LoadROM(string file) {
+			this.ROM = new MemoryStream();
+			using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+				fs.CopyTo(this.ROM);
+			}
 		}
 
 		/// <summary>
