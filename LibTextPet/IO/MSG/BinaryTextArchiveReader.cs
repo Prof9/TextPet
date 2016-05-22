@@ -42,7 +42,7 @@ namespace LibTextPet.IO.Msg {
 		/// <summary>
 		/// Gets the script reader that is used to read scripts from the input stream.
 		/// </summary>
-		protected FixedSizeScriptReader ScriptReader { get; private set; }
+		public FixedSizeScriptReader ScriptReader { get; private set; }
 
 		/// <summary>
 		/// Gets or sets a boolean that indicates whether errors caused by the next script pointer being off-sync with the stream position should be ignored. By default, this is false.
