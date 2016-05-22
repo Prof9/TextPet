@@ -43,10 +43,10 @@ namespace LibTextPet.IO.Msg {
 			if (entry.Offset + entry.Size > this.BaseStream.Length) {
 				throw new InvalidOperationException("The size of the current ROM entry exceeds the number of bytes left in the current input stream.");
 			}
-
-			this.BaseStream.Position = entry.Offset;
+			
 			TextArchive ta;
-			if (entry.Compressed) {
+			try {
+				this.BaseStream.Position = entry.Offset;
 				using (MemoryStream ms = LZ77.Decompress(this.BaseStream)) {
 					BinaryReader binReader = new BinaryReader(ms);
 					int offset = 0;
@@ -61,7 +61,8 @@ namespace LibTextPet.IO.Msg {
 					ms.Position = offset;
 					ta = new BinaryTextArchiveReader(ms, this.Game).Read(length);
 				}
-			} else {
+			} catch {
+				this.BaseStream.Position = entry.Offset;
 				ta = this.TextArchiveReader.Read(entry.Size);
 			}
 
