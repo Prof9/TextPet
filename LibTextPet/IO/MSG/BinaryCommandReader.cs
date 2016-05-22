@@ -91,6 +91,14 @@ namespace LibTextPet.IO.Msg {
 			}
 			IList<byte> bytes = new List<byte>(buffer);
 
+			// Verify base bytes.
+			for (int i = 0; i < definition.Base.Count; i++) {
+				if ((bytes[i] & definition.Mask[i]) != definition.Base[i]) {
+					// Base mismatch; return null.
+					return null;
+				}
+			}
+
 			// Read length.
 			long length = 0;
 			if (definition.HasData) {
@@ -112,7 +120,14 @@ namespace LibTextPet.IO.Msg {
 
 			// Read parameters.
 			foreach (ParameterDefinition parDef in definition.Parameters) {
-				cmd.Parameters[parDef.Name].SetInt64(ReadParameterValueFromBytes(bytes, parDef, 0));
+				long value = ReadParameterValueFromBytes(bytes, parDef, 0);
+
+				// If the parameter value is not in range, the command is invalid.
+				if (!cmd.Parameters[parDef.Name].InRange(value)) {
+					return null;
+				}
+
+				cmd.Parameters[parDef.Name].SetInt64(value);
 			}
 
 			// Read data parameters.
@@ -133,7 +148,14 @@ namespace LibTextPet.IO.Msg {
 						int offset = definition.MinimumLength
 							+ dataGroupOffsets[parDef.DataGroup]
 							+ i * definition.DataEntryLengths[parDef.DataGroup];
-						
+
+						long value = ReadParameterValueFromBytes(bytes, parDef, offset);
+
+						// If the data parameter value is not in range, the command is invalid.
+						if (!cmd.Data[i][parDef.Name].InRange(value)) {
+							return null;
+						}
+
                         cmd.Data[i][parDef.Name].SetInt64(ReadParameterValueFromBytes(bytes, parDef, offset));
 					}
 				}
