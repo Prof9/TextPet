@@ -122,7 +122,7 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
-		public void LoadROMEntries(string path, bool recursive) {
+		public void LoadROMEntries(string path, bool recursive, bool ignoreSize) {
 			ICollection<string> files = GetReadFiles(path, recursive);
 			BeginLoadingROMEntries?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
@@ -135,9 +135,15 @@ namespace TextPet {
 					newEntries = reader.Read();
 				}
 
-				foreach (ROMEntry entry in newEntries) {
+				for (int i = 0; i < newEntries.Count; i++) {
+					ROMEntry entry = ((Collection<ROMEntry>)newEntries)[i];
+
 					if (entries.Contains(entry.Offset)) {
 						throw new ArgumentException("ROM entry with position 0x" + entry.Offset.ToString("X6", CultureInfo.InvariantCulture) + " has already been loaded.", nameof(path));
+					}
+
+					if (ignoreSize) {
+						entry.Size = 0;
 					}
 					entries.Add(entry);
 				}
@@ -219,7 +225,7 @@ namespace TextPet {
 		/// Reads binary text archives from the specified ROM file using the currently loaded ROM entries.
 		/// </summary>
 		/// <param name="file">The path to the ROM file.</param>
-		public void ReadTextArchivesROM(string file) {
+		public void ReadTextArchivesROM(string file, bool updateEntries) {
 			if (file == null)
 				throw new ArgumentNullException(nameof(file), "The file path cannot be null.");
 			if (!File.Exists(file))
@@ -232,6 +238,7 @@ namespace TextPet {
 			LoadROM(file);
 
 			ROMTextArchiveReader reader = new ROMTextArchiveReader(this.ROM, this.Game, this.ROMEntries);
+			reader.UpdateROMEntriesAndIdentifiers = updateEntries;
 
 			List<TextArchive> textArchives = new List<TextArchive>(this.ROMEntries.Count);
 			foreach (ROMEntry romEntry in this.ROMEntries) {
@@ -438,7 +445,7 @@ namespace TextPet {
 
 				// Write ALL the text archives!
 				foreach (TextArchive ta in this.TextArchives) {
-					ROMEntry? entry = writer.ROMEntries.GetEntryForTextArchive(ta);
+					ROMEntry entry = writer.ROMEntries.GetEntryForTextArchive(ta);
 					int offset = entry?.Offset ?? -1;
 
 					WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, offset, ta));
