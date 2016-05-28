@@ -56,8 +56,8 @@ namespace LibTextPet.IO.Msg {
 			// Try compressed first.
 			if (!entryExists || entry.Compressed) {
 				this.BaseStream.Position = start;
-				using (MemoryStream ms = LZ77.Decompress(this.BaseStream)) {
-					if (ms != null && ms.Length > 4) {
+				using (MemoryStream ms = new MemoryStream()) {
+					if (LZ77.Decompress(this.BaseStream, ms) && ms.Length > 4) {
 						BinaryReader binReader = new BinaryReader(ms);
 						int offset = 0;
 						int length = (int)ms.Length;
@@ -97,88 +97,21 @@ namespace LibTextPet.IO.Msg {
 					// No ROM entry available; need to determine the size.
 					this.BaseStream.Position = start;
 					ta = this.TextArchiveReader.Read();
+					size = (int)(this.BaseStream.Position - start);
 
-					if (ta != null) {
-						// Get the size.
-						size = (int)(this.BaseStream.Position - start);
+					if (ta != null && CheckOverlap(start, size)) {
+						// Clear the last script.
+						ta[ta.Count - 1] = new Script(this.Databases[0].Name);
 
-						// Check if the text archive encroaches on any other known ROM entries.
-						foreach (ROMEntry otherEntry in this.ROMEntries) {
-							// Ignore any entry for a text archive at or before this entry.
-							if (otherEntry.Offset <= entry.Offset) {
-								continue;
-							}
-
-							if (this.BaseStream.Position > otherEntry.Offset) {
-								// Clear the last script.
-								ta[ta.Count - 1] = new Script(this.Databases[0].Name);
-
-								// Subtract the size of the last script from the text archive size.
-								size -= (int)(this.BaseStream.Position - this.TextArchiveReader.ScriptReader.StartPosition);
-							}
-						}
+						// Subtract the size of the last script from the text archive size.
+						size -= (int)(this.BaseStream.Position - this.TextArchiveReader.ScriptReader.StartPosition);
 					}
 				}
 			}
 
 			// Check if any script contains a script-ending command.
-			if (ta != null) {
-				bool found = false;
-				bool outOfBoundsJump = false;
-				int maxOverflow = 0;
-				foreach (Script script in ta) {
-					int currentOverflow = 0;
-					bool ended = false;
-
-					// Cycle through all elements in the script.
-					foreach (IScriptElement elem in script) {
-						// Keep track of the number of elements past the script-ending element.
-						if (ended) {
-							currentOverflow++;
-						}
-
-						Command cmd = elem as Command;
-						if (cmd != null) {
-							if (cmd.EndsScript) {
-								ended = true;
-							}
-							if (cmd.Definition.EndType == EndType.Always) {
-								found = true;
-							}
-							foreach (Parameter par in cmd.Parameters) {
-								if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= ta.Count) {
-									outOfBoundsJump = true;
-								}
-							}
-							foreach (IEnumerable<Parameter> dataEntry in cmd.Data) {
-								foreach (Parameter par in dataEntry) {
-									if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= ta.Count) {
-										outOfBoundsJump = true;
-									}
-								}
-							}
-						}
-					}
-					
-					if (currentOverflow > maxOverflow) {
-						maxOverflow = currentOverflow;
-					}
-				}
-
-				// If the text archive contains no script-ending elements, it's probably not a text archive.
-				if (!found) {
-					ta = null;
-				}
-
-				// If the 'overflow' is too high, it's probably not a text archive.
-				if (maxOverflow > 2) {
-					ta = null;
-				}
-
-				// If there are out-of-bounds jumps, it's probably not a text archive.
-				if (outOfBoundsJump) {
-					ta = null;
-				}
+			if (!IsGoodTextArchive(ta)) {
+				ta = null;
 			}
 
 			if (ta != null && !entryExists && this.UpdateROMEntriesAndIdentifiers) {
@@ -193,6 +126,104 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			return ta;
+		}
+
+		/// <summary>
+		/// Checks if the specified memory block would overlap any of the currently loaded ROM entries.
+		/// </summary>
+		/// <param name="offset">The offset of the memory block.</param>
+		/// <param name="size">The size, in bytes, of the memory block.</param>
+		/// <returns>true if there is overlap; otherwise, false;</returns>
+		private bool CheckOverlap(long offset, int size) {
+			// Check if the text archive encroaches on any other known ROM entries.
+			foreach (ROMEntry otherEntry in this.ROMEntries) {
+				// Ignore any entry for a text archive at or before this entry.
+				if (otherEntry.Offset <= offset) {
+					continue;
+				}
+
+				if (offset + size > otherEntry.Offset) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static bool IsGoodTextArchive(TextArchive ta) {
+			if (ta == null) {
+				return true;
+			}
+			
+			// Check all scripts in the text archive.
+			bool endTypeAlwaysFound = false;
+			foreach (Script script in ta) {
+				int currentOverflow = 0;
+				bool scriptEnded = false;
+
+				// Cycle through all elements in the script.
+				foreach (IScriptElement elem in script) {
+					// Keep track of the number of elements past the script-ending element.
+					if (scriptEnded) {
+						currentOverflow++;
+					}
+
+					// Check if the element is a command.
+					Command cmd = elem as Command;
+					if (cmd == null) {
+						continue;
+					}
+
+					// Check the end type of the command, and update flags accordingly.
+					if (cmd.EndsScript) {
+						scriptEnded = true;
+
+						if (cmd.Definition.EndType == EndType.Always) {
+							endTypeAlwaysFound = true;
+						}
+					}						
+
+					// If there are out-of-bounds jumps, it's probably not a text archive.
+					if (CommandContainsOutOfRangeJump(cmd, ta.Count)) {
+						return true;
+					}
+				}
+
+				// If the 'overflow' is too high, it's probably not a text archive.
+				if (currentOverflow > 2) {
+					return false;
+				}
+			}
+
+			// If the text archive contains no elements that always end the script, it's probably not a text archive.
+			if (!endTypeAlwaysFound) {
+				return false;
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Checks if the specified command contains a jump parameter of which the value falls outside the range allowed by the given text archive size.
+		/// </summary>
+		/// <param name="cmd">The command to check.</param>
+		/// <param name="taSize">The text archive size.</param>
+		/// <returns>true if the command contains an out-of-range jump; otherwise, false.</returns>
+		private static bool CommandContainsOutOfRangeJump(Command cmd, int taSize) {
+			foreach (Parameter par in cmd.Parameters) {
+				if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= taSize) {
+					return true;
+				}
+			}
+			foreach (IEnumerable<Parameter> dataEntry in cmd.Data) {
+				foreach (Parameter par in dataEntry) {
+					if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= taSize) {
+						return true;
+					}
+				}
+			}
+
+			return false;
 		}
 	}
 }
