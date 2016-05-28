@@ -107,7 +107,7 @@ namespace LibTextPet.IO {
 					// With a gap up to 4 bytes it's probably just padding.
 					if (gap >= 4) {
 						this.TextWriter.Write("// gap: 0x");
-						this.TextWriter.Write(gap.ToString("X6", CultureInfo.InvariantCulture));
+						this.TextWriter.Write(gap.ToString("X1", CultureInfo.InvariantCulture));
 						this.TextWriter.Write(" bytes at 0x");
 						this.TextWriter.WriteLine(prevEnd.ToString("X6", CultureInfo.InvariantCulture));
 					}
@@ -140,7 +140,11 @@ namespace LibTextPet.IO {
 				}
 				this.TextWriter.Write(entry.Size);
 				this.TextWriter.Write('=');
-				this.TextWriter.WriteLine(String.Join(",", entry.Pointers.Select(e => "0x" + e.ToString("X6", CultureInfo.InvariantCulture))));
+				this.TextWriter.Write(String.Join(",", entry.Pointers.Select(e => "0x" + e.ToString("X6", CultureInfo.InvariantCulture))));
+				if (entry.Pointers.Any(ptr => (ptr & 0x3) != 0)) {
+					this.TextWriter.Write(" // CHECK POINTERS!");
+				}
+				this.TextWriter.WriteLine();
 			}
 
 			this.TextWriter.Flush();
