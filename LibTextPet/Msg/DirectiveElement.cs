@@ -57,5 +57,35 @@ namespace LibTextPet.Msg {
 				return this.DirectiveType.ToString();
 			}
 		}
+
+		public override bool Equals(object obj) {
+			if (obj == null || GetType() != obj.GetType())
+				return false;
+
+			DirectiveElement directiveElem = (DirectiveElement)obj;
+
+			return this.Equals(directiveElem);
+		}
+
+		public bool Equals(IScriptElement other) {
+			DirectiveElement otherDirectiveElem = other as DirectiveElement;
+			if (otherDirectiveElem == null) {
+				return false;
+			}
+
+			if (this.DirectiveType != otherDirectiveElem.DirectiveType) {
+				return false;
+			}
+
+			if (this.Value != otherDirectiveElem.Value) {
+				return false;
+			}
+
+			return true;
+		}
+
+		public override int GetHashCode() {
+			return this.DirectiveType.GetHashCode() ^ this.Value.GetHashCode();
+		}
 	}
 }

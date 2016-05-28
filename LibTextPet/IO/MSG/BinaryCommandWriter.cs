@@ -43,7 +43,7 @@ namespace LibTextPet.IO.Msg {
 					bytes, obj.Definition.LengthParameter, 0);
 
 				// Write each data entry.
-				IList<int> dataGroupOffsets = obj.DataGroupOffsets;
+				IList<int> dataGroupOffsets = obj.CalculateDataGroupOffsets();
 				for (int i = 0; i < obj.Data.Count; i++) {
 					Collection<Parameter> dataEntry = obj.Data[i];
 

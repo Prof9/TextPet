@@ -138,7 +138,7 @@ namespace LibTextPet.IO.Msg {
 				}
 				
 				// Calculate the offsets for the data groups.
-				IList<int> dataGroupOffsets = cmd.DataGroupOffsets;
+				IList<int> dataGroupOffsets = cmd.CalculateDataGroupOffsets();
 
 				// Read all data entries.
 				for (int i = 0; i < length; i++) {

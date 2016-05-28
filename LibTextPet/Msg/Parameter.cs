@@ -10,7 +10,7 @@ namespace LibTextPet.Msg {
 	/// <summary>
 	/// A parameter of a script command.
 	/// </summary>
-	public class Parameter : IDefined<ParameterDefinition>, INameable {
+	public class Parameter : IDefined<ParameterDefinition>, INameable, IEquatable<Parameter> {
 		/// <summary>
 		/// Gets the definition of this command parameter.
 		/// </summary>
@@ -316,7 +316,20 @@ namespace LibTextPet.Msg {
 
 			Parameter par = (Parameter)obj;
 
-			return ByteSequenceEqualityComparer.Instance.Equals(par.Bytes, this.Bytes);
+			return this.Equals(par);
+		}
+
+		/// <summary>
+		/// Indicates whether this instance and a given parameter are equal.
+		/// </summary>
+		/// <param name="other">Another parameter to compare to.</param>
+		/// <returns>true if other and this instance are the same type and represent the same value; otherwise, false.</returns>
+		public bool Equals(Parameter other) {
+			if (other == null) {
+				return false;
+			}
+
+			return ByteSequenceEqualityComparer.Instance.Equals(this.Bytes, other.Bytes);
 		}
 
 		public static bool operator ==(Parameter parameter1, Parameter parameter2) {

@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 
 namespace LibTextPet.Msg {
 	/// <summary>
@@ -14,38 +15,39 @@ namespace LibTextPet.Msg {
 		}
 
 		/// <summary>
-		/// Gets the name of this script element, i.e. "byte".
-		/// </summary>
-		public string Name {
-			get {
-				return "byte";
-			}
-		}
-
-		/// <summary>
 		/// Gets a boolean that indicates whether this script element ends the script.
 		/// </summary>
-		public bool EndsScript {
-			get {
-				return false;
-			}
-		}
+		public bool EndsScript => false;
 
-		private byte rawByte;
 		/// <summary>
 		/// Gets or sets the byte represented by this script element.
 		/// </summary>
-		public byte Byte {
-			get {
-				return this.rawByte;
-			}
-			set {
-				this.rawByte = value;
-			}
-		}
+		public byte Byte { get; set; }
 
 		public override string ToString() {
 			return "[$" + this.Byte.ToString("X2", CultureInfo.InvariantCulture) + "]";
+		}
+
+		public override bool Equals(object obj) {
+			if (obj == null || GetType() != obj.GetType())
+				return false;
+
+			ByteElement byteElem = (ByteElement)obj;
+
+			return this.Equals(byteElem);
+		}
+
+		public bool Equals(IScriptElement other) {
+			ByteElement otherByteElem = other as ByteElement;
+			if (otherByteElem == null) {
+				return false;
+			}
+
+			return this.Byte == otherByteElem.Byte;
+		}
+
+		public override int GetHashCode() {
+			return this.Byte.GetHashCode();
 		}
 	}
 }

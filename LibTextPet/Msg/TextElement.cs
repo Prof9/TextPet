@@ -22,15 +22,6 @@
 			: this("") { }
 
 		/// <summary>
-		/// Gets the name of this script element, i.e. "text".
-		/// </summary>
-		public string Name {
-			get {
-				return "text";
-			}
-		}
-
-		/// <summary>
 		/// Gets or sets the raw text printed by this script element. This text is not XML-safe.
 		/// </summary>
 		public string Text {
@@ -45,14 +36,30 @@
 		/// <summary>
 		/// Gets a boolean that indicates whether this script element ends script execution.
 		/// </summary>
-		public bool EndsScript {
-			get {
+		public bool EndsScript => false;
+
+		public override string ToString() => this.Text;
+
+		public override bool Equals(object obj) {
+			if (obj == null || GetType() != obj.GetType())
 				return false;
-			}
+
+			TextElement textElem = (TextElement)obj;
+
+			return this.Equals(textElem);
 		}
 
-		public override string ToString() {
-			return this.Text;
+		public bool Equals(IScriptElement other) {
+			TextElement otherTextElem = other as TextElement;
+			if (otherTextElem == null) {
+				return false;
+			}
+
+			return this.Text == otherTextElem.Text;
+		}
+
+		public override int GetHashCode() {
+			return this.Text.GetHashCode();
 		}
 	}
 }

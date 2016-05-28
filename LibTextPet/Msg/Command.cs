@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Text;
 using LibTextPet.General;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace LibTextPet.Msg {
 	/// <summary>
 	/// A script element that executes a command.
 	/// </summary>
-	public class Command : IScriptElement, IDefined<CommandDefinition>, INameable {
+	public class Command : IScriptElement, IDefined<CommandDefinition> {
 		/// <summary>
 		/// Gets the definition of this script command.
 		/// </summary>
@@ -17,29 +18,17 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the name of this script command.
 		/// </summary>
-		public string Name {
-			get {
-				return this.Definition.Name;
-			}
-		}
+		public string Name => this.Definition.Name;
 
 		/// <summary>
 		/// Gets a description of this script command.
 		/// </summary>
-		public string Description {
-			get {
-				return this.Definition.Description;
-			}
-		}
+		public string Description => this.Definition.Description;
 
 		/// <summary>
 		/// Gets a boolean that indicates whether this script command contains data parameters.
 		/// </summary>
-		public bool HasData {
-			get {
-				return this.Definition.HasData;
-			}
-		}
+		public bool HasData => this.Definition.HasData;
 
 		/// <summary>
 		/// Gets a boolean that indicates whether this script command ends script execution.
@@ -89,21 +78,6 @@ namespace LibTextPet.Msg {
 			}
 		}
 
-		public ReadOnlyCollection<int> DataGroupOffsets {
-			get {
-				int[] dataGroupOffsets = new int[this.Definition.DataEntryLengths.Count];
-				
-				int offset = 0;
-				for (int i = 0; i < dataGroupOffsets.Length; i++) {
-					dataGroupOffsets[i] = offset;
-					// Calculate the next offset.
-					offset += this.Definition.DataEntryLengths[i] * this.Data.Count;
-				}
-				
-				return new ReadOnlyCollection<int>(dataGroupOffsets);
-			}
-		}
-
 		/// <summary>
 		/// Gets the parameters of this script command.
 		/// </summary>
@@ -144,8 +118,79 @@ namespace LibTextPet.Msg {
 			}
 		}
 
-		public override string ToString() {
-			return this.Name;
+		/// <summary>
+		/// Calculates the offsets, in bytes, for each data group in the data parameters.
+		/// </summary>
+		/// <returns>The offsets per data group.</returns>
+		public ReadOnlyCollection<int> CalculateDataGroupOffsets() {
+			int[] dataGroupOffsets = new int[this.Definition.DataEntryLengths.Count];
+
+			int offset = 0;
+			for (int i = 0; i < dataGroupOffsets.Length; i++) {
+				dataGroupOffsets[i] = offset;
+				// Calculate the next offset.
+				offset += this.Definition.DataEntryLengths[i] * this.Data.Count;
+			}
+
+			return new ReadOnlyCollection<int>(dataGroupOffsets);
+		}
+
+		public override string ToString() => this.Name;
+
+		public override bool Equals(object obj) {
+			if (obj == null || GetType() != obj.GetType())
+				return false;
+
+			Command cmd = (Command)obj;
+
+			return this.Equals(cmd);
+		}
+
+		public bool Equals(IScriptElement other) {
+			Command otherCmd = other as Command;
+			if (otherCmd == null) {
+				return false;
+			}
+
+			// This is a reference check, but should be fine as all command definitions must be unique.
+			if (this.Definition != otherCmd.Definition) {
+				return false;
+			}
+
+			// Check normal parameter;
+			if (!Enumerable.SequenceEqual(this.Parameters, otherCmd.Parameters)) {
+				return false;
+			}
+
+			if (this.Data.Count != otherCmd.Data.Count) {
+				return false;
+			}
+
+			// Check data parameters.
+			for (int i = 0; i < this.Data.Count; i++) {
+				if (!Enumerable.SequenceEqual(this.Data[i], otherCmd.Data[i])) {
+					return false;
+				}
+			}
+
+			// Definition and parameter values match.
+			return true;
+		}
+
+		public override int GetHashCode() {
+			int hash = this.Definition.GetHashCode();
+
+			foreach (Parameter par in this.Parameters) {
+				hash ^= par.GetHashCode();
+			}
+
+			foreach (IEnumerable<Parameter> dataEntry in this.Data) {
+				foreach (Parameter dataPar in dataEntry) {
+					hash ^= dataPar.GetHashCode();
+				}
+			}
+
+			return hash;
 		}
 	}
 }
