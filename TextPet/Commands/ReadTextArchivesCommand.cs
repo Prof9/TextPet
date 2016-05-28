@@ -24,6 +24,7 @@ namespace TextPet.Commands {
 		private const string formatArg = "format";
 		private const string pathArg = "path";
 		private const string recursiveArg = "recursive";
+		private const string updateArg = "update";
 
 		private readonly string[] binFormats = new string[] {
 			"BIN", "BINARY", "DMP", "DUMP", "MSG", "MESSAGE",
@@ -46,6 +47,7 @@ namespace TextPet.Commands {
 			}, new OptionalArgument[] {
 				new OptionalArgument(formatArg, 'f', "format"),
 				new OptionalArgument(recursiveArg, 'r'),
+				new OptionalArgument(updateArg, 'u'),
 			}) {
 			this.Recursive = false;
 		}
@@ -54,6 +56,7 @@ namespace TextPet.Commands {
 			string manualFormat = GetOptionalValues(formatArg)?[0];
 			string path = GetRequiredValue(pathArg);
 			this.Recursive = GetOptionalValues(recursiveArg) != null;
+			bool update = GetOptionalValues(updateArg) != null;
 
 			// If format is not specified, use file extension.
 			string format;
@@ -79,7 +82,7 @@ namespace TextPet.Commands {
 			} else if (txtFormats.Contains(format)) {
 				this.ReadTextArchivesTextBoxes(path);
 			} else if (romFormats.Contains(format)) {
-				this.Core.ReadTextArchivesROM(path);
+				this.Core.ReadTextArchivesROM(path, update);
 			} else if (manualFormat == null) {
 				Console.WriteLine("ERROR: Unknown text archive extension \"" + format + "\". Change the file extension or specify the format manually.");
 			} else {

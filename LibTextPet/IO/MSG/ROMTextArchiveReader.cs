@@ -2,6 +2,7 @@
 using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -60,7 +61,7 @@ namespace LibTextPet.IO.Msg {
 					throw new InvalidOperationException("The size of the current ROM entry exceeds the number of bytes left in the current input stream.");
 				}
 			} else {
-				entry = new ROMEntry();
+				entry = new ROMEntry((int)start);
 			}
 
 			TextArchive ta = null;
@@ -82,7 +83,10 @@ namespace LibTextPet.IO.Msg {
 						}
 
 						ms.Position = offset;
-						ta = new BinaryTextArchiveReader(ms, this.Game).Read(length);
+						BinaryTextArchiveReader tempReader = new BinaryTextArchiveReader(ms, this.Game);
+						tempReader.IgnorePointerSyncErrors = this.TextArchiveReader.IgnorePointerSyncErrors;
+						tempReader.AutoSortPointers = this.TextArchiveReader.AutoSortPointers;
+						ta = tempReader.Read(length);
 
 						if (entryExists && entry.Compressed && ta == null) {
 							// ROM entry dictates that the text archive should be compressed, but no compressed text archive could be read.
@@ -101,13 +105,13 @@ namespace LibTextPet.IO.Msg {
 
 			// Try uncompressed.
 			if (ta == null) {
-				if (entryExists) {
+				if (entryExists && entry.Size > 0) {
 					// Use the existing ROM entry.
 					this.BaseStream.Position = start;
 					ta = this.TextArchiveReader.Read(entry.Size);
 					size = entry.Size;
 				} else {
-					// No ROM entry available; need to determine the size.
+					// No ROM entry or size available; need to determine the size.
 					this.BaseStream.Position = start;
 					ta = this.TextArchiveReader.Read();
 					size = (int)(this.BaseStream.Position - start);
@@ -127,14 +131,20 @@ namespace LibTextPet.IO.Msg {
 				ta = null;
 			}
 
-			if (ta != null && !entryExists && this.UpdateROMEntriesAndIdentifiers) {
-				IEnumerable<int> pointers = new int[0];
-				if (this.FindPointers) {
-					pointers = SearchPointers(entry);
-				}
+			if (ta != null && this.UpdateROMEntriesAndIdentifiers) {
+				if (this.ROMEntries.Contains(entry)) {
+					// Update the size.
+					this.ROMEntries[start].Size = size;
+				} else {
+					IEnumerable<int> pointers = new int[0];
+					if (this.FindPointers) {
+						pointers = SearchPointers((int)start);
+					}
 
-				// Create a new ROM entry.
-				entry = new ROMEntry((int)start, size, compressed, pointers);
+					// Create a new ROM entry.
+					entry = new ROMEntry((int)start, size, compressed, pointers);
+					this.ROMEntries.Add(entry);
+				}
 			}
 
 			// Set the identifier of the text archive if it could be read.
@@ -146,11 +156,11 @@ namespace LibTextPet.IO.Msg {
 		}
 
 		/// <summary>
-		/// Find all pointers to the specified ROM entry in the input stream.
+		/// Find all pointers to the specified ROM offset in the input stream.
 		/// </summary>
-		/// <param name="entry">The ROM entry.</param>
+		/// <param name="offset">The ROM offset.</param>
 		/// <returns>The offsets of all pointers that were found.</returns>
-		private IEnumerable<int> SearchPointers(ROMEntry entry) {
+		private IEnumerable<int> SearchPointers(int offset) {
 			List<int> pointers = new List<int>();
 
 			int read;
@@ -164,7 +174,7 @@ namespace LibTextPet.IO.Msg {
 				if (read >= buffer.Length) {
 					value = BitConverter.ToUInt32(buffer, 0);
 
-					if ((value & 0x7FFFFFFF) == (0x08000000 | entry.Offset)) {
+					if ((value & 0x7FFFFFFF) == (0x08000000 | offset)) {
 						pointers.Add(i);
 					}
 				}
@@ -205,9 +215,10 @@ namespace LibTextPet.IO.Msg {
 				return false;
 			}
 			
-			// Check all scripts in the text archive.
+			// Check all scripts in the text archive but the last one (unless there is only one).
 			bool endTypeAlwaysFound = false;
-			foreach (Script script in ta) {
+			for (int i = 0; i < Math.Max(1, ta.Count - 1); i++) {
+				Script script = ta[i];
 				int currentOverflow = 0;
 				bool scriptEnded = false;
 
