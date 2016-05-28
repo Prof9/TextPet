@@ -38,133 +38,188 @@ namespace LibTextPet.IO {
 				throw new ArgumentNullException(nameof(baseObj), "The base script cannot be null.");
 			if (patchObj == null)
 				throw new ArgumentNullException(nameof(patchObj), "The patch script cannot be null.");
-			
+
 			IList<Command> boxA;
 			Script boxB;
 
 			// Load the text box split script, if there is one.
+			Script textBoxSplitScript = GetTextBoxSplitScript(baseObj);
+
+			int a = 0;
+			int b = 0;
+			while (a < baseObj.Count) {
+				// Skip any elements that are not part of a text box.
+				if (!IsPrinted(baseObj[a])) {
+					a++;
+					continue;
+				}
+
+				// Start of a new text box.
+				// Advance B to the next text box.
+				b = FindNextTextBox(patchObj, b);
+
+				// Do we have text left in B?
+				if (b >= patchObj.Count) {
+					throw new ArgumentException("The patch script must have the same number of text boxes as the base script.", nameof(patchObj));
+				}
+
+				// Extract text box from B.
+				boxB = RemoveSplitTextBox(patchObj, textBoxSplitScript, b);
+
+				// If box B is empty, merge the current and next text box in the base script.
+				if (!boxB.Any()) {
+					// Do we have a split script?
+					if (textBoxSplitScript == null) {
+						throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box merging is not supported.", nameof(patchObj));
+					}
+
+					MergeNextTextBox(baseObj, textBoxSplitScript, a);
+				} else {
+					// Remove the old text box from A.
+					boxA = RemoveTextBoxCommands(baseObj, a);
+
+					// Patch box B commands with commands in A.
+					PatchTextBox(boxB, boxA);
+
+					// Re-insert the patched text box in A.
+					foreach (IScriptElement elem in boxB) {
+						baseObj.Insert(a++, elem);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Extracts all script commands from the current text box in the specified script, and discards any other commands from the script.
+		/// </summary>
+		/// <param name="script">The script to extract from.</param>
+		/// <param name="index">The index at which to begin extracting.</param>
+		/// <returns>The extracted script commands.</returns>
+		private static IList<Command> RemoveTextBoxCommands(Script script, int index) {
+			// Extract commands from next text box.
+			IList<Command> boxA = new List<Command>();
+			while (index < script.Count && !EndsTextBox(script[index])) {
+				// We only need to copy the commands, so discard the other elements.
+				Command cmdA = script[index] as Command;
+				if (cmdA != null) {
+					// Extract the command from A.
+					boxA.Add(cmdA);
+				}
+				// Discard the printed element.
+				script.RemoveAt(index);
+			}
+
+			return boxA;
+		}
+
+		/// <summary>
+		/// Extracts a (possibly split) text box from the specified script at the specified index, removing the elements in the script.
+		/// </summary>
+		/// <param name="script">The script to extract a text box from.</param>
+		/// <param name="textBoxSplitScript">The text box split script to use, if the text box is split.</param>
+		/// <param name="index">The index to start extracting from.</param>
+		/// <returns>The text box that was extracted.</returns>
+		private static Script RemoveSplitTextBox(Script script, Script textBoxSplitScript, int index) {
+			Script boxB = new Script();
+			while (index < script.Count && !EndsTextBox(script[index])) {
+				if (SplitsTextBox(script[index])) {
+					// Do we have a split script?
+					if (textBoxSplitScript == null) {
+						throw new ArgumentException("No text box split script provided; text box splitting is not supported.", nameof(script));
+					}
+
+					// Apply the text box split script to extend the current text box.
+					foreach (IScriptElement elem in textBoxSplitScript) {
+						boxB.Add(elem);
+					}
+				} else if (IsPrinted(script[index])) {
+					// Only extract those elements that are actually printed.
+					boxB.Add(script[index]);
+				}
+				script.RemoveAt(index);
+			}
+
+			return boxB;
+		}
+
+		/// <summary>
+		/// Merges the next two text boxes in the specified script, by removing the script elements in the specified text box split script.
+		/// </summary>
+		/// <param name="script">The script to modify.</param>
+		/// <param name="textBoxSplitScript">The text box split script to use.</param>
+		/// <param name="index">The index at which to begin merging.</param>
+		private static void MergeNextTextBox(Script script, Script textBoxSplitScript, int index) {
+			// Do we have a split script?
+			if (textBoxSplitScript == null) {
+				throw new ArgumentNullException(nameof(textBoxSplitScript), "The text box split script cannot be null.");
+			}
+
+			// Extract the next few commands from the base object.
+			Script nextCommands = new Script(script.DatabaseName);
+			for (int i = 0, j = 0; i < textBoxSplitScript.Count && (i + j + index) < script.Count; i++) {
+				// Skip printed commands (j is used as skipped counter).
+				if (IsPrinted(script[i + j + index])) {
+					j++;
+					i--;
+					continue;
+				}
+				nextCommands.Add(script[i + j + index]);
+			}
+
+			// Check if equal.
+			if (!Enumerable.SequenceEqual(nextCommands, textBoxSplitScript)) {
+				throw new ArgumentException("Next commands following empty text box do not match text box split script. Could not merge text boxes.", nameof(script));
+			}
+
+			// Merge with the next text box by removing the split script commands.
+			for (int i = 0, j = 0; i < textBoxSplitScript.Count; i++) {
+				// Don't discard printed commands.
+				if (IsPrinted(script[index + j])) {
+					j++;
+					i--;
+				} else {
+					script.RemoveAt(index + j);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Finds the script command index of the start of the next text box in the specified script, starting from the specified position.
+		/// </summary>
+		/// <param name="script">The script to search.</param>
+		/// <param name="start">The index to begin searching from.</param>
+		/// <returns>The index of the start of the next text box, or the size of the script if no next text box was found.</returns>
+		private static int FindNextTextBox(Script script, int start) {
+			while (start < script.Count) {
+				if (IsPrinted(script[start])) {
+					break;
+				}
+
+				DirectiveElement directive = script[start++] as DirectiveElement;
+				if (directive != null && directive.DirectiveType == DirectiveType.TextBoxSeparator) {
+					break;
+				}
+			}
+
+			return start;
+		}
+
+		/// <summary>
+		/// Gets the text box split script that is to be used for the specified script.
+		/// </summary>
+		/// <param name="script">The script to get the text box split script for.</param>
+		/// <returns>The text box split script, or null if none was found.</returns>
+		private Script GetTextBoxSplitScript(Script script) {
 			Script textBoxSplitScript = null;
-			byte[] writtenTextBoxSplitScript = null;
-			if (this.Databases.Contains(baseObj.DatabaseName)) {
+			if (this.Databases.Contains(script.DatabaseName)) {
 				// Load the database.
-				CommandDatabase db = this.Databases[baseObj.DatabaseName];
+				CommandDatabase db = this.Databases[script.DatabaseName];
 				if (db.TextBoxSplitScript != null && db.TextBoxSplitScript.Any()) {
 					textBoxSplitScript = db.TextBoxSplitScript;
-
-					// Write the text box split script to a byte array.
-					using (MemoryStream ms = new MemoryStream()) {
-						BinaryScriptWriter writer = new BinaryScriptWriter(ms, new UTF8Encoding(false, true));
-						writer.Write(textBoxSplitScript);
-						writtenTextBoxSplitScript = ms.ToArray();
-					}
 				}
 			}
 
-			for (int a = 0, b = 0; a < baseObj.Count; a++) {
-				// Skip any elements that are not part of a text box.
-				if (IsPrinted(baseObj[a])) {
-					// Start of a new text box.
-					// Advance B to the next text box.
-					while (b != 0 && b < patchObj.Count) {
-						DirectiveElement directive = patchObj[b++] as DirectiveElement;
-						if (directive != null && directive.DirectiveType == DirectiveType.TextBoxSeparator) {
-							break;
-						}
-					}
-
-					// Do we have text left in B?
-					if (b >= patchObj.Count) {
-						throw new ArgumentException("The patch script must have the same number of text boxes as the base script.", nameof(patchObj));
-					}
-
-					// Extract text box from B.
-					boxB = new Script(baseObj.DatabaseName);
-					while (b < patchObj.Count && !EndsTextBox(patchObj[b])) {
-						if (SplitsTextBox(patchObj[b])) {
-							// Do we have a split script?
-							if (textBoxSplitScript == null) {
-								throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box splitting is not supported.", nameof(patchObj));
-							}
-
-							// Apply the text box split script to extend the current text box.
-							foreach (IScriptElement elem in textBoxSplitScript) {
-								boxB.Add(elem);
-							}
-						} else if (IsPrinted(patchObj[b])) {
-							// Only extract those elements that are actually printed.
-							boxB.Add(patchObj[b]);
-						}
-						b++;
-					}
-
-					// If box B is empty, check if the next few commands match the text box split script.
-					if (!boxB.Any()) {
-						// Do we have a split script?
-						if (textBoxSplitScript == null) {
-							throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box merging is not supported.", nameof(patchObj));
-						}
-
-						// Extract the next few commands from the base object.
-						Script nextCommands = new Script(baseObj.DatabaseName);
-						for (int i = 0, j = 0; i < textBoxSplitScript.Count && (i + j + a) < baseObj.Count; i++) {
-							// Skip printed commands (j is used as skipped counter).
-							if (IsPrinted(baseObj[i + j + a])) {
-								j++;
-								i--;
-								continue;
-							}
-							nextCommands.Add(baseObj[i + j + a]);
-						}
-
-						// Write the next few commands to a byte array.
-						byte[] writtenNextCommands;
-						using (MemoryStream ms = new MemoryStream()) {
-							BinaryScriptWriter writer = new BinaryScriptWriter(ms, new UTF8Encoding(false, true));
-							writer.Write(nextCommands);
-							writtenNextCommands = ms.ToArray();
-						}
-
-						// Check if equal.
-						if (!ByteSequenceEqualityComparer.Instance.Equals(writtenTextBoxSplitScript, writtenNextCommands)) {
-							throw new ArgumentException("Next commands following empty text box do not match text box split script. Could not merge text boxes.");
-						}
-
-						// Merge with the next text box by removing the split script commands.
-						for (int i = 0, j = 0; i < textBoxSplitScript.Count; i++) {
-							// Don't discard printed commands.
-							if (IsPrinted(baseObj[a + j])) {
-								j++;
-								i--;
-							} else {
-								baseObj.RemoveAt(a + j);
-							}
-						}
-					} else {
-						// Extract printed commands box from A.
-						boxA = new List<Command>();
-						while (a < baseObj.Count && !EndsTextBox(baseObj[a])) {
-							// We only need to copy the commands, so discard the other elements.
-							Command cmdA = baseObj[a] as Command;
-							if (cmdA != null) {
-								// Extract the command from A.
-								boxA.Add(cmdA);
-							}
-							// Discard the printed element.
-							baseObj.RemoveAt(a);
-						}
-
-						// Patch box B commands with commands in A.
-						PatchTextBox(boxB, boxA);
-
-						foreach (IScriptElement elem in boxB) {
-							baseObj.Insert(a++, elem);
-						}
-					}
-
-					// Rewind a by 1 so the text box-ending element is used as the next element.
-					a--;
-				}
-			}
+			return textBoxSplitScript;
 		}
 
 		/// <summary>
