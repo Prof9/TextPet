@@ -123,6 +123,11 @@ namespace LibTextPet.IO.Msg {
 				scriptEntries.OrderBy(entry => entry.Offset);
 			}
 
+			// Check if the first script pointer is valid.
+			if (count > 0 && scriptEntries[0].Offset / 2 != count) {
+				return null;
+			}
+
 			// Read all scripts.
 			bool isUnknownLengthLastScript = false;
 			for (int i = 0; i < scriptEntries.Count; i++) {
@@ -174,6 +179,7 @@ namespace LibTextPet.IO.Msg {
 					if (isUnknownLengthLastScript) {
 						// Set an empty script with the first database name.
 						script = new Script(this.Databases[0].Name);
+						this.BaseStream.Position = start + entry.Offset;
 					} else {
 						return null;
 					}
