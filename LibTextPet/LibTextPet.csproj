@@ -77,6 +77,7 @@
     <Compile Include="IO\Msg\ROMManager.cs" />
     <Compile Include="IO\Msg\ROMTextArchiveReader.cs" />
     <Compile Include="IO\Msg\ROMTextArchiveWriter.cs" />
+    <Compile Include="IO\ROMEntriesWriter.cs" />
     <Compile Include="IO\ROMEntry.cs" />
     <Compile Include="IO\ROMEntryCollection.cs" />
     <Compile Include="IO\ROMEntriesReader.cs" />

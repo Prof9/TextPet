@@ -90,6 +90,7 @@
     <Compile Include="Commands\TestTextArchivesCommand.cs" />
     <Compile Include="Commands\VerboseCommand.cs" />
     <Compile Include="Commands\FloodCommand.cs" />
+    <Compile Include="Commands\WriteROMEntriesCommand.cs" />
     <Compile Include="Commands\WriteTextArchivesCommand.cs" />
     <Compile Include="Events\BeginReadWriteEventArgs.cs" />
     <Compile Include="Events\GameInfoEventArgs.cs" />

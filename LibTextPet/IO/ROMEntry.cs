@@ -47,6 +47,15 @@ namespace LibTextPet.IO {
 			this.Pointers = new ReadOnlyCollection<int>(pointers.Distinct().ToList());
 		}
 
+		/// <summary>
+		/// Checks whether this ROM entry overlaps another ROM entry.
+		/// </summary>
+		/// <param name="other">The ROM entry to compare against.</param>
+		/// <returns>true if the ROM entries overlap; otherwise, false.</returns>
+		public bool Overlaps(ROMEntry other) {
+			return Math.Max(this.Offset, other.Offset) < Math.Min(this.Offset + this.Size, other.Offset + other.Size);
+		}
+
 		public override bool Equals(object obj) {
 			if (obj == null || GetType() != obj.GetType())
 				return false;

@@ -23,6 +23,11 @@ namespace LibTextPet.IO.Msg {
 		public bool CheckGoodTextArchive { get; set; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether this ROM text archive reader should find the pointers of all text archives that were successfully read.
+		/// </summary>
+		public bool FindPointers { get; set; }
+
+		/// <summary>
 		/// Creates a new ROM text archive reader that reads from the specified input stream and uses the specified game info.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
@@ -31,6 +36,7 @@ namespace LibTextPet.IO.Msg {
 			: base(stream, FileAccess.Read, game, romEntries) {
 			this.TextArchiveReader = new BinaryTextArchiveReader(stream, game);
 			this.CheckGoodTextArchive = false;
+			this.FindPointers = true;
 		}
 
 		/// <summary>
@@ -122,9 +128,13 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			if (ta != null && !entryExists && this.UpdateROMEntriesAndIdentifiers) {
+				IEnumerable<int> pointers = new int[0];
+				if (this.FindPointers) {
+					pointers = SearchPointers(entry);
+				}
+
 				// Create a new ROM entry.
-				// TODO: Read the pointers
-				entry = new ROMEntry((int)start, size, compressed, new int[0]);
+				entry = new ROMEntry((int)start, size, compressed, pointers);
 			}
 
 			// Set the identifier of the text archive if it could be read.
@@ -133,6 +143,34 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			return ta;
+		}
+
+		/// <summary>
+		/// Find all pointers to the specified ROM entry in the input stream.
+		/// </summary>
+		/// <param name="entry">The ROM entry.</param>
+		/// <returns>The offsets of all pointers that were found.</returns>
+		private IEnumerable<int> SearchPointers(ROMEntry entry) {
+			List<int> pointers = new List<int>();
+
+			int read;
+			uint value;
+			byte[] buffer = new byte[4];
+
+			for (int i = 0; i < (int)this.BaseStream.Length; i++) {
+				this.BaseStream.Position = i;
+				read = this.BaseStream.Read(buffer, 0, buffer.Length);
+
+				if (read >= buffer.Length) {
+					value = BitConverter.ToUInt32(buffer, 0);
+
+					if ((value & 0x7FFFFFFF) == (0x08000000 | entry.Offset)) {
+						pointers.Add(i);
+					}
+				}
+			}
+
+			return pointers;
 		}
 
 		/// <summary>
