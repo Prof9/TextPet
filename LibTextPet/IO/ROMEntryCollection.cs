@@ -32,7 +32,7 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <param name="identifier">The text archive.</param>
 		/// <returns>The corresponding ROM entry, or null if no matching ROM entry was found.</returns>
-		public ROMEntry? GetEntryForTextArchive(TextArchive textArchive) {
+		public ROMEntry GetEntryForTextArchive(TextArchive textArchive) {
 			if (textArchive == null)
 				throw new ArgumentNullException(nameof(textArchive), "The text archive cannot be null.");
 
@@ -44,7 +44,7 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <param name="identifier">The identifier of the text archive.</param>
 		/// <returns>The corresponding ROM entry, or null if no matching ROM entry was found.</returns>
-		public ROMEntry? GetEntryForTextArchive(string identifier) {
+		public ROMEntry GetEntryForTextArchive(string identifier) {
 			if (identifier == null)
 				throw new ArgumentNullException(nameof(identifier), "The text archive identifier cannot be null.");
 			if (String.IsNullOrWhiteSpace(identifier))

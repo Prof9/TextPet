@@ -8,7 +8,7 @@ namespace LibTextPet.IO {
 	/// <summary>
 	/// A ROM entry for a single text archive.
 	/// </summary>
-	public struct ROMEntry {
+	public class ROMEntry {
 		/// <summary>
 		/// Gets the ROM offset of the text archive.
 		/// </summary>
@@ -18,13 +18,20 @@ namespace LibTextPet.IO {
 		/// </summary>
 		public int Size { get; set; }
 		/// <summary>
-		/// Gets a boolean that indicates whether the text archive is compressed.
+		/// Gets or sets a boolean that indicates whether the text archive is compressed.
 		/// </summary>
-		public bool Compressed { get; }
+		public bool Compressed { get; set; }
 		/// <summary>
-		/// Gets the offsets of the pointers pointing to the text archive.
+		/// Gets or sets the offsets of the pointers pointing to the text archive.
 		/// </summary>
-		public ReadOnlyCollection<int> Pointers { get; }
+		public ReadOnlyCollection<int> Pointers { get; set; }
+
+		/// <summary>
+		/// Creates a new ROM entry with the specified offset.
+		/// </summary>
+		/// <param name="offset">The ROM offset of the text archive.</param>
+		public ROMEntry(int offset) 
+			: this(offset, 0, false, new int[0]) { }
 
 		/// <summary>
 		/// Creates a new ROM entry with the specified offset, size, compression and pointer offsets.

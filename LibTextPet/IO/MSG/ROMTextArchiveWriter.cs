@@ -40,7 +40,7 @@ namespace LibTextPet.IO.Msg {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The text archive cannot be null.");
 
-			ROMEntry? entryOrNull = this.ROMEntries.GetEntryForTextArchive(obj);
+			ROMEntry entryOrNull = this.ROMEntries.GetEntryForTextArchive(obj);
 
 			if (entryOrNull == null)
 				throw new InvalidOperationException("Could not find a matching ROM entry for text archive " + obj.Identifier + ".");
