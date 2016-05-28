@@ -27,7 +27,7 @@ namespace LibTextPet.IO {
 		private Regex EntryRegex { get; }
 
 		/// <summary>
-		/// Creates a new ROM entry read that reads from the specified input stream.
+		/// Creates a new ROM entry reader that reads from the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
 		public ROMEntriesReader(Stream stream)

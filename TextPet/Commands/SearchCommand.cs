@@ -54,7 +54,7 @@ namespace TextPet.Commands {
 					} else {
 						Console.ForegroundColor = ConsoleColor.White;
 					}
-					Console.Write(percentage.ToString().PadLeft(2));
+					Console.Write(percentage.ToString(CultureInfo.InvariantCulture).PadLeft(2));
 					if (percentage < 100) {
 						Console.Write("%");
 					}
