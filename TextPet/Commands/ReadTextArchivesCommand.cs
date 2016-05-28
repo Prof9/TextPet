@@ -109,7 +109,13 @@ namespace TextPet.Commands {
 			this.Core.ReadTextArchives(path, this.Recursive, delegate (MemoryStream ms, string file) {
 				BinaryTextArchiveReader reader = new BinaryTextArchiveReader(ms, this.Core.Game);
 				reader.IgnorePointerSyncErrors = true;
+
 				TextArchive ta = reader.Read((int)ms.Length);
+
+				if (ta == null) {
+					throw new InvalidDataException("Could not read text archive " + Path.GetFileName(file) + ".");
+				}
+
 				ta.Identifier = Path.GetFileNameWithoutExtension(file);
 				return new TextArchive[] { ta };
 			});
@@ -130,7 +136,15 @@ namespace TextPet.Commands {
 
 				List<TextArchive> tas = new List<TextArchive>();
 				while (!reader.AtEnd) {
-					tas.AddRange(reader.Read());
+					IEnumerable<TextArchive> readTAs = reader.Read();
+
+					foreach (TextArchive ta in readTAs) {
+						if (ta == null) {
+							throw new InvalidDataException("Could not read one or more text archives from " + Path.GetFileName(file) + ".");
+						}
+					}
+
+					tas.AddRange(readTAs);
 				}
 				return tas;
 			});
@@ -152,7 +166,15 @@ namespace TextPet.Commands {
 
 				List<TextArchive> tas = new List<TextArchive>();
 				while (!reader.AtEnd) {
-					tas.AddRange(reader.Read());
+					IEnumerable<TextArchive> readTAs = reader.Read();
+
+					foreach (TextArchive ta in readTAs) {
+						if (ta == null) {
+							throw new InvalidDataException("Could not read one or more text archives from " + Path.GetFileName(file) + ".");
+						}
+					}
+
+					tas.AddRange(readTAs);
 				}
 				return tas;
 			});

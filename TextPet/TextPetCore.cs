@@ -202,6 +202,10 @@ namespace TextPet {
 
 				// Finish reading the text archives.
 				foreach (TextArchive ta in textArchives) {
+					if (ta == null) {
+						throw new InvalidDataException("Could not read one or more text archives.");
+					}
+
 					readTAs.Add(ta);
 					this.TextArchives.Add(ta);
 					ReadTextArchive?.Invoke(this, new TextArchivesEventArgs(file, ta));
@@ -235,6 +239,10 @@ namespace TextPet {
 
 				this.ROM.Position = romEntry.Offset;
 				TextArchive ta = reader.Read();
+
+				if (ta == null) {
+					throw new InvalidDataException("Could not read text archive at 0x" + romEntry.Offset.ToString("X6", CultureInfo.InvariantCulture) + ".");
+				}
 
 				textArchives.Add(ta);
 				this.TextArchives.Add(ta);
