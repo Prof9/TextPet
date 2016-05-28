@@ -122,15 +122,6 @@ namespace LibTextPet.IO {
 					}
 				}
 
-				if (this.IncludePostBytesComments && rom != null) {
-					// Write some post-ending bytes.
-					byte[] buffer = new byte[0x10];
-					rom.Position = entry.Offset + entry.Size;
-					int read = rom.Read(buffer, 0, buffer.Length);
-					this.TextWriter.Write("// post: ");
-					this.TextWriter.WriteLine(String.Join(" ", buffer.Take(read).Select(b => b.ToString("X2", CultureInfo.InvariantCulture))));
-				}
-
 				// Write the ROM entry.
 				this.TextWriter.Write("0x");
 				this.TextWriter.Write(entry.Offset.ToString("X6", CultureInfo.InvariantCulture));
@@ -145,6 +136,32 @@ namespace LibTextPet.IO {
 					this.TextWriter.Write(" // CHECK POINTERS!");
 				}
 				this.TextWriter.WriteLine();
+
+				if (this.IncludePostBytesComments && rom != null) {
+					int toPrint = 0x10;
+					if (i < sorted.Count - 1) {
+						ROMEntry next = sorted[i + 1];
+						int gap = next.Offset - (entry.Offset + entry.Size);
+						if (gap >= 0 && gap < toPrint) {
+							toPrint = gap;
+						}
+					}
+
+					// Write some post-ending bytes.
+					if (toPrint > 0) {
+						byte[] buffer = new byte[toPrint];
+						rom.Position = entry.Offset + entry.Size;
+
+						this.TextWriter.Write("// ");
+						this.TextWriter.Write(rom.Position.ToString("X8", CultureInfo.InvariantCulture));
+						this.TextWriter.Write(new string(' ', 8));
+
+						int read = rom.Read(buffer, 0, buffer.Length);
+						this.TextWriter.WriteLine(String.Join(" ", buffer.Take(read).Select(b => b.ToString("X2", CultureInfo.InvariantCulture))));
+					}
+
+					this.TextWriter.WriteLine();
+				}
 			}
 
 			this.TextWriter.Flush();
