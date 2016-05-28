@@ -31,6 +31,7 @@ namespace TextPet.Commands {
 
 			this.Core.LoadROM(path);
 			ROMTextArchiveReader reader = new ROMTextArchiveReader(this.Core.ROM, this.Core.Game, this.Core.ROMEntries);
+			reader.CheckGoodTextArchive = true;
 			reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 			reader.TextArchiveReader.AutoSortPointers = false;
 

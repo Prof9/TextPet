@@ -18,6 +18,11 @@ namespace LibTextPet.IO.Msg {
 		public BinaryTextArchiveReader TextArchiveReader { get; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether this ROM text archive reader should verify that any text archive read is 'good', and discard it if it is not.
+		/// </summary>
+		public bool CheckGoodTextArchive { get; set; }
+
+		/// <summary>
 		/// Creates a new ROM text archive reader that reads from the specified input stream and uses the specified game info.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
@@ -25,6 +30,7 @@ namespace LibTextPet.IO.Msg {
 		public ROMTextArchiveReader(Stream stream, GameInfo game, ROMEntryCollection romEntries)
 			: base(stream, FileAccess.Read, game, romEntries) {
 			this.TextArchiveReader = new BinaryTextArchiveReader(stream, game);
+			this.CheckGoodTextArchive = false;
 		}
 
 		/// <summary>
@@ -58,6 +64,7 @@ namespace LibTextPet.IO.Msg {
 				this.BaseStream.Position = start;
 				using (MemoryStream ms = new MemoryStream()) {
 					if (LZ77.Decompress(this.BaseStream, ms) && ms.Length > 4) {
+						ms.Position = 0;
 						BinaryReader binReader = new BinaryReader(ms);
 						int offset = 0;
 						int length = (int)ms.Length;
@@ -110,7 +117,7 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			// Check if any script contains a script-ending command.
-			if (!IsGoodTextArchive(ta)) {
+			if (this.CheckGoodTextArchive && !IsGoodTextArchive(ta)) {
 				ta = null;
 			}
 
@@ -150,9 +157,14 @@ namespace LibTextPet.IO.Msg {
 			return false;
 		}
 
+		/// <summary>
+		/// Checks if the specified text archive is 'good' -- likely to be a valid text archive.
+		/// </summary>
+		/// <param name="ta">The text archive to check.</param>
+		/// <returns>true if the text archive is good; otherwise, false.</returns>
 		private static bool IsGoodTextArchive(TextArchive ta) {
 			if (ta == null) {
-				return true;
+				return false;
 			}
 			
 			// Check all scripts in the text archive.
@@ -185,7 +197,7 @@ namespace LibTextPet.IO.Msg {
 
 					// If there are out-of-bounds jumps, it's probably not a text archive.
 					if (CommandContainsOutOfRangeJump(cmd, ta.Count)) {
-						return true;
+						return false;
 					}
 				}
 
