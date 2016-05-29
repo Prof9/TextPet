@@ -28,7 +28,7 @@ namespace LibTextPet.IO {
 		/// <summary>
 		/// Gets or sets the offsets of the pointers pointing to the text archive.
 		/// </summary>
-		public ReadOnlyCollection<int> Pointers { get; set; }
+		public ICollection<int> Pointers { get; }
 
 		/// <summary>
 		/// Creates a new ROM entry with the specified offset.
@@ -57,7 +57,7 @@ namespace LibTextPet.IO {
 			this.Size = size;
 			this.Compressed = compressed;
 			this.SizeHeader = sizeHeader;
-			this.Pointers = new ReadOnlyCollection<int>(pointers.Distinct().ToList());
+			this.Pointers = pointers.Distinct().ToList();
 		}
 
 		/// <summary>
@@ -66,6 +66,9 @@ namespace LibTextPet.IO {
 		/// <param name="other">The ROM entry to compare against.</param>
 		/// <returns>true if the ROM entries overlap; otherwise, false.</returns>
 		public bool Overlaps(ROMEntry other) {
+			if (other == null)
+				throw new ArgumentNullException(nameof(other), "The other ROM entry cannot be null.");
+
 			return Math.Max(this.Offset, other.Offset) < Math.Min(this.Offset + this.Size, other.Offset + other.Size);
 		}
 

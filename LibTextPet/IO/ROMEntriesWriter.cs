@@ -100,75 +100,91 @@ namespace LibTextPet.IO {
 
 				// Write preceeding 'gap'.
 				if (this.IncludeGapComments && i > 0 && entry.Offset >= 4) {
-					ROMEntry prev = sorted[i - 1];
-					int prevEnd = prev.Offset + prev.Size;
-					int gap = entry.Offset - prevEnd;
-
-					// With a gap up to 4 bytes it's probably just padding.
-					if (gap >= 4) {
-						this.TextWriter.Write("// gap: 0x");
-						this.TextWriter.Write(gap.ToString("X1", CultureInfo.InvariantCulture));
-						this.TextWriter.Write(" bytes at 0x");
-						this.TextWriter.WriteLine(prevEnd.ToString("X6", CultureInfo.InvariantCulture));
-					}
+					WriteGapComments(sorted, i, entry);
 				}
 
 				if (this.IncludeOverlapComments) {
 					// Write any overlapping ROM entries.
-					IEnumerable<ROMEntry> overlaps = obj.Where(other => entry != other && entry.Overlaps(other));
-					if (overlaps.Any()) {
-						this.TextWriter.Write("// overlaps with ");
-						this.TextWriter.WriteLine(String.Join(", ", overlaps.Select(e => "0x" + e.Offset.ToString("X6", CultureInfo.InvariantCulture))));
-					}
+					WriteOverlapComments(obj, entry);
 				}
 
 				// Write the ROM entry.
-				this.TextWriter.Write("0x");
-				this.TextWriter.Write(entry.Offset.ToString("X6", CultureInfo.InvariantCulture));
-				this.TextWriter.Write(':');
-				if (entry.Compressed) {
-					this.TextWriter.Write('&');
-				}
-				if (entry.SizeHeader) {
-					this.TextWriter.Write('%');
-				}
-				this.TextWriter.Write("0x");
-				this.TextWriter.Write(entry.Size.ToString("X1", CultureInfo.InvariantCulture));
-				this.TextWriter.Write('=');
-				this.TextWriter.Write(String.Join(",", entry.Pointers.Select(e => "0x" + e.ToString("X6", CultureInfo.InvariantCulture))));
-				if (entry.Pointers.Any(ptr => (ptr & 0x3) != 0)) {
-					this.TextWriter.Write(" // CHECK POINTERS!");
-				}
-				this.TextWriter.WriteLine();
+				WriteEntry(entry);
 
 				if (this.IncludePostBytesComments && rom != null) {
-					int toPrint = 0x10;
-					if (i < sorted.Count - 1) {
-						ROMEntry next = sorted[i + 1];
-						int gap = next.Offset - (entry.Offset + entry.Size);
-						if (gap >= 0 && gap < toPrint) {
-							toPrint = gap;
-						}
-					}
-
-					// Write some post-ending bytes.
-					if (toPrint > 0) {
-						byte[] buffer = new byte[toPrint];
-						rom.Position = entry.Offset + entry.Size;
-
-						this.TextWriter.Write("// ");
-						this.TextWriter.Write(rom.Position.ToString("X8", CultureInfo.InvariantCulture));
-						this.TextWriter.Write(new string(' ', 8));
-
-						int read = rom.Read(buffer, 0, buffer.Length);
-						this.TextWriter.WriteLine(String.Join(" ", buffer.Take(read).Select(b => b.ToString("X2", CultureInfo.InvariantCulture))));
-					}
-
-					this.TextWriter.WriteLine();
+					WritePostBytes(rom, sorted, i, entry);
 				}
 			}
 
 			this.TextWriter.Flush();
+		}
+
+		private void WritePostBytes(Stream rom, IList<ROMEntry> sorted, int i, ROMEntry entry) {
+			int toPrint = 0x10;
+			if (i < sorted.Count - 1) {
+				ROMEntry next = sorted[i + 1];
+				int gap = next.Offset - (entry.Offset + entry.Size);
+				if (gap >= 0 && gap < toPrint) {
+					toPrint = gap;
+				}
+			}
+
+			// Write some post-ending bytes.
+			if (toPrint > 0) {
+				byte[] buffer = new byte[toPrint];
+				rom.Position = entry.Offset + entry.Size;
+
+				this.TextWriter.Write("// ");
+				this.TextWriter.Write(rom.Position.ToString("X8", CultureInfo.InvariantCulture));
+				this.TextWriter.Write(new string(' ', 8));
+
+				int read = rom.Read(buffer, 0, buffer.Length);
+				this.TextWriter.WriteLine(String.Join(" ", buffer.Take(read).Select(b => b.ToString("X2", CultureInfo.InvariantCulture))));
+			}
+
+			this.TextWriter.WriteLine();
+		}
+
+		private void WriteGapComments(IList<ROMEntry> sorted, int i, ROMEntry entry) {
+			ROMEntry prev = sorted[i - 1];
+			int prevEnd = prev.Offset + prev.Size;
+			int gap = entry.Offset - prevEnd;
+
+			// With a gap up to 4 bytes it's probably just padding.
+			if (gap >= 4) {
+				this.TextWriter.Write("// gap: 0x");
+				this.TextWriter.Write(gap.ToString("X1", CultureInfo.InvariantCulture));
+				this.TextWriter.Write(" bytes at 0x");
+				this.TextWriter.WriteLine(prevEnd.ToString("X6", CultureInfo.InvariantCulture));
+			}
+		}
+
+		private void WriteOverlapComments(IEnumerable<ROMEntry> obj, ROMEntry entry) {
+			IEnumerable<ROMEntry> overlaps = obj.Where(other => entry != other && entry.Overlaps(other));
+			if (overlaps.Any()) {
+				this.TextWriter.Write("// overlaps with ");
+				this.TextWriter.WriteLine(String.Join(", ", overlaps.Select(e => "0x" + e.Offset.ToString("X6", CultureInfo.InvariantCulture))));
+			}
+		}
+
+		private void WriteEntry(ROMEntry entry) {
+			this.TextWriter.Write("0x");
+			this.TextWriter.Write(entry.Offset.ToString("X6", CultureInfo.InvariantCulture));
+			this.TextWriter.Write(':');
+			if (entry.Compressed) {
+				this.TextWriter.Write('&');
+			}
+			if (entry.SizeHeader) {
+				this.TextWriter.Write('%');
+			}
+			this.TextWriter.Write("0x");
+			this.TextWriter.Write(entry.Size.ToString("X1", CultureInfo.InvariantCulture));
+			this.TextWriter.Write('=');
+			this.TextWriter.Write(String.Join(",", entry.Pointers.Select(e => "0x" + e.ToString("X6", CultureInfo.InvariantCulture))));
+			if (entry.Pointers.Any(ptr => (ptr & 0x3) != 0)) {
+				this.TextWriter.Write(" // CHECK POINTERS!");
+			}
+			this.TextWriter.WriteLine();
 		}
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "<TextWriter>k__BackingField")]

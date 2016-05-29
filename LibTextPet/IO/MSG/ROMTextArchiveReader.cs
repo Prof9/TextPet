@@ -134,29 +134,33 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			if (ta != null && this.UpdateROMEntriesAndIdentifiers) {
-				IEnumerable<int> pointers = new int[0];
-				if (this.SearchPointers) {
-					pointers = FindPointers((int)start);
-				}
-
-				if (this.ROMEntries.Contains(entry)) {
-					// Update the size and compression flags.
-					this.ROMEntries[start].Size = size;
-					this.ROMEntries[start].Compressed = compressed;
-					this.ROMEntries[start].SizeHeader = sizeHeader;
-				} else {
-					// Create a new ROM entry.
-					entry = new ROMEntry((int)start, size, compressed, sizeHeader, pointers);
-					this.ROMEntries.Add(entry);
-				}
+				UpdateEntry(start, compressed, sizeHeader, size, entry);
 			}
 
 			// Set the identifier of the text archive if it could be read.
 			if (ta != null) {
-				ta.Identifier = entry.Offset.ToString("X6", CultureInfo.InvariantCulture);
+				ta.Identifier = start.ToString("X6", CultureInfo.InvariantCulture);
 			}
 
 			return ta;
+		}
+
+		private void UpdateEntry(long start, bool compressed, bool sizeHeader, int size, ROMEntry entry) {
+			IEnumerable<int> pointers = new int[0];
+			if (this.SearchPointers) {
+				pointers = FindPointers((int)start);
+			}
+
+			if (this.ROMEntries.Contains(entry)) {
+				// Update the size and compression flags.
+				this.ROMEntries[start].Size = size;
+				this.ROMEntries[start].Compressed = compressed;
+				this.ROMEntries[start].SizeHeader = sizeHeader;
+			} else {
+				// Create a new ROM entry.
+				entry = new ROMEntry((int)start, size, compressed, sizeHeader, pointers);
+				this.ROMEntries.Add(entry);
+			}
 		}
 
 		/// <summary>

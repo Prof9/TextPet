@@ -23,6 +23,9 @@ namespace LibTextPet.IO {
 		}
 
 		protected override long GetKeyForItem(ROMEntry item) {
+			if (item == null)
+				throw new ArgumentNullException(nameof(item), "The item cannot be null.");
+
 			// long is used instead of int to not overlap with this[int].
 			return item.Offset;
 		}
