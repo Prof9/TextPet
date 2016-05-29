@@ -49,7 +49,26 @@ namespace LibTextPet.IO.Msg {
 
 			MemoryStream writeStream;
 			using (MemoryStream rawStream = new MemoryStream()) {
+				if (entry.SizeHeader) {
+					// Allocate some space for the size header.
+					byte[] buffer = new byte[4];
+					rawStream.Write(buffer, 0, buffer.Length);
+				}
+
 				new BinaryTextArchiveWriter(rawStream, this.Game.Encoding).Write(obj);
+
+				if (entry.SizeHeader) {
+					// Write the size header.
+					if (rawStream.Length > 0xFFFFFF) {
+						throw new InvalidDataException("The text archive is too large to have a size header.");
+					}
+
+					rawStream.Position = 0;
+					rawStream.WriteByte(0);
+					rawStream.WriteByte((byte)(rawStream.Length & 0xFF));
+					rawStream.WriteByte((byte)((rawStream.Length >> 8) & 0xFF));
+					rawStream.WriteByte((byte)((rawStream.Length >> 16) & 0xFF));
+				}
 
 				// Compress, if necessary.
 				// TODO: actual compression lol
@@ -86,7 +105,6 @@ namespace LibTextPet.IO.Msg {
 
 				// Write the text archive to the ROM.
 				this.BaseStream.Position = offset;
-				writeStream.Position = 0;
 				writeStream.WriteTo(this.BaseStream);
 
 				// Re-point.
