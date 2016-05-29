@@ -413,9 +413,11 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="path">The path to write to; can be a file or folder.</param>
 		/// <param name="single">If true, all text archives are written to a single file; otherwise, each text archive is written to a separate file.</param>
-		public void WriteTextArchivesTPL(string path, bool single) {
+		/// <param name="noIds">If true, text archive IDs are not included in the output.</param>
+		public void WriteTextArchivesTPL(string path, bool single, bool noIds) {
 			WriteTextArchives(path, "tpl", single, delegate (MemoryStream ms, TextArchive ta) {
-				IWriter<TextArchive> writer = new TPLTextArchiveWriter(ms);
+				TPLTextArchiveWriter writer = new TPLTextArchiveWriter(ms);
+				writer.IncludeIDs = !noIds;
 				writer.Write(ta);
 			});
 		}
@@ -545,7 +547,8 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="path">The path to write to; can be a file or folder.</param>
 		/// <param name="single">If true, all text archives are written to a single file; otherwise, each text archive is written to a separate file.</param>
-		public void ExtractTextBoxes(string path, bool single) {
+		/// <param name="noIds">If true, text archive IDs are not included in the output.</param>
+		public void ExtractTextBoxes(string path, bool single, bool noIds) {
 			bool first = true;
 			WriteTextArchives(path, "txt", single, delegate (MemoryStream ms, TextArchive ta) {
 				if (first && single) {
@@ -559,7 +562,8 @@ namespace TextPet {
 					textWriter.Flush();
 				}
 
-				IWriter<TextArchive> writer = new TextBoxTextArchiveWriter(ms);
+				TextBoxTextArchiveWriter writer = new TextBoxTextArchiveWriter(ms);
+				writer.IncludeIDs = !noIds;
 				writer.Write(ta);
 
 				first = false;

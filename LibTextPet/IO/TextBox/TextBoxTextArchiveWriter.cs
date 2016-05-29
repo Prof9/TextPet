@@ -18,18 +18,27 @@ namespace LibTextPet.IO.TextBox {
 		/// </summary>
 		protected TextWriter TextWriter { get; }
 
+		/// <summary>
+		/// Gets or sets a boolean that indicates whether text archive IDs should be included in the output.
+		/// </summary>
+		public bool IncludeIDs { get; set; }
+
 		public TextBoxTextArchiveWriter(Stream stream)
 			: base(stream, false, FileAccess.Write) {
 			this.ScriptWriter = new TextBoxScriptWriter(stream);
 			this.TextWriter = new StreamWriter(stream, new UTF8Encoding(false, true));
+			this.IncludeIDs = true;
 		}
 
 		public void Write(TextArchive obj) {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The text archive cannot be null.");
 
-			;
-			this.TextWriter.Write("###" + new DirectiveElement(DirectiveType.TextArchive, obj.Identifier).ToString());
+			if (this.IncludeIDs) {
+				this.TextWriter.Write("###" + new DirectiveElement(DirectiveType.TextArchive, obj.Identifier).ToString());
+			} else {
+				this.TextWriter.Write("###" + new DirectiveElement(DirectiveType.TextArchive).ToString());
+			}
 			this.TextWriter.WriteLine();
 			this.TextWriter.Flush();
 

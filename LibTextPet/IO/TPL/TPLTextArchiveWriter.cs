@@ -22,6 +22,11 @@ namespace LibTextPet.IO.TPL {
 		protected TextWriter TextWriter { get; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether text archive IDs should be included in the output.
+		/// </summary>
+		public bool IncludeIDs { get; set; }
+
+		/// <summary>
 		/// Creates a new TextPet Language text archive writer that writes to the specified output stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
@@ -29,6 +34,7 @@ namespace LibTextPet.IO.TPL {
 			: base(stream, false, FileAccess.Write) {
 			this.ScriptWriter = new TPLScriptWriter(stream);
 			this.TextWriter = new StreamWriter(stream, new UTF8Encoding(false, true));
+			this.IncludeIDs = true;
 		}
 
 		/// <summary>
@@ -39,7 +45,11 @@ namespace LibTextPet.IO.TPL {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The text archive cannot be null.");
 
-			this.TextWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "@archive {0}", obj.Identifier));
+			this.TextWriter.Write("@archive");
+			if (this.IncludeIDs) {
+				this.TextWriter.Write(String.Format(CultureInfo.InvariantCulture, " {0}", obj.Identifier));
+			}
+			this.TextWriter.WriteLine();
 			this.TextWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "@size {0}", obj.Count));
 			this.TextWriter.WriteLine();
 			this.TextWriter.Flush();

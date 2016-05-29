@@ -22,6 +22,7 @@ namespace TextPet.Commands {
 		private const string freeSpaceArg = "free-space";
 		private const string singleArg = "single";
 		private const string pathArg = "path";
+		private const string noIdsArg = "no-ids";
 
 		private readonly string[] binFormats = new string[] {
 			"BIN", "BINARY", "DMP", "DUMP", "MSG", "MESSAGE"
@@ -43,12 +44,15 @@ namespace TextPet.Commands {
 				new OptionalArgument(formatArg, 'f', "format"),
 				new OptionalArgument(freeSpaceArg, 'o', "offset"),
 				new OptionalArgument(singleArg, 's'),
+				new OptionalArgument(noIdsArg, 'n'),
 			}) { }
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1303:Do not pass literals as localized parameters", MessageId = "System.Console.WriteLine(System.String)")]
 		protected override void RunImplementation() {
 			string manualFormat = GetOptionalValues(formatArg)?[0];
 			string path = GetRequiredValue(pathArg);
+			bool single = GetOptionalValues(singleArg) != null;
+			bool noIds = GetOptionalValues(noIdsArg) != null;
 
 			// If format is not specified, use file extension.
 			string format;
@@ -72,11 +76,9 @@ namespace TextPet.Commands {
 			if (binFormats.Contains(format)) {
 				this.Core.WriteTextArchivesBinary(path);
 			} else if (tplFormats.Contains(format)) {
-				bool single = GetOptionalValues(singleArg) != null;
-				this.Core.WriteTextArchivesTPL(path, single);
+				this.Core.WriteTextArchivesTPL(path, single, noIds);
 			} else if (txtFormats.Contains(format)) {
-				bool single = GetOptionalValues(singleArg) != null;
-				this.Core.ExtractTextBoxes(path, single);
+				this.Core.ExtractTextBoxes(path, single, noIds);
 			} else if (romFormats.Contains(format)) {
 				string fspaceVal = GetOptionalValues(freeSpaceArg)?[0] ?? "-1";
 				long fspace = NumberParser.ParseInt64(fspaceVal);
