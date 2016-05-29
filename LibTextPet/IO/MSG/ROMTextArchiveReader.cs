@@ -26,7 +26,7 @@ namespace LibTextPet.IO.Msg {
 		/// <summary>
 		/// Gets or sets a boolean that indicates whether this ROM text archive reader should find the pointers of all text archives that were successfully read.
 		/// </summary>
-		public bool FindPointers { get; set; }
+		public bool SearchPointers { get; set; }
 
 		/// <summary>
 		/// Creates a new ROM text archive reader that reads from the specified input stream and uses the specified game info.
@@ -37,7 +37,7 @@ namespace LibTextPet.IO.Msg {
 			: base(stream, FileAccess.Read, game, romEntries) {
 			this.TextArchiveReader = new BinaryTextArchiveReader(stream, game);
 			this.CheckGoodTextArchive = false;
-			this.FindPointers = true;
+			this.SearchPointers = true;
 		}
 
 		/// <summary>
@@ -47,6 +47,7 @@ namespace LibTextPet.IO.Msg {
 		public TextArchive Read() {
 			long start = this.BaseStream.Position;
 			bool compressed = false;
+			bool sizeHeader = false;
 			int size = 0;
 
 			// Check if there is an entry for the current position already.
@@ -80,6 +81,7 @@ namespace LibTextPet.IO.Msg {
 						if (binReader.ReadByte() == 0 && (binReader.ReadUInt16() + (binReader.ReadByte() << 16)) == ms.Length) {
 							offset = 4;
 							length -= 4;
+							sizeHeader = true;
 						}
 
 						ms.Position = offset;
@@ -132,17 +134,19 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			if (ta != null && this.UpdateROMEntriesAndIdentifiers) {
-				if (this.ROMEntries.Contains(entry)) {
-					// Update the size.
-					this.ROMEntries[start].Size = size;
-				} else {
-					IEnumerable<int> pointers = new int[0];
-					if (this.FindPointers) {
-						pointers = SearchPointers((int)start);
-					}
+				IEnumerable<int> pointers = new int[0];
+				if (this.SearchPointers) {
+					pointers = FindPointers((int)start);
+				}
 
+				if (this.ROMEntries.Contains(entry)) {
+					// Update the size and compression flags.
+					this.ROMEntries[start].Size = size;
+					this.ROMEntries[start].Compressed = compressed;
+					this.ROMEntries[start].SizeHeader = sizeHeader;
+				} else {
 					// Create a new ROM entry.
-					entry = new ROMEntry((int)start, size, compressed, pointers);
+					entry = new ROMEntry((int)start, size, compressed, sizeHeader, pointers);
 					this.ROMEntries.Add(entry);
 				}
 			}
@@ -160,7 +164,7 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <param name="offset">The ROM offset.</param>
 		/// <returns>The offsets of all pointers that were found.</returns>
-		private IEnumerable<int> SearchPointers(int offset) {
+		private IEnumerable<int> FindPointers(int offset) {
 			List<int> pointers = new List<int>();
 
 			int read;
@@ -215,9 +219,9 @@ namespace LibTextPet.IO.Msg {
 				return false;
 			}
 			
-			// Check all scripts in the text archive but the last one (unless there is only one).
+			// Check all scripts in the text archive.
 			bool endTypeAlwaysFound = false;
-			for (int i = 0; i < Math.Max(1, ta.Count - 1); i++) {
+			for (int i = 0; i < ta.Count; i++) {
 				Script script = ta[i];
 				int currentOverflow = 0;
 				bool scriptEnded = false;
@@ -245,7 +249,8 @@ namespace LibTextPet.IO.Msg {
 					}						
 
 					// If there are out-of-bounds jumps, it's probably not a text archive.
-					if (CommandContainsOutOfRangeJump(cmd, ta.Count)) {
+					// Don't count this on the last script (unless it's the only one).
+					if ((i == ta.Count - 1 && i != 0) && CommandContainsOutOfRangeJump(cmd, ta.Count)) {
 						return false;
 					}
 				}
