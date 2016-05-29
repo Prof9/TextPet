@@ -206,7 +206,7 @@ namespace LibTextPet.IO.Msg {
 				offset += 1;
 			}
 
-			return value;
+			return value + definition.ExtensionBase;
 		}
 	}
 }
