@@ -546,9 +546,23 @@ namespace TextPet {
 		/// <param name="path">The path to write to; can be a file or folder.</param>
 		/// <param name="single">If true, all text archives are written to a single file; otherwise, each text archive is written to a separate file.</param>
 		public void ExtractTextBoxes(string path, bool single) {
+			bool first = true;
 			WriteTextArchives(path, "txt", single, delegate (MemoryStream ms, TextArchive ta) {
+				if (first && single) {
+					TextWriter textWriter = new StreamWriter(ms);
+					textWriter.WriteLine("## Text Dump");
+					textWriter.WriteLine("## Game:     " + this.Game.FullName);
+					textWriter.WriteLine("## Files:    " + this.TextArchives.Count);
+					textWriter.WriteLine("## TextPet:  " + Program.Version);
+					textWriter.WriteLine("## Date:     " + DateTime.UtcNow.ToString("u", CultureInfo.InvariantCulture));
+					textWriter.WriteLine("##");
+					textWriter.Flush();
+				}
+
 				IWriter<TextArchive> writer = new TextBoxTextArchiveWriter(ms);
 				writer.Write(ta);
+
+				first = false;
 			});
 		}
 
