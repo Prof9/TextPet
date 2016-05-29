@@ -111,10 +111,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="exe45.tpi">
+    <None Include="indexes\exe45.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="key.snk" />
+    <None Include="indexes\mmbn2-us.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="plugins\bn1-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -137,6 +140,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\mmbn1.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\mmbn2s.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\mmbn45.ini">
