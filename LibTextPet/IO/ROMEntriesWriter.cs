@@ -91,8 +91,8 @@ namespace LibTextPet.IO {
 			IList<ROMEntry> sorted = new LinkedList<ROMEntry>(obj.OrderBy(e => e.Offset)).ToList();
 
 			if (this.IncludeFormatComments) {
-				this.TextWriter.WriteLine("// offset:&size=pointer,pointer,...");
-				this.TextWriter.WriteLine("// & indicates compressed size");
+				this.TextWriter.WriteLine("// offset:&%size=pointer,pointer,...");
+				this.TextWriter.WriteLine("// & indicates compressed size, % indicates size header");
 			}
 
 			for (int i = 0; i < sorted.Count; i++) {
@@ -129,7 +129,11 @@ namespace LibTextPet.IO {
 				if (entry.Compressed) {
 					this.TextWriter.Write('&');
 				}
-				this.TextWriter.Write(entry.Size);
+				if (entry.SizeHeader) {
+					this.TextWriter.Write('%');
+				}
+				this.TextWriter.Write("0x");
+				this.TextWriter.Write(entry.Size.ToString("X1", CultureInfo.InvariantCulture));
 				this.TextWriter.Write('=');
 				this.TextWriter.Write(String.Join(",", entry.Pointers.Select(e => "0x" + e.ToString("X6", CultureInfo.InvariantCulture))));
 				if (entry.Pointers.Any(ptr => (ptr & 0x3) != 0)) {

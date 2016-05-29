@@ -22,6 +22,10 @@ namespace LibTextPet.IO {
 		/// </summary>
 		public bool Compressed { get; set; }
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether the text archive contains a size header.
+		/// </summary>
+		public bool SizeHeader { get; set; }
+		/// <summary>
 		/// Gets or sets the offsets of the pointers pointing to the text archive.
 		/// </summary>
 		public ReadOnlyCollection<int> Pointers { get; set; }
@@ -31,7 +35,7 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <param name="offset">The ROM offset of the text archive.</param>
 		public ROMEntry(int offset) 
-			: this(offset, 0, false, new int[0]) { }
+			: this(offset, 0, false, false, new int[0]) { }
 
 		/// <summary>
 		/// Creates a new ROM entry with the specified offset, size, compression and pointer offsets.
@@ -39,8 +43,9 @@ namespace LibTextPet.IO {
 		/// <param name="offset">The ROM offset of the text archive.</param>
 		/// <param name="size">The (compressed) size of the text archive.</param>
 		/// <param name="compressed">Whether the text archive is compressed.</param>
+		/// <param name="sizeHeader">Whether the text archive has a size header.</param>
 		/// <param name="pointers">The offsets of the pointers to the text archive.</param>
-		public ROMEntry(int offset, int size, bool compressed, IEnumerable<int> pointers) {
+		public ROMEntry(int offset, int size, bool compressed, bool sizeHeader, IEnumerable<int> pointers) {
 			if (offset < 0)
 				throw new ArgumentOutOfRangeException(nameof(offset), offset, "The ROM offset cannot be negative.");
 			if (size < 0)
@@ -51,6 +56,7 @@ namespace LibTextPet.IO {
 			this.Offset = offset;
 			this.Size = size;
 			this.Compressed = compressed;
+			this.SizeHeader = sizeHeader;
 			this.Pointers = new ReadOnlyCollection<int>(pointers.Distinct().ToList());
 		}
 

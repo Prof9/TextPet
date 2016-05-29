@@ -39,7 +39,7 @@ namespace LibTextPet.IO {
 				RegexOptions.Multiline | RegexOptions.Compiled
 			);
 			this.EntryRegex = new Regex(
-				@"^[\dA-Za-z$#]+:&?[\dA-Za-z$#]+=([\dA-Za-z$#]+,)*([\dA-Za-z$#]+)?$",
+				@"^[\dA-Za-z$#]+:&?%?[\dA-Za-z$#]+=([\dA-Za-z$#]+,)*([\dA-Za-z$#]+)?$",
 				RegexOptions.Compiled
 			);
 		}
@@ -88,8 +88,9 @@ namespace LibTextPet.IO {
 			int colonPos = entry.IndexOf(':');
 			int equalsPos = entry.IndexOf('=');
 			bool compressed = entry.Contains('&');
+			bool sizeHeader = entry.Contains('%');
 
-			int sizeStart = colonPos + 1 + (compressed ? 1 : 0);
+			int sizeStart = colonPos + 1 + (compressed ? 1 : 0) + (sizeHeader ? 1 : 0);
 
 			string offsetString = entry.Substring(0, colonPos);
 			string sizeString = entry.Substring(sizeStart, equalsPos - sizeStart);
@@ -102,7 +103,7 @@ namespace LibTextPet.IO {
 				pointers[i] = NumberParser.ParseInt32(pointerStrings[i]);
 			}
 
-			return new ROMEntry(offset, size, compressed, pointers);
+			return new ROMEntry(offset, size, compressed, sizeHeader, pointers);
 		}
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "<TextReader>k__BackingField")]
