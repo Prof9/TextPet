@@ -70,19 +70,15 @@ namespace TextPet.Commands {
 			reader.UpdateROMEntriesAndIdentifiers = true;
 
 			int found = 0;
-
-			if (this.Cli.Verbose) {
-				Console.Write("Searching... ");
-			}
-			int cursorLeft = Console.CursorLeft;
+			
 			for (long p = 0; p < length; p += 4) {
 				long offset = start + p;
 				offset &= ~0x3;
 
 				if (this.Cli.Verbose) {
 					int percentage = (int)(100 * p / length);
-
-					Console.CursorLeft = cursorLeft;
+					
+					Console.Write("\rSearching... ");
 					Console.ForegroundColor = ConsoleColor.Green;
 					Console.Write(offset.ToString("X6", CultureInfo.InvariantCulture));
 					Console.ResetColor();
