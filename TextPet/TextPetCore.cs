@@ -225,7 +225,9 @@ namespace TextPet {
 		/// Reads binary text archives from the specified ROM file using the currently loaded ROM entries.
 		/// </summary>
 		/// <param name="file">The path to the ROM file.</param>
-		public void ReadTextArchivesROM(string file, bool updateEntries) {
+		/// <param name="updateEntries">If true, the attributes of any currently loaded ROM entries will be updated after successfully reading the corresponding text archive.</param>
+		/// /// <param name="searchPointers">If true, the pointers of any currently loaded ROM entries will be updated after successfully reading the corresponding text archive.</param>
+		public void ReadTextArchivesROM(string file, bool updateEntries, bool searchPointers) {
 			if (file == null)
 				throw new ArgumentNullException(nameof(file), "The file path cannot be null.");
 			if (!File.Exists(file))
@@ -239,6 +241,7 @@ namespace TextPet {
 
 			ROMTextArchiveReader reader = new ROMTextArchiveReader(this.ROM, this.Game, this.ROMEntries);
 			reader.UpdateROMEntriesAndIdentifiers = updateEntries;
+			reader.SearchPointers = searchPointers;
 
 			List<TextArchive> textArchives = new List<TextArchive>(this.ROMEntries.Count);
 			foreach (ROMEntry romEntry in this.ROMEntries) {
