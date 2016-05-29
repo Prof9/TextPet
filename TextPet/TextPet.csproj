@@ -114,6 +114,9 @@
     <None Include="indexes\exe45.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="indexes\mmbn2-us-beta.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="key.snk" />
     <None Include="indexes\mmbn2-us.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
