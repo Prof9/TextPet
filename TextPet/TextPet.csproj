@@ -148,6 +148,9 @@
     <None Include="plugins\mmbn1.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="plugins\mmbn1s.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="plugins\mmbn2s.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
