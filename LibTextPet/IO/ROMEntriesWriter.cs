@@ -36,6 +36,11 @@ namespace LibTextPet.IO {
 		public bool IncludePostBytesComments { get; set; }
 
 		/// <summary>
+		/// Gets or sets a value that will be added to the size of all written ROM entries.
+		/// </summary>
+		public int AddSize { get; set; }
+
+		/// <summary>
 		/// Creates a new ROM entry writer that writes to the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
@@ -46,6 +51,7 @@ namespace LibTextPet.IO {
 			this.IncludeGapComments = false;
 			this.IncludeOverlapComments = false;
 			this.IncludePostBytesComments = false;
+			this.AddSize = 0;
 		}
 
 		/// <summary>
@@ -100,7 +106,7 @@ namespace LibTextPet.IO {
 
 				// Write preceeding 'gap'.
 				if (this.IncludeGapComments && i > 0 && entry.Offset >= 4) {
-					WriteGapComments(sorted, i, entry);
+					WriteGapComments(sorted, entry);
 				}
 
 				if (this.IncludeOverlapComments) {
@@ -123,7 +129,7 @@ namespace LibTextPet.IO {
 			int toPrint = 0x10;
 			if (i < sorted.Count - 1) {
 				ROMEntry next = sorted[i + 1];
-				int gap = next.Offset - (entry.Offset + entry.Size);
+				int gap = next.Offset - (entry.Offset + entry.Size + this.AddSize);
 				if (gap >= 0 && gap < toPrint) {
 					toPrint = gap;
 				}
@@ -132,7 +138,7 @@ namespace LibTextPet.IO {
 			// Write some post-ending bytes.
 			if (toPrint > 0) {
 				byte[] buffer = new byte[toPrint];
-				rom.Position = entry.Offset + entry.Size;
+				rom.Position = entry.Offset + entry.Size + this.AddSize;
 
 				this.TextWriter.Write("// ");
 				this.TextWriter.Write(rom.Position.ToString("X8", CultureInfo.InvariantCulture));
@@ -145,12 +151,11 @@ namespace LibTextPet.IO {
 			this.TextWriter.WriteLine();
 		}
 
-		private void WriteGapComments(IList<ROMEntry> sorted, int i, ROMEntry entry) {
-			ROMEntry prev = sorted[i - 1];
-			int prevEnd = prev.Offset + prev.Size;
+		private void WriteGapComments(IList<ROMEntry> sorted, ROMEntry entry) {
+			int prevEnd = sorted.TakeWhile(e => e.Offset < entry.Offset).Max(e => e.Offset + e.Size + this.AddSize);
 			int gap = entry.Offset - prevEnd;
 
-			// With a gap up to 4 bytes it's probably just padding.
+			// With a gap up to 3 bytes it's probably just padding.
 			if (gap >= 4) {
 				this.TextWriter.Write("// gap: 0x");
 				this.TextWriter.Write(gap.ToString("X1", CultureInfo.InvariantCulture));
@@ -178,7 +183,7 @@ namespace LibTextPet.IO {
 				this.TextWriter.Write('%');
 			}
 			this.TextWriter.Write("0x");
-			this.TextWriter.Write(entry.Size.ToString("X1", CultureInfo.InvariantCulture));
+			this.TextWriter.Write((entry.Size + this.AddSize).ToString("X1", CultureInfo.InvariantCulture));
 			this.TextWriter.Write('=');
 			this.TextWriter.Write(String.Join(",", entry.Pointers.Select(e => "0x" + e.ToString("X6", CultureInfo.InvariantCulture))));
 			if (entry.Pointers.Any(ptr => (ptr & 0x3) != 0)) {
