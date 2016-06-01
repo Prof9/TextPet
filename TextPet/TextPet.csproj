@@ -88,6 +88,7 @@
     <Compile Include="Commands\SearchCommand.cs" />
     <Compile Include="Commands\SilentCommand.cs" />
     <Compile Include="Commands\TestTextArchivesCommand.cs" />
+    <Compile Include="Commands\TrimCommand.cs" />
     <Compile Include="Commands\VerboseCommand.cs" />
     <Compile Include="Commands\FloodCommand.cs" />
     <Compile Include="Commands\WriteROMEntriesCommand.cs" />

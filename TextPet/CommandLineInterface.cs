@@ -91,6 +91,7 @@ namespace TextPet {
 				new SearchCommand(this, this.Core),
 				new SilentCommand(this, this.Core),
 				new TestTextArchivesCommand(this, this.Core),
+				new TrimCommand(this, this.Core),
 				new VerboseCommand(this, this.Core),
 				new WriteROMEntriesCommand(this, this.Core),
 				new WriteTextArchivesCommand(this, this.Core),
