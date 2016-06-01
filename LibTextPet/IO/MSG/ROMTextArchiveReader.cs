@@ -260,7 +260,7 @@ namespace LibTextPet.IO.Msg {
 				}
 
 				// If the 'overflow' is too high, it's probably not a text archive.
-				if (currentOverflow > 2) {
+				if (currentOverflow > 3) {
 					return false;
 				}
 			}
