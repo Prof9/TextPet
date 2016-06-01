@@ -417,7 +417,7 @@ namespace TextPet {
 		public void WriteTextArchivesTPL(string path, bool single, bool noIds) {
 			WriteTextArchives(path, "tpl", single, delegate (MemoryStream ms, TextArchive ta) {
 				TPLTextArchiveWriter writer = new TPLTextArchiveWriter(ms);
-				writer.IncludeIDs = !noIds;
+				writer.IncludeIdentifiers = !noIds;
 				writer.Write(ta);
 			});
 		}
@@ -563,7 +563,7 @@ namespace TextPet {
 				}
 
 				TextBoxTextArchiveWriter writer = new TextBoxTextArchiveWriter(ms);
-				writer.IncludeIDs = !noIds;
+				writer.IncludeIdentifiers = !noIds;
 				writer.Write(ta);
 
 				first = false;

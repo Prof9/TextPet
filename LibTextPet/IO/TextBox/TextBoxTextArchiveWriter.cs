@@ -19,22 +19,22 @@ namespace LibTextPet.IO.TextBox {
 		protected TextWriter TextWriter { get; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether text archive IDs should be included in the output.
+		/// Gets or sets a boolean that indicates whether text archive identifiers should be included in the output.
 		/// </summary>
-		public bool IncludeIDs { get; set; }
+		public bool IncludeIdentifiers { get; set; }
 
 		public TextBoxTextArchiveWriter(Stream stream)
 			: base(stream, false, FileAccess.Write) {
 			this.ScriptWriter = new TextBoxScriptWriter(stream);
 			this.TextWriter = new StreamWriter(stream, new UTF8Encoding(false, true));
-			this.IncludeIDs = true;
+			this.IncludeIdentifiers = true;
 		}
 
 		public void Write(TextArchive obj) {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The text archive cannot be null.");
 
-			if (this.IncludeIDs) {
+			if (this.IncludeIdentifiers) {
 				this.TextWriter.Write("###" + new DirectiveElement(DirectiveType.TextArchive, obj.Identifier).ToString());
 			} else {
 				this.TextWriter.Write("###" + new DirectiveElement(DirectiveType.TextArchive).ToString());
