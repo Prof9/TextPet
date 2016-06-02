@@ -20,6 +20,8 @@ namespace TextPet {
 	/// A single instance of TextPet.
 	/// </summary>
 	public class TextPetCore {
+		private List<TextArchive> _textArchives;
+
 		/// <summary>
 		/// Gets the plugin loader that is used to load plugins.
 		/// </summary>
@@ -31,7 +33,11 @@ namespace TextPet {
 		/// <summary>
 		/// Gets or sets the currently loaded text archives.
 		/// </summary>
-		public IList<TextArchive> TextArchives { get; }
+		public IList<TextArchive> TextArchives {
+			get {
+				return this._textArchives;
+			}
+		}
 		/// <summary>
 		/// Gets the currently active game.
 		/// </summary>
@@ -52,7 +58,7 @@ namespace TextPet {
 			this.PluginLoader = new PluginLoader();
 			this.Games = new NamedCollection<GameInfo>();
 
-			this.TextArchives = new List<TextArchive>();
+			this._textArchives = new List<TextArchive>();
 			this.ROMEntries = new ROMEntryCollection();
 		}
 
@@ -280,7 +286,7 @@ namespace TextPet {
 		public void InsertTextArchivesTextBoxes(string path, bool recursive) {
 			VerifyGameInitialized();
 			CommandDatabase[] databases = this.Game.Databases.ToArray();
-			IPatcher<TextArchive> patcher = new TextArchiveTextBoxPatcher(databases);
+			TextArchiveTextBoxPatcher patcher = new TextArchiveTextBoxPatcher(databases);
 
 			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
 				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
@@ -305,7 +311,7 @@ namespace TextPet {
 								throw new InvalidOperationException("Cannot patch multiple text archives with identifier " + patchTA.Identifier + ".");
 							}
 							this.TextArchives.RemoveAt(i--);
-							patcher.Patch(baseTA, patchTA);
+							patcher.Patch(baseTA, patchTA, this.TextArchives);
 							patchedTA = baseTA;
 						}
 					}
@@ -364,6 +370,9 @@ namespace TextPet {
 				}
 				files[i] = file;
 			}
+
+			// Sort the text archives.
+			this._textArchives.Sort((a, b) => String.CompareOrdinal(a.Identifier, b.Identifier));
 
 			BeginWritingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(files, true));
 
@@ -434,6 +443,9 @@ namespace TextPet {
 			VerifyGameInitialized();
 
 			Directory.CreateDirectory(Path.GetDirectoryName(file));
+
+			// Sort the text archives.
+			this._textArchives.Sort((a, b) => String.CompareOrdinal(a.Identifier, b.Identifier));
 
 			BeginWritingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(file, true, this.TextArchives.Count));
 

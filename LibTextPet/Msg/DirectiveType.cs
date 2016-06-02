@@ -10,5 +10,6 @@ namespace LibTextPet.Msg {
 		TextArchive,
 		TextBoxSeparator,
 		TextBoxSplit,
+		ImportScript,
 	}
 }

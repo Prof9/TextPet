@@ -1,14 +1,19 @@
-﻿using LibTextPet.Msg;
+﻿using LibTextPet.General;
+using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LibTextPet.IO {
 	/// <summary>
 	/// An patcher that patches new text boxes into base text archives.
 	/// </summary>
 	public class TextArchiveTextBoxPatcher : IPatcher<TextArchive> {
+		private static readonly Regex ImportScriptRegex = new Regex("^[^,]+,[^,]+$");
+
 		/// <summary>
 		/// Gets the patcher that is used for patching scripts.
 		/// </summary>
@@ -31,6 +36,16 @@ namespace LibTextPet.IO {
 		/// <param name="baseObj">The base text archive to patch new text boxes into.</param>
 		/// <param name="patchObj">The patch text archive containing new text boxes.</param>
 		public void Patch(TextArchive baseObj, TextArchive patchObj) {
+			this.Patch(baseObj, patchObj, new TextArchive[0]);
+		}
+
+		/// <summary>
+		/// Patches the text boxes from the specified patch text archive into the specified base text archive.
+		/// </summary>
+		/// <param name="baseObj">The base text archive to patch new text boxes into.</param>
+		/// <param name="patchObj">The patch text archive containing new text boxes.</param>
+		/// <param name="importableTAs">The set of text archives from which scripts can be imported.</param>
+		public void Patch(TextArchive baseObj, TextArchive patchObj, IEnumerable<TextArchive> importableTAs) {
 			if (baseObj == null)
 				throw new ArgumentNullException(nameof(baseObj), "The base text archive cannot be null.");
 			if (patchObj == null)
@@ -40,9 +55,51 @@ namespace LibTextPet.IO {
 
 			int total = Math.Min(baseObj.Count, patchObj.Count);
 			for (int scriptNum = 0; scriptNum < total; scriptNum++) {
+				Script patchScript = patchObj[scriptNum];
+
 				// Is there a patch script available?
-				if (patchObj[scriptNum] != null && patchObj[scriptNum].Count > 0) {
-					this.ScriptPatcher.Patch(baseObj[scriptNum], patchObj[scriptNum]);
+				if (patchScript == null || patchScript.Count <= 0) {
+					continue;
+				}
+
+				// Is this an imported script?
+				DirectiveElement dirElem = patchScript[0] as DirectiveElement;
+				if (dirElem != null && dirElem.DirectiveType == DirectiveType.ImportScript) {
+					if (patchScript.Count != 1) {
+						throw new FormatException("Script import directive must be the only script element. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+					}
+					if (!ImportScriptRegex.IsMatch(dirElem.Value)) {
+						throw new FormatException("Invalid syntax for script import directive \"" + dirElem.Value + "\". (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+					}
+
+					string[] importPars = dirElem.Value.Split(',');
+					string importTAID = importPars[0];
+					int importScriptNum = NumberParser.ParseInt32(importPars[1]);
+
+					IList<TextArchive> importTAs = importableTAs.Where(ta => ta.Identifier == importTAID).ToList();
+					if (importTAs.Count < 1) {
+						throw new InvalidDataException("Could not find text archive \"" + importTAID + "\" for script importing. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+					}
+					if (importTAs.Count > 1) {
+						throw new InvalidDataException("Ambiguous text archive \"" + importTAID + "\" for script importing. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+					}
+					TextArchive importTA = importTAs[0];
+
+					if (importScriptNum < 0 || importScriptNum >= importTA.Count) {
+						throw new InvalidDataException("Cannot import script " + importScriptNum + "from text archive \"" + importTAID + "\"; script does not exist. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+					}
+
+					patchScript = importTA[importScriptNum];
+				}
+
+				if (patchScript != null && patchScript.Count > 0) {
+					// Clone the patch script.
+					Script patchScriptClone = new Script(patchScript.DatabaseName);
+					foreach (IScriptElement elem in patchScript) {
+						patchScriptClone.Add(elem);
+					}
+
+					this.ScriptPatcher.Patch(baseObj[scriptNum], patchScriptClone);
 				}
 			}
 		}
