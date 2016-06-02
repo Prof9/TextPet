@@ -136,29 +136,27 @@ namespace LibTextPet.IO.Msg {
 
 			// Check if any script contains a script-ending command.
 			if (this.CheckGoodTextArchive && !IsGoodTextArchive(ta)) {
-				ta = null;
+				return null;
 			}
 
 			// Search for pointers.
 			IEnumerable<int> pointers = new int[0];
-			if (ta != null && this.SearchPointers) {
+			if (this.SearchPointers) {
 				pointers = FindPointers((int)start);
 			}
 
 			// Check the size of the text archive.
 			if (size < MinimumSize && !pointers.Any()) {
-				ta = null;
+				return null;
 			}
 
 			// Update the ROM entry.
-			if (ta != null && this.UpdateROMEntriesAndIdentifiers) {
+			if (this.UpdateROMEntriesAndIdentifiers) {
 				UpdateEntry(start, compressed, sizeHeader, size, entry, pointers);
 			}
 
 			// Set the identifier of the text archive if it could be read.
-			if (ta != null) {
-				ta.Identifier = start.ToString("X6", CultureInfo.InvariantCulture);
-			}
+			ta.Identifier = start.ToString("X6", CultureInfo.InvariantCulture);
 
 			return ta;
 		}
