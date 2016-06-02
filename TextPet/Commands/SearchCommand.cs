@@ -26,6 +26,8 @@ namespace TextPet.Commands {
 		private const string offsetArg = "offset";
 		private const string lengthArg = "length";
 		private const string deepArg = "deep";
+		private const string minSizeArg = "minimum-size";
+		private const string sizeArg = "size";
 
 		public SearchCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
@@ -33,38 +35,38 @@ namespace TextPet.Commands {
 			}, new OptionalArgument[] {
 				new OptionalArgument(startArg, 's', offsetArg),
 				new OptionalArgument(lengthArg, 'l', lengthArg),
-				new OptionalArgument(deepArg, 'd')
+				new OptionalArgument(deepArg, 'd'),
+				new OptionalArgument(minSizeArg, 'm', sizeArg),
 			}) { }
 
 		protected override void RunImplementation() {
 			string path = GetRequiredValue(pathArg);
 			string startArg = GetOptionalValues(SearchCommand.startArg)?[0];
 			string lengthArg = GetOptionalValues(SearchCommand.lengthArg)?[0];
+			string minSizeArg = GetOptionalValues(SearchCommand.minSizeArg)?[0];
 			bool deep = GetOptionalValues(deepArg) != null;
 
 			this.Core.LoadROM(path);
 
 			long start = 0;
 			if (startArg != null) {
-				start = NumberParser.ParseInt64(startArg);
-			}
-			if (start < 0) {
-				start = 0;
+				start = Math.Max(0, NumberParser.ParseInt64(startArg));
 			}
 
 			long length = this.Core.ROM.Length;
 			if (lengthArg != null) {
-				length = NumberParser.ParseInt64(lengthArg);
+				length = Math.Max(0, NumberParser.ParseInt64(lengthArg));
 			}
-			if (length < 0) {
-				length = 0;
-			}
-			if (start + length > this.Core.ROM.Length) {
-				length = this.Core.ROM.Length - start;
+			length = Math.Min(this.Core.ROM.Length - start, length);
+
+			int minSize = 0;
+			if (minSizeArg != null) {
+				minSize = Math.Max(0, NumberParser.ParseInt32(minSizeArg));
 			}
 
 			ROMTextArchiveReader reader = new ROMTextArchiveReader(this.Core.ROM, this.Core.Game, this.Core.ROMEntries);
 			reader.CheckGoodTextArchive = !deep;
+			reader.MinimumSize = minSize;
 			reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 			reader.TextArchiveReader.AutoSortPointers = false;
 			reader.UpdateROMEntriesAndIdentifiers = true;

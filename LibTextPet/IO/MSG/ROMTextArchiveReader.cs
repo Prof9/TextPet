@@ -24,6 +24,11 @@ namespace LibTextPet.IO.Msg {
 		public bool CheckGoodTextArchive { get; set; }
 
 		/// <summary>
+		/// Gets or sets the minimum size, in bytes, for all text archives; any archives smaller than this will be discarded if they have to pointers.
+		/// </summary>
+		public int MinimumSize { get; set; }
+
+		/// <summary>
 		/// Gets or sets a boolean that indicates whether this ROM text archive reader should find the pointers of all text archives that were successfully read.
 		/// </summary>
 		public bool SearchPointers { get; set; }
@@ -38,6 +43,7 @@ namespace LibTextPet.IO.Msg {
 			this.TextArchiveReader = new BinaryTextArchiveReader(stream, game);
 			this.CheckGoodTextArchive = false;
 			this.SearchPointers = true;
+			this.MinimumSize = 0;
 		}
 
 		/// <summary>
@@ -133,8 +139,20 @@ namespace LibTextPet.IO.Msg {
 				ta = null;
 			}
 
+			// Search for pointers.
+			IEnumerable<int> pointers = new int[0];
+			if (ta != null && this.SearchPointers) {
+				pointers = FindPointers((int)start);
+			}
+
+			// Check the size of the text archive.
+			if (size < MinimumSize && !pointers.Any()) {
+				ta = null;
+			}
+
+			// Update the ROM entry.
 			if (ta != null && this.UpdateROMEntriesAndIdentifiers) {
-				UpdateEntry(start, compressed, sizeHeader, size, entry);
+				UpdateEntry(start, compressed, sizeHeader, size, entry, pointers);
 			}
 
 			// Set the identifier of the text archive if it could be read.
@@ -145,12 +163,7 @@ namespace LibTextPet.IO.Msg {
 			return ta;
 		}
 
-		private void UpdateEntry(long start, bool compressed, bool sizeHeader, int size, ROMEntry entry) {
-			IEnumerable<int> pointers = new int[0];
-			if (this.SearchPointers) {
-				pointers = FindPointers((int)start);
-			}
-
+		private void UpdateEntry(long start, bool compressed, bool sizeHeader, int size, ROMEntry entry, IEnumerable<int> pointers) {
 			if (this.ROMEntries.Contains(entry)) {
 				// Update the size and compression flags.
 				this.ROMEntries[start].Size = size;
