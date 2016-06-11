@@ -254,7 +254,7 @@ namespace LibTextPet.IO {
 			}
 			// Check if all commands were put in.
 			if (commands.Any()) {
-				throw new ArgumentException("Not all commands are accounted for in the text box.", nameof(box));
+				throw new ArgumentException("Not all commands are accounted for in the text box. Missing commands: " + String.Join(", ", commands.Select(cmd => cmd.Name)), nameof(box));
 			}
 		}
 
