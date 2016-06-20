@@ -13,7 +13,7 @@ namespace LibTextPet.IO {
 	/// </summary>
 	public class ScriptTextBoxPatcher : IPatcher<Script> {
 		/// <summary>
-		/// Gets the scripts that are used for text box splitting.
+		/// Gets the command databases used by this patcher.
 		/// </summary>
 		protected ReadOnlyNamedCollection<CommandDatabase> Databases { get; }
 

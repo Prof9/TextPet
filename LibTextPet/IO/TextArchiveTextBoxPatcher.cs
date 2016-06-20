@@ -1,4 +1,5 @@
 ﻿using LibTextPet.General;
+using LibTextPet.IO.TextBox;
 using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,11 @@ namespace LibTextPet.IO {
 		protected IPatcher<Script> ScriptPatcher { get; }
 
 		/// <summary>
+		/// Gets the command databases used by this patcher.
+		/// </summary>
+		protected ReadOnlyNamedCollection<CommandDatabase> Databases { get; }
+
+		/// <summary>
 		/// Creates a new text archive patcher using the specified command databases.
 		/// </summary>
 		/// <param name="databases">The command databases to use.</param>
@@ -28,6 +34,7 @@ namespace LibTextPet.IO {
 				throw new ArgumentNullException(nameof(databases), "The command databases cannot be null.");
 
 			this.ScriptPatcher = new ScriptTextBoxPatcher(databases);
+			this.Databases = new ReadOnlyNamedCollection<CommandDatabase>(databases);
 		}
 
 		/// <summary>
@@ -90,6 +97,13 @@ namespace LibTextPet.IO {
 					}
 
 					patchScript = importTA[importScriptNum];
+					using (MemoryStream ms = new MemoryStream()) {
+						TextBoxScriptWriter tbsw = new TextBoxScriptWriter(ms);
+						TextBoxScriptTemplateReader tbstr = new TextBoxScriptTemplateReader(ms, this.Databases[patchScript.DatabaseName]);
+						tbsw.Write(patchScript);
+						ms.Position = 0;
+						patchScript = tbstr.ReadSingle();
+					}
 				}
 
 				if (patchScript != null && patchScript.Count > 0) {
