@@ -83,7 +83,16 @@ namespace LibTextPet.IO {
 					string importTAID = importPars[0];
 					int importScriptNum = NumberParser.ParseInt32(importPars[1]);
 
-					IList<TextArchive> importTAs = importableTAs.Where(ta => ta.Identifier == importTAID).ToList();
+					IList<TextArchive> importTAs = null;
+					if (patchObj.Identifier == importTAID && patchObj[importScriptNum].Any()) {
+						// Try to import from the current patch object if it's nonempty.
+						importTAs = new TextArchive[] { patchObj };
+					} else if (baseObj.Identifier == importTAID) {
+						// Try to import from the current base object.
+						importTAs = new TextArchive[] { baseObj };
+					} else {
+						importTAs = importableTAs.Where(ta => ta.Identifier == importTAID).ToList();
+					}
 					if (importTAs.Count < 1) {
 						throw new InvalidDataException("Could not find text archive \"" + importTAID + "\" for script importing. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
 					}

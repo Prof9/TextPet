@@ -310,8 +310,8 @@ namespace TextPet {
 							if (patchedTA != null) {
 								throw new InvalidOperationException("Cannot patch multiple text archives with identifier " + patchTA.Identifier + ".");
 							}
-							this.TextArchives.RemoveAt(i--);
 							patcher.Patch(baseTA, patchTA, this.TextArchives);
+							this.TextArchives.RemoveAt(i--);
 							patchedTA = baseTA;
 						}
 					}
