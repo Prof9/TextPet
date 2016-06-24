@@ -134,6 +134,11 @@ namespace LibTextPet.IO.Msg {
 				}
 			}
 
+			if (ta == null) {
+				// Could not read text archive.
+				return null;
+			}
+
 			// Check if any script contains a script-ending command.
 			if (this.CheckGoodTextArchive && !IsGoodTextArchive(ta)) {
 				return null;
