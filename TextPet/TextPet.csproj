@@ -137,10 +137,16 @@
     <None Include="plugins\bn2-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="plugins\bn3-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="plugins\exe1-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\exe2-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\exe3-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\exe45t-utf8.tbl">
@@ -159,6 +165,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\mmbn2s.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\mmbn3.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\mmbn3s.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\mmbn45.ini">
