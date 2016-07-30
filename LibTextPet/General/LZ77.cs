@@ -15,7 +15,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="input">The input stream to read from.</param>
 		/// <param name="output">The output stream to write to.</param>
-		/// <returns>true if the data in the given input stream was not LZ77-decompressed successfully; otherwise, false.</returns>
+		/// <returns>true if the data in the given input stream was decompressed successfully; otherwise, false.</returns>
 		public static bool Decompress(Stream input, Stream output) {
 			if (input == null)
 				throw new ArgumentNullException(nameof(input), "The input stream cannot be null.");
