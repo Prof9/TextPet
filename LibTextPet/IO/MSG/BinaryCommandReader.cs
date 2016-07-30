@@ -80,14 +80,13 @@ namespace LibTextPet.IO.Msg {
 			if (definition == null)
 				throw new ArgumentNullException(nameof(definition), "The command definition cannot be null.");
 
-			const string ioExceptionMessage = "Could not read enough bytes to parse the given command.";
-
 			Command cmd = new Command(definition);
 
 			// Read base bytes.
 			byte[] buffer = new byte[definition.Base.Count];
 			if (this.BaseStream.Read(buffer, 0, buffer.Length) < buffer.Length) {
-				throw new InvalidDataException(ioExceptionMessage);
+				// Cannot read enough bytes.
+				return null;
 			}
 			IList<byte> bytes = new List<byte>(buffer);
 
@@ -111,7 +110,8 @@ namespace LibTextPet.IO.Msg {
 
 				buffer = new byte[length * definition.TotalDataEntryLength];
 				if (this.BaseStream.Read(buffer, 0, buffer.Length) < buffer.Length) {
-					throw new InvalidDataException(ioExceptionMessage);
+					// Cannot read enough bytes.
+					return null;
 				}
 				foreach (byte b in buffer) {
 					bytes.Add(b);
