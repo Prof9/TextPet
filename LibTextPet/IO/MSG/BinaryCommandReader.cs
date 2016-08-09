@@ -161,6 +161,9 @@ namespace LibTextPet.IO.Msg {
 				}
 			}
 
+			// Perform rewind.
+			this.BaseStream.Position -= definition.RewindCount;
+
 			return cmd;
 		}
 

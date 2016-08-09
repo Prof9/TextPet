@@ -138,6 +138,7 @@ namespace LibTextPet.Plugins {
 			EndType ends = ParseEndType(section.PropertyAsString("ENDS", "DEFAULT"));
 			bool prnt = section.PropertyAsBoolean("PRNT", false);
 			string mugs = section.PropertyAsString("MUGS", null);
+			long rwnd = section.PropertyAsInt64("RWND", 0);
 
 			List<ParameterDefinition> pars = new List<ParameterDefinition>();
 			ParameterDefinition lengthPar = null;
@@ -210,7 +211,7 @@ namespace LibTextPet.Plugins {
 				}
 			}
 
-			return new CommandDefinition(name, desc, baseSeq, maskSeq, ends, prnt, mugs, dadd, plen, pars, lengthPar, dataPars);
+			return new CommandDefinition(name, desc, baseSeq, maskSeq, ends, prnt, mugs, dadd, plen, rwnd, pars, lengthPar, dataPars);
 		}
 
 		/// <summary>

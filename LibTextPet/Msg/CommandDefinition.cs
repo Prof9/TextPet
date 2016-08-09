@@ -79,6 +79,11 @@ namespace LibTextPet.Msg {
 		public long DataCountOffset { get; }
 
 		/// <summary>
+		/// Gets the number of bytes this command should rewind after being read.
+		/// </summary>
+		public long RewindCount { get; }
+
+		/// <summary>
 		/// Gets the definition of the data length parameter of the script command.
 		/// </summary>
 		public ParameterDefinition LengthParameter { get; }
@@ -119,7 +124,7 @@ namespace LibTextPet.Msg {
 		/// <param name="lengthPar">The parameter definition of the data length, or null.</param>
 		/// <param name="dataPars">The parameter definitions of the data parameters, or null.</param>
 		public CommandDefinition(string name, string description, byte[] baseSequence, byte[] mask, EndType endType, bool prints, string mugshotName,
-			long dataCountOffset, long priorityLength, IEnumerable<ParameterDefinition> pars, ParameterDefinition lengthPar,
+			long dataCountOffset, long priorityLength, long rewind, IEnumerable<ParameterDefinition> pars, ParameterDefinition lengthPar,
 			IEnumerable<ParameterDefinition> dataPars) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
@@ -184,6 +189,7 @@ namespace LibTextPet.Msg {
 			this.Prints = prints;
 			this.TotalDataEntryLength = totalDataEntryLength;
 			this.DataCountOffset = dataCountOffset;
+			this.RewindCount = rewind;
 			this.PriorityLength = priorityLength;
 			this.Parameters = new ReadOnlyNamedCollection<ParameterDefinition>(pars ?? new ParameterDefinition[0]);
 			this.LengthParameter = lengthPar;
@@ -240,8 +246,8 @@ namespace LibTextPet.Msg {
 			}
 			
 			return new CommandDefinition(this.Name, this.Description, this.Base.ToArray(), this.Mask.ToArray(),
-				this.EndType, this.Prints, this.MugshotParameterName, this.DataCountOffset, this.PriorityLength, pars,
-				lengthPar, dataPars);
+				this.EndType, this.Prints, this.MugshotParameterName, this.DataCountOffset, this.PriorityLength, this.RewindCount,
+				pars, lengthPar, dataPars);
 		}
 
 		/// <summary>

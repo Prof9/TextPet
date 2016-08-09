@@ -60,7 +60,13 @@ namespace LibTextPet.IO.Msg {
 				}
 			}
 
-			this.BaseStream.Write(bytes, 0, bytes.Length);
+			// Perform rewind (or fast-forward, though that's probably not something you'd ever want, but hey).
+			int writeCount = (int)(bytes.Length - obj.Definition.RewindCount);
+			if (writeCount > bytes.Length) {
+				Array.Resize(ref bytes, writeCount);
+			}
+
+			this.BaseStream.Write(bytes, 0, writeCount);
 		}
 
 		/// <summary>
