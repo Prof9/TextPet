@@ -354,6 +354,9 @@ namespace TextPet {
 				}
 			}
 
+			// Sort the text archives.
+			this._textArchives.Sort((a, b) => String.CompareOrdinal(a.Identifier, b.Identifier));
+
 			// Determine the output file paths.
 			string[] files = new string[this.TextArchives.Count];
 			for (int i = 0; i < this.TextArchives.Count; i++) {
@@ -371,9 +374,6 @@ namespace TextPet {
 				files[i] = file;
 			}
 
-			// Sort the text archives.
-			this._textArchives.Sort((a, b) => String.CompareOrdinal(a.Identifier, b.Identifier));
-
 			BeginWritingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(files, true));
 
 			List<TextArchive> writtenTAs = new List<TextArchive>(this.TextArchives.Count);
@@ -381,6 +381,9 @@ namespace TextPet {
 			for (int i = 0; i < this.TextArchives.Count; i++) {
 				TextArchive ta = this.TextArchives[i];
 				string file = files[i];
+				if (Path.GetFileNameWithoutExtension(file) != ta.Identifier) {
+					;
+				}
 
 				// Begin writing the text archive.
 				WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, ta));
