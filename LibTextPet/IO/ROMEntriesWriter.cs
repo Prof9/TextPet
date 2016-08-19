@@ -41,6 +41,11 @@ namespace LibTextPet.IO {
 		public int AddSize { get; set; }
 
 		/// <summary>
+		/// Gets or sets the byte that will be ignored if a low number of it follows the end of a ROM entry.
+		/// </summary>
+		public int ExcludeByte { get; set; }
+
+		/// <summary>
 		/// Creates a new ROM entry writer that writes to the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
@@ -52,6 +57,7 @@ namespace LibTextPet.IO {
 			this.IncludeOverlapComments = false;
 			this.IncludePostBytesComments = false;
 			this.AddSize = 0;
+			this.ExcludeByte = -1;
 		}
 
 		/// <summary>
@@ -126,7 +132,10 @@ namespace LibTextPet.IO {
 		}
 
 		private void WritePostBytes(Stream rom, IList<ROMEntry> sorted, int i, ROMEntry entry) {
+			// Print 16 bytes at most.
 			int toPrint = 0x10;
+
+			// Reduce to the number of bytes between this entry and the next entry.
 			if (i < sorted.Count - 1) {
 				ROMEntry next = sorted[i + 1];
 				int gap = next.Offset - (entry.Offset + entry.Size + this.AddSize);
@@ -135,20 +144,41 @@ namespace LibTextPet.IO {
 				}
 			}
 
-			// Write some post-ending bytes.
-			if (toPrint > 0) {
-				byte[] buffer = new byte[toPrint];
-				rom.Position = entry.Offset + entry.Size + this.AddSize;
+			// Abort if there are no bytes to print.
+			if (toPrint <= 0) {
+				return;
+			}
 
+			// Read the bytes to print.
+			byte[] buffer = new byte[toPrint];
+			rom.Position = entry.Offset + entry.Size + this.AddSize;
+			int read = rom.Read(buffer, 0, buffer.Length);
+
+			// Check if we should exclude these bytes.
+			bool exclude = false;
+
+			// Only exclude if there are less than 4 bytes.
+			if (read < 4) {
+				exclude = true;
+				for (int j = 0; j < read; j++) {
+					// If any byte differs from the exclusion byte, don't exclude.
+					if (buffer[j] != this.ExcludeByte) {
+						exclude = false;
+						break;
+					}
+				}
+			}
+
+			// Write some post-ending bytes.
+			if (read > 0 && !exclude) {
 				this.TextWriter.Write("// ");
 				this.TextWriter.Write(rom.Position.ToString("X8", CultureInfo.InvariantCulture));
 				this.TextWriter.Write(new string(' ', 8));
 
-				int read = rom.Read(buffer, 0, buffer.Length);
 				this.TextWriter.WriteLine(String.Join(" ", buffer.Take(read).Select(b => b.ToString("X2", CultureInfo.InvariantCulture))));
-			}
 
-			this.TextWriter.WriteLine();
+				this.TextWriter.WriteLine();
+			}
 		}
 
 		private void WriteGapComments(IList<ROMEntry> sorted, ROMEntry entry) {

@@ -17,6 +17,8 @@ namespace TextPet.Commands {
 		private const string bytesArg = "bytes";
 		private const string addSizeArg = "add-size";
 		private const string amountArg = "amount";
+		private const string excludeByteArg = "exclude-byte";
+		private const string byteArg = "byte";
 
 		public WriteROMEntriesCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
@@ -26,7 +28,10 @@ namespace TextPet.Commands {
 				new OptionalArgument(bytesArg, 'b'),
 				new OptionalArgument(addSizeArg, 'a', new string[] {
 					amountArg,
-				})
+				}),
+				new OptionalArgument(excludeByteArg, 'e', new string[] {
+					byteArg,
+				}),
 			}) {
 		}
 
@@ -36,10 +41,13 @@ namespace TextPet.Commands {
 			bool bytes = GetOptionalValues(bytesArg) != null;
 			string addSizeStr = GetOptionalValues(addSizeArg)?[0];
 			int addSize = addSizeStr != null ? NumberParser.ParseInt32(addSizeStr) : 0;
+			string excludeByteStr = GetOptionalValues(excludeByteArg)?[0];
+			int excludeByte = excludeByteStr != null ? NumberParser.ParseInt32(excludeByteStr) : -1;
 
 			using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read)) {
 				ROMEntriesWriter writer = new ROMEntriesWriter(fs);
 				writer.AddSize = addSize;
+				writer.ExcludeByte = excludeByte;
 				writer.IncludeFormatComments = true;
 
 				if (comments) {
