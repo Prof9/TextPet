@@ -381,9 +381,6 @@ namespace TextPet {
 			for (int i = 0; i < this.TextArchives.Count; i++) {
 				TextArchive ta = this.TextArchives[i];
 				string file = files[i];
-				if (Path.GetFileNameWithoutExtension(file) != ta.Identifier) {
-					;
-				}
 
 				// Begin writing the text archive.
 				WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, ta));
