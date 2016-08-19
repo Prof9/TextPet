@@ -31,6 +31,11 @@ namespace LibTextPet.IO {
 		public bool IncludeOverlapComments { get; set; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether this ROM entries writer should write additional comments in case a pointer appears to be misaligned.
+		/// </summary>
+		public bool IncludePointerWarnings { get; set; }
+
+		/// <summary>
 		/// Gets or sets a boolean that indicates whether this ROM entries writer should write additional comments containing a number of bytes following the end of each ROM entry.
 		/// </summary>
 		public bool IncludePostBytesComments { get; set; }
@@ -55,6 +60,7 @@ namespace LibTextPet.IO {
 			this.IncludeFormatComments = false;
 			this.IncludeGapComments = false;
 			this.IncludeOverlapComments = false;
+			this.IncludePointerWarnings = false;
 			this.IncludePostBytesComments = false;
 			this.AddSize = 0;
 			this.ExcludeByte = -1;
@@ -216,7 +222,7 @@ namespace LibTextPet.IO {
 			this.TextWriter.Write((entry.Size + this.AddSize).ToString("X1", CultureInfo.InvariantCulture));
 			this.TextWriter.Write('=');
 			this.TextWriter.Write(String.Join(",", entry.Pointers.Select(e => "0x" + e.ToString("X6", CultureInfo.InvariantCulture))));
-			if (entry.Pointers.Any(ptr => (ptr & 0x3) != 0)) {
+			if (this.IncludePointerWarnings && entry.Pointers.Any(ptr => (ptr & 0x3) != 0)) {
 				this.TextWriter.Write(" // CHECK POINTERS!");
 			}
 			this.TextWriter.WriteLine();

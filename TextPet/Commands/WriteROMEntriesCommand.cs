@@ -53,6 +53,7 @@ namespace TextPet.Commands {
 				if (comments) {
 					writer.IncludeGapComments = true;
 					writer.IncludeOverlapComments = true;
+					writer.IncludePointerWarnings = true;
 				}
 				if (bytes) {
 					writer.IncludePostBytesComments = true;
