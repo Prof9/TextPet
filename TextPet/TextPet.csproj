@@ -142,6 +142,9 @@
     <None Include="indexes\mmbn6cf-us.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="indexes\mmbn6cg-us.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="key.snk" />
     <None Include="indexes\mmbn2-us.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
