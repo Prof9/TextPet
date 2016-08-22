@@ -138,6 +138,8 @@ namespace LibTextPet.IO {
 		}
 
 		private void WritePostBytes(Stream rom, IList<ROMEntry> sorted, int i, ROMEntry entry) {
+			long startPos = entry.Offset + entry.Size + this.AddSize;
+
 			// Print 16 bytes at most.
 			int toPrint = 0x10;
 
@@ -157,7 +159,7 @@ namespace LibTextPet.IO {
 
 			// Read the bytes to print.
 			byte[] buffer = new byte[toPrint];
-			rom.Position = entry.Offset + entry.Size + this.AddSize;
+			rom.Position = startPos;
 			int read = rom.Read(buffer, 0, buffer.Length);
 
 			// Check if we should exclude these bytes.
@@ -178,7 +180,7 @@ namespace LibTextPet.IO {
 			// Write some post-ending bytes.
 			if (read > 0 && !exclude) {
 				this.TextWriter.Write("// ");
-				this.TextWriter.Write(rom.Position.ToString("X8", CultureInfo.InvariantCulture));
+				this.TextWriter.Write(startPos.ToString("X8", CultureInfo.InvariantCulture));
 				this.TextWriter.Write(new string(' ', 8));
 
 				this.TextWriter.WriteLine(String.Join(" ", buffer.Take(read).Select(b => b.ToString("X2", CultureInfo.InvariantCulture))));
