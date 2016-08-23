@@ -78,28 +78,7 @@ namespace TextPet.Commands {
 				offset &= ~0x3;
 
 				if (this.Cli.Verbose) {
-					int percentage = (int)(100 * p / length);
-					
-					Console.Write("\rSearching... ");
-					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write(offset.ToString("X6", CultureInfo.InvariantCulture));
-					Console.ResetColor();
-					Console.Write(" (");
-					if (Console.BackgroundColor == ConsoleColor.White) {
-						Console.ForegroundColor = ConsoleColor.Black;
-					} else {
-						Console.ForegroundColor = ConsoleColor.White;
-					}
-					Console.Write(percentage.ToString(CultureInfo.InvariantCulture).PadLeft(2));
-					if (percentage < 100) {
-						Console.Write("%");
-					}
-					Console.ResetColor();
-					Console.Write(") (");
-					Console.ForegroundColor = ConsoleColor.Green;
-					Console.Write(found);
-					Console.ResetColor();
-					Console.Write(" found)");
+					PrintProgress(length, found, p, offset);
 				}
 
 				this.Core.ROM.Position = offset;
@@ -110,7 +89,36 @@ namespace TextPet.Commands {
 					found++;
 				}
 			}
+			PrintProgress(length, found, length, start+length);
 			Console.WriteLine();
+		}
+
+		private static void PrintProgress(long length, int found, long p, long offset) {
+			int percentage = (int)(100 * p / length);
+			if (percentage > 100) {
+				percentage = 100;
+			}
+
+			Console.Write("\rSearching... ");
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.Write(offset.ToString("X6", CultureInfo.InvariantCulture));
+			Console.ResetColor();
+			Console.Write(" (");
+			if (Console.BackgroundColor == ConsoleColor.White) {
+				Console.ForegroundColor = ConsoleColor.Black;
+			} else {
+				Console.ForegroundColor = ConsoleColor.White;
+			}
+			Console.Write(percentage.ToString(CultureInfo.InvariantCulture).PadLeft(2));
+			if (percentage < 100) {
+				Console.Write("%");
+			}
+			Console.ResetColor();
+			Console.Write(") (");
+			Console.ForegroundColor = ConsoleColor.Green;
+			Console.Write(found);
+			Console.ResetColor();
+			Console.Write(" found)");
 		}
 	}
 }
