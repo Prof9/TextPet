@@ -130,6 +130,9 @@
     <None Include="indexes\mmbn3b-us.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="indexes\mmbn3w-us.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="indexes\mmbn4rs-eu.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
