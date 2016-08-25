@@ -112,6 +112,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="indexes\exe1.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="indexes\exe45.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
