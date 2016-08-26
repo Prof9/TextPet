@@ -77,7 +77,7 @@ namespace LibTextPet.Text {
 			}
 
 			// Keep a character buffer, too.
-			int maxCharCount = this.Encoding.GetMaxCharCount(count);
+			int maxCharCount = this.Encoding.GetMaxCharCount(count) * maxByteCount;
 			char[] charBuffer = new char[maxCharCount];
 
 			// Decode the characters from the buffer.
