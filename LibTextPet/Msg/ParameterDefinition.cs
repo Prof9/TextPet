@@ -156,6 +156,7 @@ namespace LibTextPet.Msg {
 			PassThroughNonNull(definition).Shift, PassThroughNonNull(definition).Bits, PassThroughNonNull(definition).IsJump,
 			definition.ExtensionBase, definition.DataGroup, definition.ValueEncodingName) {
 			this.ValueEncoding = definition.ValueEncoding;
+			this.JumpContinueValues = definition.JumpContinueValues;
 		}
 		private static ParameterDefinition PassThroughNonNull(ParameterDefinition definition) {
 			if (definition == null)
