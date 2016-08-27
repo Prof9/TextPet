@@ -124,7 +124,7 @@
     <None Include="indexes\exe3.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="indexes\exe3b.tpi">
+    <None Include="indexes\exe3b-v11.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="indexes\exe45.tpi">
@@ -252,6 +252,9 @@
   <ItemGroup>
     <CodeAnalysisDictionary Include="CustomDictionary.xml" />
     <Content Include="icon.ico" />
+    <None Include="indexes\exe3b-v10.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="indexes\mmbn4bm-us.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
