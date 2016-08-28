@@ -121,7 +121,10 @@
     <None Include="indexes\exe2-v11.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="indexes\exe3.tpi">
+    <None Include="indexes\exe3-v10.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="indexes\exe3-v11.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="indexes\exe3b-v11.tpi">
