@@ -133,6 +133,9 @@
     <None Include="indexes\exe45.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="indexes\exe4bm-v10.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="indexes\exe4rs-v10.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
