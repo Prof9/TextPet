@@ -144,10 +144,11 @@ namespace LibTextPet.Plugins {
 			ParameterDefinition lengthPar = null;
 			List<ParameterDefinition> dataPars = new List<ParameterDefinition>();
 
+			// Find the base command.
+			CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.ToUpperInvariant() == name.ToUpperInvariant());
+
 			// Load extended properties (for extensions).
 			if (extension) {
-				// Find the base command.
-				CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.ToUpperInvariant() == name.ToUpperInvariant());
 				if (super == null)
 					throw new KeyNotFoundException("Unknown base command " + name + ".");
 
@@ -162,6 +163,13 @@ namespace LibTextPet.Plugins {
 				if (super.LengthParameter != null) {
 					lengthPar = new ParameterDefinition(super.LengthParameter);
 				}
+			} else if (super != null) {
+				// Duplicate command.
+				string baseStr = BitConverter.ToString(baseSeq).Replace('-', ' ');
+				string superBaseStr = BitConverter.ToString(super.Base.ToArray()).Replace('-', ' ');
+
+				throw new InvalidDataException("Command with base " + baseStr + " attempts to use name " + name + ", "
+					+ "but this name is already in use by command with base " + superBaseStr + ".");
 			}
 
 			// Load all parameters.
