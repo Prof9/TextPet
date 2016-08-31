@@ -37,9 +37,9 @@ namespace LibTextPet.Msg {
 		private IList<byte> LastSequence { get; set; }
 
 		/// <summary>
-		/// Gets the script used for splitting text boxes.
+		/// Gets the script snippet used for splitting text boxes.
 		/// </summary>
-		public Script TextBoxSplitScript { get; internal set; }
+		public Script TextBoxSplitSnippet { get; internal set; }
 
 		/// <summary>
 		/// Gets the name of this command database.

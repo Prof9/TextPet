@@ -90,7 +90,7 @@ namespace LibTextPet.Plugins {
 				}
 
 				splitScript.DatabaseName = db.Name;
-				db.TextBoxSplitScript = splitScript;
+				db.TextBoxSplitSnippet = splitScript;
 			}
 
 			return db;
