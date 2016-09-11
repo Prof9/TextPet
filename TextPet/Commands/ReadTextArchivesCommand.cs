@@ -26,6 +26,7 @@ namespace TextPet.Commands {
 		private const string recursiveArg = "recursive";
 		private const string updateArg = "update";
 		private const string searchPointersArg = "search-pointers";
+		private const string patchArg = "patch";
 
 		private readonly string[] binFormats = new string[] {
 			"BIN", "BINARY", "DMP", "DUMP", "MSG", "MESSAGE",
@@ -50,6 +51,7 @@ namespace TextPet.Commands {
 				new OptionalArgument(recursiveArg, 'r'),
 				new OptionalArgument(updateArg, 'u'),
 				new OptionalArgument(searchPointersArg, 's'),
+				new OptionalArgument(patchArg, 'p'),
 			}) {
 			this.Recursive = false;
 		}
@@ -60,6 +62,7 @@ namespace TextPet.Commands {
 			this.Recursive = GetOptionalValues(recursiveArg) != null;
 			bool update = GetOptionalValues(updateArg) != null;
 			bool searchPointers = GetOptionalValues(searchPointersArg) != null;
+			bool patchMode = GetOptionalValues(patchArg) != null;
 
 			// If format is not specified, use file extension.
 			string format;
@@ -79,11 +82,11 @@ namespace TextPet.Commands {
 			format = format.ToUpperInvariant().Replace("-", "");
 
 			if (binFormats.Contains(format)) {
-				ReadTextArchivesBinary(path);
+				ReadTextArchivesBinary(path, patchMode);
 			} else if (tplFormats.Contains(format)) {
-				this.ReadTextArchivesTPL(path);
+				this.ReadTextArchivesTPL(path, patchMode);
 			} else if (txtFormats.Contains(format)) {
-				this.ReadTextArchivesTextBoxes(path);
+				this.ReadTextArchivesTextBoxes(path, patchMode);
 			} else if (romFormats.Contains(format)) {
 				this.Core.ReadTextArchivesROM(path, update, searchPointers);
 			} else if (manualFormat == null) {
@@ -111,8 +114,9 @@ namespace TextPet.Commands {
 		/// Reads binary text archives from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		public void ReadTextArchivesBinary(string path) {
-			this.Core.ReadTextArchives(path, this.Recursive, delegate (MemoryStream ms, string file) {
+		/// <param name="patchMode">Whether previously loaded text archives should be patched.</param>
+		public void ReadTextArchivesBinary(string path, bool patchMode) {
+			this.Core.ReadTextArchives(path, this.Recursive, patchMode, delegate (MemoryStream ms, string file) {
 				BinaryTextArchiveReader reader = new BinaryTextArchiveReader(ms, this.Core.Game);
 				reader.IgnorePointerSyncErrors = true;
 
@@ -131,13 +135,14 @@ namespace TextPet.Commands {
 		/// Reads TextPet Language text archives from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
-		public void ReadTextArchivesTPL(string path) {
+		/// <param name="patchMode">Whether previously loaded text archives should be patched.</param>
+		public void ReadTextArchivesTPL(string path, bool patchMode) {
 			if (!VerifyGameInitialized()) {
 				return;
 			}
 			CommandDatabase[] databases = this.Core.Game.Databases.ToArray();
 
-			this.Core.ReadTextArchives(path, this.Recursive, delegate (MemoryStream ms, string file) {
+			this.Core.ReadTextArchives(path, this.Recursive, patchMode, delegate (MemoryStream ms, string file) {
 				TPLTextArchiveReader reader = new TPLTextArchiveReader(ms, databases);
 
 				List<TextArchive> tas = new List<TextArchive>();
@@ -161,13 +166,14 @@ namespace TextPet.Commands {
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
-		public void ReadTextArchivesTextBoxes(string path) {
+		/// <param name="patchMode">Whether previously loaded text archives should be patched.</param>
+		public void ReadTextArchivesTextBoxes(string path, bool patchMode) {
 			if (!VerifyGameInitialized()) {
 				return;
 			}
 			CommandDatabase[] databases = this.Core.Game.Databases.ToArray();
 
-			this.Core.ReadTextArchives(path, this.Recursive, delegate (MemoryStream ms, string file) {
+			this.Core.ReadTextArchives(path, this.Recursive, patchMode, delegate (MemoryStream ms, string file) {
 				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
 
 				List<TextArchive> tas = new List<TextArchive>();

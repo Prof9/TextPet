@@ -182,8 +182,9 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="path">The path to read from; can be a file or folder.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
+		/// <param name="patchMode">If true, patches text archives that were previously read with newly read scripts; otherwise, reading duplicate text archives throws an exception.</param>
 		/// <param name="readDelegate">The read delegate that reads a text archive with the specified name from the specified stream.</param>
-		internal void ReadTextArchives(string path, bool recursive, TextArchiveFileHandler readDelegate) {
+		internal void ReadTextArchives(string path, bool recursive, bool patchMode, TextArchiveFileHandler readDelegate) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The path cannot be null.");
 			if (readDelegate == null)
@@ -218,8 +219,28 @@ namespace TextPet {
 						throw new InvalidDataException("Could not read one or more text archives.");
 					}
 
+					// Check if we already have this text archive.
+					TextArchive baseTA = this.TextArchives.FirstOrDefault(prevTA => prevTA.Identifier == ta.Identifier);
+					if (baseTA != null) {
+						if (!patchMode) {
+							throw new InvalidOperationException("Text archive " + ta.Identifier + " is already loaded and patch mode is not enabled.");
+						}
+
+						// Resize existing text archive.
+						baseTA.Resize(ta.Count);
+
+						// Patch the new scripts into the existing text archive.
+						for (int i = 0; i < ta.Count; i++) {
+							Script script = ta[i];
+							if (script != null && script.Count > 0) {
+								baseTA[i] = script;
+							}
+						}
+					} else {
+						this.TextArchives.Add(ta);
+					}
+
 					readTAs.Add(ta);
-					this.TextArchives.Add(ta);
 					ReadTextArchive?.Invoke(this, new TextArchivesEventArgs(file, ta));
 				}
 			}
@@ -288,7 +309,7 @@ namespace TextPet {
 			CommandDatabase[] databases = this.Game.Databases.ToArray();
 			TextArchiveTextBoxPatcher patcher = new TextArchiveTextBoxPatcher(databases);
 
-			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
+			ReadTextArchives(path, recursive, false, delegate (MemoryStream ms, string file) {
 				TextBoxTextArchiveTemplateReader reader = new TextBoxTextArchiveTemplateReader(ms, databases);
 				NamedCollection<TextArchive> patchedTAs = new NamedCollection<TextArchive>();
 
@@ -495,7 +516,7 @@ namespace TextPet {
 			BeginTestingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
 			List<TextArchive> testedTAs = new List<TextArchive>();
-			ReadTextArchives(path, recursive, delegate (MemoryStream ms, string file) {
+			ReadTextArchives(path, recursive, false, delegate (MemoryStream ms, string file) {
 				TextArchive ta1, ta2;
 				byte[] before = ms.ToArray();
 				byte[] after;
