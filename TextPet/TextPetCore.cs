@@ -102,11 +102,11 @@ namespace TextPet {
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		/// <returns>The plugins that were loaded.</returns>
 		public void LoadPlugins(string path, bool recursive) {
-			ICollection<string> files = GetReadFiles(path, recursive);
+			IEnumerable<string> files = GetReadFiles(path, recursive);
 			BeginLoadingPlugins?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
 			// Load the plugins.
-			List<IPlugin> loadedPlugins = new List<IPlugin>(files.Count);
+			List<IPlugin> loadedPlugins = new List<IPlugin>();
 			foreach (string file in files) {
 				foreach (IPlugin plugin in this.PluginLoader.LoadPlugins(file)) {
 					loadedPlugins.Add(plugin);
@@ -129,7 +129,7 @@ namespace TextPet {
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		public void LoadROMEntries(string path, bool recursive, bool ignoreSize) {
-			ICollection<string> files = GetReadFiles(path, recursive);
+			IEnumerable<string> files = GetReadFiles(path, recursive);
 			BeginLoadingROMEntries?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
 			// Load the ROM entries.
@@ -192,11 +192,11 @@ namespace TextPet {
 
 			VerifyGameInitialized();
 
-			ICollection<string> files = GetReadFiles(path, recursive);
+			IEnumerable<string> files = GetReadFiles(path, recursive);
 
 			BeginReadingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
-			List<TextArchive> readTAs = new List<TextArchive>(files.Count);
+			List<TextArchive> readTAs = new List<TextArchive>();
 			foreach (string file in files) {
 				// Begin reading the text archive.
 				ReadingTextArchive?.Invoke(this, new TextArchivesEventArgs(file));
@@ -512,7 +512,7 @@ namespace TextPet {
 		public void TestTextArchivesIO(string path, bool recursive) {
 			VerifyGameInitialized();
 
-			ICollection<string> files = GetReadFiles(path, recursive);
+			IEnumerable<string> files = GetReadFiles(path, recursive);
 			BeginTestingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
 			List<TextArchive> testedTAs = new List<TextArchive>();
@@ -609,14 +609,18 @@ namespace TextPet {
 		/// <param name="path">The path. If this is a folder, all files in the folder will be returned.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
 		/// <returns>The files.</returns>
-		private static ICollection<string> GetReadFiles(string path, bool recursive) {
+		private static IEnumerable<string> GetReadFiles(string path, bool recursive) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The path cannot be null.");
 
 			string absolutePath = Path.Combine(Directory.GetCurrentDirectory(), path);
 
 			if (Directory.Exists(absolutePath)) {
-				return Directory.GetFiles(absolutePath, "*", recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+				return new DirectoryInfo(absolutePath).GetFiles().Where(
+					file => !file.Attributes.HasFlag(FileAttributes.Hidden) && !file.Attributes.HasFlag(FileAttributes.System)
+				).Select(
+					file => file.FullName
+				);
 			} else if (File.Exists(absolutePath)) {
 				return new string[] { absolutePath };
 			} else {
