@@ -303,6 +303,12 @@
     <None Include="plugins\mmbn5ds.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="plugins\mmbn5dse.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\mmbn5dses.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="plugins\mmbn5s.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
