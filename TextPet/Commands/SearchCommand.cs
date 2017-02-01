@@ -30,6 +30,7 @@ namespace TextPet.Commands {
 		private const string minSizeArg = "minimum-size";
 		private const string sizeArg = "size";
 		private const string noRecordArg = "no-record";
+		private const string prependFileNameArg = "prepend-file-name";
 
 		public SearchCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
@@ -40,6 +41,7 @@ namespace TextPet.Commands {
 				new OptionalArgument(deepArg, 'd'),
 				new OptionalArgument(minSizeArg, 'm', sizeArg),
 				new OptionalArgument(noRecordArg, 'n'),
+				new OptionalArgument(prependFileNameArg, 'p'),
 			}) { }
 
 		protected override void RunImplementation() {
@@ -49,6 +51,7 @@ namespace TextPet.Commands {
 			string minSizeArg = GetOptionalValues(SearchCommand.minSizeArg)?[0];
 			bool deep = GetOptionalValues(deepArg) != null;
 			bool noRecord = GetOptionalValues(noRecordArg) != null;
+			bool prependFileName = GetOptionalValues(prependFileNameArg) != null;
 
 			this.Core.LoadROM(path);
 
@@ -89,6 +92,14 @@ namespace TextPet.Commands {
 				TextArchive ta = reader.Read();
 
 				if (ta != null) {
+					if (prependFileName) {
+						if (offset == 0) {
+							ta.Identifier = Path.GetFileNameWithoutExtension(path);
+						} else {
+							ta.Identifier = Path.GetFileNameWithoutExtension(path) + '_' + ta.Identifier;
+						}
+					}
+
 					this.Core.TextArchives.Add(ta);
 					found++;
 				}
