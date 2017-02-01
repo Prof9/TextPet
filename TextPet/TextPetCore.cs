@@ -616,7 +616,10 @@ namespace TextPet {
 			string absolutePath = Path.Combine(Directory.GetCurrentDirectory(), path);
 
 			if (Directory.Exists(absolutePath)) {
-				return new DirectoryInfo(absolutePath).GetFiles().Where(
+				return new DirectoryInfo(absolutePath).GetFiles(
+					"*.*",
+					recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly
+				).Where(
 					file => !file.Attributes.HasFlag(FileAttributes.Hidden) && !file.Attributes.HasFlag(FileAttributes.System)
 				).Select(
 					file => file.FullName
