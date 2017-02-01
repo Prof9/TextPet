@@ -4,6 +4,7 @@ using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -28,6 +29,7 @@ namespace TextPet.Commands {
 		private const string deepArg = "deep";
 		private const string minSizeArg = "minimum-size";
 		private const string sizeArg = "size";
+		private const string noRecordArg = "no-record";
 
 		public SearchCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
@@ -37,6 +39,7 @@ namespace TextPet.Commands {
 				new OptionalArgument(lengthArg, 'l', lengthArg),
 				new OptionalArgument(deepArg, 'd'),
 				new OptionalArgument(minSizeArg, 'm', sizeArg),
+				new OptionalArgument(noRecordArg, 'n'),
 			}) { }
 
 		protected override void RunImplementation() {
@@ -45,6 +48,7 @@ namespace TextPet.Commands {
 			string lengthArg = GetOptionalValues(SearchCommand.lengthArg)?[0];
 			string minSizeArg = GetOptionalValues(SearchCommand.minSizeArg)?[0];
 			bool deep = GetOptionalValues(deepArg) != null;
+			bool noRecord = GetOptionalValues(noRecordArg) != null;
 
 			this.Core.LoadROM(path);
 
@@ -69,7 +73,7 @@ namespace TextPet.Commands {
 			reader.MinimumSize = minSize;
 			reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 			reader.TextArchiveReader.AutoSortPointers = false;
-			reader.UpdateROMEntriesAndIdentifiers = true;
+			reader.UpdateROMEntriesAndIdentifiers = !noRecord;
 
 			int found = 0;
 			
