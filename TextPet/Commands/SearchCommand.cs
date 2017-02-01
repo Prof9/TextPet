@@ -108,6 +108,7 @@ namespace TextPet.Commands {
 			Console.WriteLine();
 		}
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1303:Do not pass literals as localized parameters", MessageId = "System.Console.Write(System.String)")]
 		private static void PrintProgress(long length, int found, long p, long offset) {
 			int percentage = (int)(100 * p / length);
 			if (percentage > 100) {
