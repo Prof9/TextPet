@@ -84,10 +84,14 @@ namespace LibTextPet.IO.Msg {
 						int length = (int)ms.Length;
 
 						// Skip length header, if present.
-						if (binReader.ReadByte() == 0 && (binReader.ReadUInt16() + (binReader.ReadByte() << 16)) == ms.Length) {
-							offset = 4;
-							length -= 4;
-							sizeHeader = true;
+						if (length >= 4) {
+							long header = binReader.ReadUInt32();
+							if ((header & 0xFF) == 0 && ((header >> 8) == length || (header >> 8) == length - 4)) {
+								offset = 4;
+								length -= 4;
+								// TODO: BN5DS uses size - 4, mark this somehow.
+								sizeHeader = true;
+							}
 						}
 
 						ms.Position = offset;
