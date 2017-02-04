@@ -43,6 +43,15 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="game">The game info.</param>
+		public ROMTextArchiveReader(Stream stream, GameInfo game)
+			: this(stream, game, new ROMEntryCollection()) { }
+
+		/// <summary>
+		/// Creates a new ROM text archive reader that reads from the specified input stream and uses the specified game info and ROM entries.
+		/// </summary>
+		/// <param name="stream">The stream to read from.</param>
+		/// <param name="game">The game info.</param>
+		/// <param name="romEntries">The ROM entries to use.</param>
 		public ROMTextArchiveReader(Stream stream, GameInfo game, ROMEntryCollection romEntries)
 			: base(stream, FileAccess.Read, game, romEntries) {
 			this.TextArchiveReader = new BinaryTextArchiveReader(stream, game);

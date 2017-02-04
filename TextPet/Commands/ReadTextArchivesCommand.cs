@@ -117,10 +117,14 @@ namespace TextPet.Commands {
 		/// <param name="patchMode">Whether previously loaded text archives should be patched.</param>
 		public void ReadTextArchivesBinary(string path, bool patchMode) {
 			this.Core.ReadTextArchives(path, this.Recursive, patchMode, delegate (MemoryStream ms, string file) {
-				BinaryTextArchiveReader reader = new BinaryTextArchiveReader(ms, this.Core.Game);
-				reader.IgnorePointerSyncErrors = true;
+				ROMTextArchiveReader reader = new ROMTextArchiveReader(ms, this.Core.Game);
+				reader.CheckGoodTextArchive = false;
+				reader.ReadEntireFile = true;
+				reader.SearchPointers = false;
+				reader.UpdateROMEntriesAndIdentifiers = false;
+				reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 
-				TextArchive ta = reader.Read((int)ms.Length);
+				TextArchive ta = reader.Read();
 
 				if (ta == null) {
 					throw new InvalidDataException("Could not read text archive " + Path.GetFileName(file) + ".");
