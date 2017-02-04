@@ -1,6 +1,7 @@
 ﻿using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -109,12 +110,25 @@ namespace LibTextPet.IO.TPL {
 					ReadToken((int)TPLTokenType.HeredocEnd);
 					return ProcessResult.ConsumeAndContinue;
 				case (int)TPLTokenType.Word:
-					// Read a script command.
-					obj.Add(this.CommandReader.SubRead(this, db, false));
-					if (this.CommandReader.Consumed) {
+					if (token.Value.StartsWith("$")) {
+						// Read raw byte.
+						if (token.Value.Length <= 1 || token.Value.Length > 3) {
+							throw new ArgumentException("Invalid hexadecimal byte element '" + token.Value + "'.", nameof(token));
+						}
+						byte byteVal;
+						if (!Byte.TryParse(token.Value.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byteVal)) {
+							throw new ArgumentException("Could not parse hexadecimal byte element '" + token.Value + "'.", nameof(token));
+						}
+						obj.Add(new ByteElement(byteVal));
 						return ProcessResult.ConsumeAndContinue;
 					} else {
-						return ProcessResult.Continue;
+						// Read a script command.
+						obj.Add(this.CommandReader.SubRead(this, db, false));
+						if (this.CommandReader.Consumed) {
+							return ProcessResult.ConsumeAndContinue;
+						} else {
+							return ProcessResult.Continue;
+						}
 					}
 			}
 			throw new ArgumentException("Unrecognized token.", nameof(token));
