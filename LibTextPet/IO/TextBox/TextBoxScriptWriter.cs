@@ -80,6 +80,15 @@ namespace LibTextPet.IO.TextBox {
 			}
 		}
 
+		protected override void WriteFallback(IScriptElement element) {
+			// Ignore raw byte elements.
+			if (element is ByteElement) {
+				return;
+			}
+
+			base.WriteFallback(element);
+		}
+
 		protected void StartTextBox() {
 			// Only start new text box if no text box is active.
 			if (!textBoxActive) {
