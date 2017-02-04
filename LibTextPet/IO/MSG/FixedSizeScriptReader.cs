@@ -79,6 +79,21 @@ namespace LibTextPet.IO.Msg {
 		}
 
 		/// <summary>
+		/// Reads the next script command from the input stream.
+		/// </summary>
+		/// <returns>The next script command read from the input stream, or null if no script command exists at the current position in the input stream.</returns>
+		protected override Command ReadCommand(IReader<Command> commandReader) {
+			Command cmd = base.ReadCommand(commandReader);
+
+			// Abort if the command would exceed the fixed script size.
+			if (cmd != null && this.BaseStream.Position - this.StartPosition > this.FixedLength) {
+				cmd = null;
+			}
+
+			return cmd;
+		}
+
+		/// <summary>
 		/// Checks whether the current stream has script elements left.
 		/// </summary>
 		/// <returns>true if there are script elements left; otherwise, false.</returns>

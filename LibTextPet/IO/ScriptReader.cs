@@ -101,13 +101,14 @@ namespace LibTextPet.IO {
 		/// <summary>
 		/// Reads the next script element from the input stream.
 		/// </summary>
+		/// <param name="commandReader">The script command reader to use.</param>
 		/// <param name="abortOnFallback">If true, this method returns null instead of a fallback element when an unrecognized script element is encountered.</param>
 		/// <returns>The element that was read.</returns>
 		private IScriptElement ReadElement(IReader<Command> commandReader, bool abortOnFallback) {
 			long start = this.BaseStream.Position;
 
 			// Try to read the next element as a command.
-			IScriptElement elem = commandReader.Read();
+			IScriptElement elem = ReadCommand(commandReader);
 
 			// Try to read the next element(s) as a string.
 			if (elem == null) {
@@ -132,6 +133,14 @@ namespace LibTextPet.IO {
 
 			this.LastElement = elem;
 			return elem;
+		}
+
+		/// <summary>
+		/// Reads the next script command from the input stream.
+		/// </summary>
+		/// <returns>The next script command read from the input stream, or null if no script command exists at the current position in the input stream.</returns>
+		protected virtual Command ReadCommand(IReader<Command> commandReader) {
+			return commandReader.Read();
 		}
 
 		/// <summary>
