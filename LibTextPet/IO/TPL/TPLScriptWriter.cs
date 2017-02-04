@@ -12,6 +12,8 @@ namespace LibTextPet.IO.TPL {
 	/// A TextPet Language script writer that writes a script to an output stream.
 	/// </summary>
 	public class TPLScriptWriter : ScriptWriter {
+		protected int ConsecutiveByteElements;
+
 		/// <summary>
 		/// Creates a new TextPet Language script writer that writes to the specified output stream.
 		/// </summary>
@@ -40,15 +42,23 @@ namespace LibTextPet.IO.TPL {
 			if (scriptNumber < 0)
 				throw new ArgumentOutOfRangeException(nameof(scriptNumber), scriptNumber, "The script number cannot be negative.");
 
+			this.ConsecutiveByteElements = 0;
+
 			// Write: script 0 dbname {
 			this.TextWriter.WriteLine(String.Format(CultureInfo.InvariantCulture, "script {0} {1} {{", scriptNumber, script.DatabaseName));
 			this.TextWriter.Flush();
+
 			// Write the script
 			base.Write(script);
 			this.TextWriter.Flush();
+
+			// Finish pending byte elements.
+			if (this.ConsecutiveByteElements > 0) {
+				this.TextWriter.WriteLine();
+			}
+
 			// Write: }
 			this.TextWriter.WriteLine("}");
-			this.TextWriter.Flush();
 
 			this.TextWriter.Flush();
 		}
@@ -60,6 +70,11 @@ namespace LibTextPet.IO.TPL {
 		protected override void WriteText(string value) {
 			if (value == null)
 				throw new ArgumentNullException(nameof(value), "The string to write cannot be null.");
+
+			if (this.ConsecutiveByteElements > 0) {
+				this.ConsecutiveByteElements = 0;
+				this.TextWriter.WriteLine();
+			}
 
 			// Determine whether to write heredoc or regular string.
 			if (Regex.IsMatch(value, @"\S\\n\S")) {
@@ -79,6 +94,53 @@ namespace LibTextPet.IO.TPL {
 				this.TextWriter.WriteLine("\"");
 			}
 			this.TextWriter.Flush();
+		}
+
+		/// <summary>
+		/// Writes the given script command to the output stream.
+		/// </summary>
+		/// <param name="command">The script command to write.</param>
+		protected override void WriteCommand(Command command) {
+			if (command == null)
+				throw new ArgumentNullException(nameof(command), "The script command cannot be null.");
+
+			if (this.ConsecutiveByteElements > 0) {
+				this.ConsecutiveByteElements = 0;
+				this.TextWriter.WriteLine();
+			}
+
+			base.WriteCommand(command);
+		}
+
+		/// <summary>
+		/// Writes the given fallback element to the output stream.
+		/// </summary>
+		/// <param name="element">The fallback element to write.</param>
+		protected override void WriteFallback(IScriptElement element) {
+			if (element == null)
+				throw new ArgumentNullException(nameof(element), "The script element cannot be null.");
+
+			ByteElement byteElement = element as ByteElement;
+			if (byteElement != null) {
+				if (this.ConsecutiveByteElements >= 8) {
+					this.ConsecutiveByteElements = 0;
+					this.TextWriter.WriteLine();
+				}
+
+				if (this.ConsecutiveByteElements == 0) {
+					this.TextWriter.Write('\t');
+				} else {
+					this.TextWriter.Write(' ');
+				}
+
+				this.TextWriter.Write("$");
+				this.TextWriter.Write(byteElement.Byte.ToString("X2", CultureInfo.InvariantCulture));
+
+				this.ConsecutiveByteElements++;
+				return;
+			}
+
+			base.WriteFallback(element);
 		}
 
 		protected override void ProcessDirective(DirectiveElement directive) {
