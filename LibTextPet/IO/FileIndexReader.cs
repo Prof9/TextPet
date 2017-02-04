@@ -9,9 +9,9 @@ using LibTextPet.General;
 
 namespace LibTextPet.IO {
 	/// <summary>
-	/// A reader that reads ROM entries from an input stream.
+	/// A reader that reads a file index from an input stream.
 	/// </summary>
-	public class ROMEntriesReader : Manager, IReader<ROMEntryCollection>, IDisposable {
+	public class FileIndexReader : Manager, IReader<FileIndexEntryCollection>, IDisposable {
 		/// <summary>
 		/// Gets the text reader that is used to read text from the input stream.
 		/// </summary>
@@ -27,10 +27,10 @@ namespace LibTextPet.IO {
 		private Regex EntryRegex { get; }
 
 		/// <summary>
-		/// Creates a new ROM entry reader that reads from the specified input stream.
+		/// Creates a new file index reader that reads from the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
-		public ROMEntriesReader(Stream stream)
+		public FileIndexReader(Stream stream)
 			: base(stream, false, FileAccess.Read) {
 			this.TextReader = new StreamReader(stream);
 
@@ -45,27 +45,27 @@ namespace LibTextPet.IO {
 		}
 
 		/// <summary>
-		/// Reads ROM entries from the input stream.
+		/// Reads a file index from the input stream.
 		/// </summary>
-		/// <returns>The ROM entries that were read.</returns>
-		public ROMEntryCollection Read() {
+		/// <returns>The file index that was read.</returns>
+		public FileIndexEntryCollection Read() {
 			string fulltext = this.TextReader.ReadToEnd();
 			return Read(fulltext);
 		}
 
 		/// <summary>
-		/// Reads ROM entries from the specified full text.
+		/// Reads a file index entries from the specified full text.
 		/// </summary>
 		/// <param name="fullText">The full text.</param>
-		/// <returns>The ROM entries that were read.</returns>
-		public ROMEntryCollection Read(string fullText) {
+		/// <returns>The file index that was read.</returns>
+		public FileIndexEntryCollection Read(string fullText) {
 			if (fullText == null)
 				throw new ArgumentNullException(nameof(fullText), "The full text cannot be null.");
 
 			fullText = this.StripRegex.Replace(fullText, "");
 			string[] lines = fullText.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-			ROMEntryCollection romIndex = new ROMEntryCollection();
+			FileIndexEntryCollection romIndex = new FileIndexEntryCollection();
 
 			foreach (string line in lines) {
 				romIndex.Add(ReadEntry(line));
@@ -75,15 +75,15 @@ namespace LibTextPet.IO {
 		}
 
 		/// <summary>
-		/// Reads a single ROM entry from the specified entry string. The entry string must be correctly formatted.
+		/// Reads a single file index entry from the specified entry string. The entry string must be correctly formatted.
 		/// </summary>
 		/// <param name="entry">The entry string to read from.</param>
-		/// <returns>The ROM entry that was read.</returns>
-		protected ROMEntry ReadEntry(string entry) {
+		/// <returns>The file index entry that was read.</returns>
+		protected FileIndexEntry ReadEntry(string entry) {
 			if (entry == null)
 				throw new ArgumentNullException(nameof(entry), "The entry string cannot be null.");
 			if (!this.EntryRegex.IsMatch(entry))
-				throw new ArgumentException("Could not parse \"" + entry + "\" as a ROM entry.", nameof(entry));
+				throw new ArgumentException("Could not parse \"" + entry + "\" as a file index entry.", nameof(entry));
 
 			int colonPos = entry.IndexOf(':');
 			int equalsPos = entry.IndexOf('=');
@@ -103,7 +103,7 @@ namespace LibTextPet.IO {
 				pointers[i] = NumberParser.ParseInt32(pointerStrings[i]);
 			}
 
-			return new ROMEntry(offset, size, compressed, sizeHeader, pointers);
+			return new FileIndexEntry(offset, size, compressed, sizeHeader, pointers);
 		}
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "<TextReader>k__BackingField")]

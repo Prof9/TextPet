@@ -43,13 +43,13 @@ namespace TextPet {
 		/// </summary>
 		public GameInfo Game { get; private set; }
 		/// <summary>
-		/// Gets the currently loaded ROM entries.
+		/// Gets the currently loaded file index.
 		/// </summary>
-		public ROMEntryCollection ROMEntries { get; private set; }
+		public FileIndexEntryCollection FileIndex { get; private set; }
 		/// <summary>
-		/// Gets the currently loaded ROM.
+		/// Gets the currently loaded file.
 		/// </summary>
-		public MemoryStream ROM { get; private set; }
+		public MemoryStream LoadedFile { get; private set; }
 
 		/// <summary>
 		/// Initializes a new TextPet instance.
@@ -59,7 +59,7 @@ namespace TextPet {
 			this.Games = new NamedCollection<GameInfo>();
 
 			this._textArchives = new List<TextArchive>();
-			this.ROMEntries = new ROMEntryCollection();
+			this.FileIndex = new FileIndexEntryCollection();
 		}
 
 		/// <summary>
@@ -124,41 +124,39 @@ namespace TextPet {
 		}
 
 		/// <summary>
-		/// Loads all ROM entries from the specified path.
+		/// Loads the file index from the specified path.
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
 		/// <param name="recursive">Whether the files should be read recursively, in case of a folder read.</param>
-		public void LoadROMEntries(string path, bool recursive, bool ignoreSize) {
+		public void LoadFileIndex(string path, bool recursive, bool ignoreSize) {
 			IEnumerable<string> files = GetReadFiles(path, recursive);
-			BeginLoadingROMEntries?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
+			BeginLoadingFileIndex?.Invoke(this, new BeginReadWriteEventArgs(files.ToList(), false));
 
-			// Load the ROM entries.
-			ROMEntryCollection entries = new ROMEntryCollection();
+			// Load the file index.
+			FileIndexEntryCollection index = new FileIndexEntryCollection();
 			foreach (string file in files) {
-				ROMEntryCollection newEntries;
+				IEnumerable<FileIndexEntry> newEntries;
 				using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-					IReader<ROMEntryCollection> reader = new ROMEntriesReader(fs);
+					IReader<FileIndexEntryCollection> reader = new FileIndexReader(fs);
 					newEntries = reader.Read();
 				}
 
-				for (int i = 0; i < newEntries.Count; i++) {
-					ROMEntry entry = ((Collection<ROMEntry>)newEntries)[i];
-
-					if (entries.Contains(entry.Offset)) {
-						throw new ArgumentException("ROM entry with position 0x" + entry.Offset.ToString("X6", CultureInfo.InvariantCulture) + " has already been loaded.", nameof(path));
+				foreach (FileIndexEntry entry in newEntries) {
+					if (index.Contains(entry.Offset)) {
+						throw new ArgumentException("File index entry with position 0x" + entry.Offset.ToString("X6", CultureInfo.InvariantCulture) + " has already been loaded.", nameof(path));
 					}
 
 					if (ignoreSize) {
 						entry.Size = 0;
 					}
-					entries.Add(entry);
+					index.Add(entry);
 				}
 
-				LoadedROMEntries?.Invoke(this, new ROMEntriesEventArgs(newEntries, file));
+				LoadedFileIndexEntries?.Invoke(this, new FileIndexEventArgs(newEntries, file));
 			}
 
-			this.ROMEntries = entries;
-			FinishedLoadingROMEntries?.Invoke(this, new ROMEntriesEventArgs(entries, path));
+			this.FileIndex = index;
+			FinishedLoadingFileIndex?.Invoke(this, new FileIndexEventArgs(index, path));
 		}
 
 		/// <summary>
@@ -249,32 +247,32 @@ namespace TextPet {
 		}
 
 		/// <summary>
-		/// Reads binary text archives from the specified ROM file using the currently loaded ROM entries.
+		/// Reads binary text archives from the specified file using the currently loaded file index entries.
 		/// </summary>
-		/// <param name="file">The path to the ROM file.</param>
-		/// <param name="updateEntries">If true, the attributes of any currently loaded ROM entries will be updated after successfully reading the corresponding text archive.</param>
-		/// /// <param name="searchPointers">If true, the pointers of any currently loaded ROM entries will be updated after successfully reading the corresponding text archive.</param>
-		public void ReadTextArchivesROM(string file, bool updateEntries, bool searchPointers) {
-			if (file == null)
-				throw new ArgumentNullException(nameof(file), "The file path cannot be null.");
-			if (!File.Exists(file))
-				throw new ArgumentException("The specified ROM file could not be found.");
+		/// <param name="path">The path to the file.</param>
+		/// <param name="updateIndex">If true, the attributes of any currently loaded file index entries will be updated after successfully reading the corresponding text archive.</param>
+		/// /// <param name="searchPointers">If true, the pointers of any currently loaded file index entries will be updated after successfully reading the corresponding text archive.</param>
+		public void ReadTextArchivesFile(string path, bool updateIndex, bool searchPointers) {
+			if (path == null)
+				throw new ArgumentNullException(nameof(path), "The file path cannot be null.");
+			if (!File.Exists(path))
+				throw new ArgumentException("The specified file could not be found.");
 
 			VerifyGameInitialized();
 
-			BeginReadingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(file, false, this.ROMEntries.Count));
+			BeginReadingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(path, false, this.FileIndex.Count));
 
-			LoadROM(file);
+			LoadFile(path);
 
-			ROMTextArchiveReader reader = new ROMTextArchiveReader(this.ROM, this.Game, this.ROMEntries);
-			reader.UpdateROMEntriesAndIdentifiers = updateEntries;
+			FileTextArchiveReader reader = new FileTextArchiveReader(this.LoadedFile, this.Game, this.FileIndex);
+			reader.UpdateFileIndex = updateIndex;
 			reader.SearchPointers = searchPointers;
 
-			List<TextArchive> textArchives = new List<TextArchive>(this.ROMEntries.Count);
-			foreach (ROMEntry romEntry in this.ROMEntries) {
-				ReadingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, romEntry.Offset));
+			List<TextArchive> textArchives = new List<TextArchive>(this.FileIndex.Count);
+			foreach (FileIndexEntry romEntry in this.FileIndex) {
+				ReadingTextArchive?.Invoke(this, new TextArchivesEventArgs(path, romEntry.Offset));
 
-				this.ROM.Position = romEntry.Offset;
+				this.LoadedFile.Position = romEntry.Offset;
 				TextArchive ta = reader.Read();
 
 				if (ta == null) {
@@ -283,20 +281,20 @@ namespace TextPet {
 
 				textArchives.Add(ta);
 				this.TextArchives.Add(ta);
-				ReadTextArchive?.Invoke(this, new TextArchivesEventArgs(file, romEntry.Offset, ta));
+				ReadTextArchive?.Invoke(this, new TextArchivesEventArgs(path, romEntry.Offset, ta));
 			}
 
-			FinishedReadingTextArchives?.Invoke(this, new TextArchivesEventArgs(file, textArchives));
+			FinishedReadingTextArchives?.Invoke(this, new TextArchivesEventArgs(path, textArchives));
 		}
 
 		/// <summary>
-		/// Loads the specified ROM file into memory.
+		/// Loads the specified file into memory.
 		/// </summary>
-		/// <param name="file">The path of the ROM file.</param>
-		public void LoadROM(string file) {
-			this.ROM = new MemoryStream();
-			using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-				fs.CopyTo(this.ROM);
+		/// <param name="path">The path of the file.</param>
+		public void LoadFile(string path) {
+			this.LoadedFile = new MemoryStream();
+			using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+				fs.CopyTo(this.LoadedFile);
 			}
 		}
 
@@ -453,54 +451,54 @@ namespace TextPet {
 		}
 
 		/// <summary>
-		/// Writes binary text archives into the specified ROM file.
+		/// Writes binary text archives into the specified file.
 		/// </summary>
-		/// <param name="file">The path to the ROM file.</param>
-		/// <param name="freeSpaceOffset">The free space offset to use, or -1 to append to the end of the ROM.</param>
-		public void WriteTextArchivesROM(string file, long freeSpaceOffset) {
-			if (file == null)
-				throw new ArgumentNullException(nameof(file), "The file path cannot be null.");
+		/// <param name="path">The path to the file.</param>
+		/// <param name="freeSpaceOffset">The free space offset to use, or -1 to append to the end of the file.</param>
+		public void WriteTextArchivesFile(string path, long freeSpaceOffset) {
+			if (path == null)
+				throw new ArgumentNullException(nameof(path), "The file path cannot be null.");
 
 			VerifyGameInitialized();
 
-			Directory.CreateDirectory(Path.GetDirectoryName(file));
+			Directory.CreateDirectory(Path.GetDirectoryName(path));
 
 			// Sort the text archives.
 			this._textArchives.Sort((a, b) => String.CompareOrdinal(a.Identifier, b.Identifier));
 
-			BeginWritingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(file, true, this.TextArchives.Count));
+			BeginWritingTextArchives?.Invoke(this, new BeginReadWriteEventArgs(path, true, this.TextArchives.Count));
 
 			using (MemoryStream ms = new MemoryStream()) {
-				this.ROM.Position = 0;
-				this.ROM.CopyTo(ms);
+				this.LoadedFile.Position = 0;
+				this.LoadedFile.CopyTo(ms);
 
 				// Set up the text archive writer.
-				ROMTextArchiveWriter writer = new ROMTextArchiveWriter(ms, this.Game, this.ROMEntries);
-				writer.UpdateROMEntriesAndIdentifiers = true;
+				FileTextArchiveWriter writer = new FileTextArchiveWriter(ms, this.Game, this.FileIndex);
+				writer.UpdateFileIndex = true;
 				if (freeSpaceOffset > 0) {
 					writer.FreeSpaceOffset = freeSpaceOffset;
 				}
 
 				// Write ALL the text archives!
 				foreach (TextArchive ta in this.TextArchives) {
-					ROMEntry entry = writer.ROMEntries.GetEntryForTextArchive(ta);
+					FileIndexEntry entry = writer.FileIndex.GetEntryForTextArchive(ta);
 					int offset = entry?.Offset ?? -1;
 
-					WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, offset, ta));
+					WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(path, offset, ta));
 					writer.Write(ta);
-					WroteTextArchive?.Invoke(this, new TextArchivesEventArgs(file, offset, ta));
+					WroteTextArchive?.Invoke(this, new TextArchivesEventArgs(path, offset, ta));
 				}
 
-				this.ROM = ms;
+				this.LoadedFile = ms;
 
-				// Write the ROM.
+				// Write the file.
 				ms.Position = 0;
-				using (FileStream fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.None)) {
+				using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)) {
 					ms.WriteTo(fs);
 				}
 			}
 
-			FinishedWritingTextArchives?.Invoke(this, new TextArchivesEventArgs(file, this.TextArchives));
+			FinishedWritingTextArchives?.Invoke(this, new TextArchivesEventArgs(path, this.TextArchives));
 		}
 
 		/// <summary>
@@ -670,9 +668,9 @@ namespace TextPet {
 		public event EventHandler<PluginsEventArgs> FinishedLoadingPlugins;
 		public event EventHandler<GameInfoEventArgs> GameInitialized;
 
-		public event EventHandler<BeginReadWriteEventArgs> BeginLoadingROMEntries;
-		public event EventHandler<ROMEntriesEventArgs> LoadedROMEntries;
-		public event EventHandler<ROMEntriesEventArgs> FinishedLoadingROMEntries;
+		public event EventHandler<BeginReadWriteEventArgs> BeginLoadingFileIndex;
+		public event EventHandler<FileIndexEventArgs> LoadedFileIndexEntries;
+		public event EventHandler<FileIndexEventArgs> FinishedLoadingFileIndex;
 
 		public event EventHandler<EventArgs> ClearedTextArchives;
 

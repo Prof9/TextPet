@@ -88,7 +88,7 @@ namespace TextPet.Commands {
 			} else if (txtFormats.Contains(format)) {
 				this.ReadTextArchivesTextBoxes(path, patchMode);
 			} else if (romFormats.Contains(format)) {
-				this.Core.ReadTextArchivesROM(path, update, searchPointers);
+				this.Core.ReadTextArchivesFile(path, update, searchPointers);
 			} else if (manualFormat == null) {
 				Console.WriteLine("ERROR: Unknown text archive extension \"" + format + "\". Change the file extension or specify the format manually.");
 			} else {
@@ -117,11 +117,11 @@ namespace TextPet.Commands {
 		/// <param name="patchMode">Whether previously loaded text archives should be patched.</param>
 		public void ReadTextArchivesBinary(string path, bool patchMode) {
 			this.Core.ReadTextArchives(path, this.Recursive, patchMode, delegate (MemoryStream ms, string file) {
-				ROMTextArchiveReader reader = new ROMTextArchiveReader(ms, this.Core.Game);
+				FileTextArchiveReader reader = new FileTextArchiveReader(ms, this.Core.Game);
 				reader.CheckGoodTextArchive = false;
 				reader.ReadEntireFile = true;
 				reader.SearchPointers = false;
-				reader.UpdateROMEntriesAndIdentifiers = false;
+				reader.UpdateFileIndex = false;
 				reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 
 				TextArchive ta = reader.Read();

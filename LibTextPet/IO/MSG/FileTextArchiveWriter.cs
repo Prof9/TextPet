@@ -9,26 +9,26 @@ using System.Text;
 
 namespace LibTextPet.IO.Msg {
 	/// <summary>
-	/// A writer that writes text archives to a ROM.
+	/// A writer that writes text archives to a file.
 	/// </summary>
-	public class ROMTextArchiveWriter : ROMManager, IWriter<TextArchive> {
+	public class FileTextArchiveWriter : FileManager, IWriter<TextArchive> {
 		/// <summary>
 		/// Gets or sets the current free space offset.
 		/// </summary>
 		public long FreeSpaceOffset { get; set; }
 
 		/// <summary>
-		/// Creates a new ROM text archive writer that writes to the specified output stream.
+		/// Creates a new file text archive writer that writes to the specified output stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
 		/// <param name="game">The game info for the output stream.</param>
-		/// <param name="romEntries">The ROM entries of the text archives.</param>
-		public ROMTextArchiveWriter(Stream stream, GameInfo game, ROMEntryCollection romEntries)
-			: base(stream, FileAccess.ReadWrite, game, romEntries) {
+		/// <param name="fileIndex">The file index to use.</param>
+		public FileTextArchiveWriter(Stream stream, GameInfo game, FileIndexEntryCollection fileIndex)
+			: base(stream, FileAccess.ReadWrite, game, fileIndex) {
 			if (stream == null)
 				throw new ArgumentNullException(nameof(stream), "The output stream cannot be null.");
 
-			this.UpdateROMEntriesAndIdentifiers = true;
+			this.UpdateFileIndex = true;
 			this.FreeSpaceOffset = stream.Length;
 		}
 
@@ -40,12 +40,12 @@ namespace LibTextPet.IO.Msg {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The text archive cannot be null.");
 
-			ROMEntry entryOrNull = this.ROMEntries.GetEntryForTextArchive(obj);
+			FileIndexEntry entryOrNull = this.FileIndex.GetEntryForTextArchive(obj);
 
 			if (entryOrNull == null)
-				throw new InvalidOperationException("Could not find a matching ROM entry for text archive " + obj.Identifier + ".");
+				throw new InvalidOperationException("Could not find a matching file index entry for text archive " + obj.Identifier + ".");
 
-			ROMEntry entry = (ROMEntry)entryOrNull;
+			FileIndexEntry entry = (FileIndexEntry)entryOrNull;
 
 			MemoryStream writeStream;
 			using (MemoryStream rawStream = new MemoryStream()) {
@@ -90,20 +90,20 @@ namespace LibTextPet.IO.Msg {
 					offset = entry.Offset;
 				}
 
-				// Update the ROM entry and text archive identifier if necessary.
-				if (this.UpdateROMEntriesAndIdentifiers) {
+				// Update the file index entry and text archive identifier if necessary.
+				if (this.UpdateFileIndex) {
 					entry.Offset = (int)offset;
 					entry.Size = (int)writeStream.Length;
 					obj.Identifier = offset.ToString("X6", CultureInfo.InvariantCulture);
 				}
 
-				// Expand ROM, if necessary.
+				// Expand file, if necessary.
 				this.BaseStream.Position = this.BaseStream.Length;
 				while (offset > this.BaseStream.Length) {
 					this.BaseStream.WriteByte(0xFF);
 				}
 
-				// Write the text archive to the ROM.
+				// Write the text archive to the file.
 				this.BaseStream.Position = offset;
 				writeStream.WriteTo(this.BaseStream);
 

@@ -84,7 +84,7 @@ namespace TextPet {
 				new HelpCommand(this, this.Core),
 				new InsertTextBoxesCommand(this, this.Core),
 				new LoadPluginsCommand(this, this.Core),
-				new LoadROMEntriesCommand(this, this.Core),
+				new LoadFileIndexCommand(this, this.Core),
 				new ReadTextArchivesCommand(this, this.Core),
 				new RegexCommand(this, this.Core),
 				new RunScriptCommand(this, this.Core),
@@ -93,7 +93,7 @@ namespace TextPet {
 				new TestTextArchivesCommand(this, this.Core),
 				new TrimCommand(this, this.Core),
 				new VerboseCommand(this, this.Core),
-				new WriteROMEntriesCommand(this, this.Core),
+				new WriteFileIndexCommand(this, this.Core),
 				new WriteTextArchivesCommand(this, this.Core),
 			};
 

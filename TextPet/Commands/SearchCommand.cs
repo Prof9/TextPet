@@ -10,14 +10,14 @@ using System.Text;
 
 namespace TextPet.Commands {
 	/// <summary>
-	/// A command line interface command that searches a ROM for all text archives.
+	/// A command line interface command that searches a file for all text archives.
 	/// </summary>
 	internal class SearchCommand : CliCommand {
 		public override string Name => "search";
 		public override string RunString {
 			get {
 				this.Cli.SetObjectNames("text archive", null);
-				return "Searching ROM...";
+				return "Searching file...";
 			}
 		}
 
@@ -53,30 +53,30 @@ namespace TextPet.Commands {
 			bool noRecord = GetOptionalValues(noRecordArg) != null;
 			bool prependFileName = GetOptionalValues(prependFileNameArg) != null;
 
-			this.Core.LoadROM(path);
+			this.Core.LoadFile(path);
 
 			long start = 0;
 			if (startArg != null) {
 				start = Math.Max(0, NumberParser.ParseInt64(startArg));
 			}
 
-			long length = this.Core.ROM.Length;
+			long length = this.Core.LoadedFile.Length;
 			if (lengthArg != null) {
 				length = Math.Max(0, NumberParser.ParseInt64(lengthArg));
 			}
-			length = Math.Min(this.Core.ROM.Length - start, length);
+			length = Math.Min(this.Core.LoadedFile.Length - start, length);
 
 			int minSize = 0;
 			if (minSizeArg != null) {
 				minSize = Math.Max(0, NumberParser.ParseInt32(minSizeArg));
 			}
 
-			ROMTextArchiveReader reader = new ROMTextArchiveReader(this.Core.ROM, this.Core.Game, this.Core.ROMEntries);
+			FileTextArchiveReader reader = new FileTextArchiveReader(this.Core.LoadedFile, this.Core.Game, this.Core.FileIndex);
 			reader.CheckGoodTextArchive = !deep;
 			reader.MinimumSize = minSize;
 			reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 			reader.TextArchiveReader.AutoSortPointers = false;
-			reader.UpdateROMEntriesAndIdentifiers = !noRecord;
+			reader.UpdateFileIndex = !noRecord;
 
 			int found = 0;
 			
@@ -88,7 +88,7 @@ namespace TextPet.Commands {
 					PrintProgress(length, found, p, offset);
 				}
 
-				this.Core.ROM.Position = offset;
+				this.Core.LoadedFile.Position = offset;
 				TextArchive ta = reader.Read();
 
 				if (ta != null) {

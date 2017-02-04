@@ -82,7 +82,7 @@ namespace TextPet.Commands {
 			} else if (romFormats.Contains(format)) {
 				string fspaceVal = GetOptionalValues(freeSpaceArg)?[0] ?? "-1";
 				long fspace = NumberParser.ParseInt64(fspaceVal);
-				this.Core.WriteTextArchivesROM(path, fspace);
+				this.Core.WriteTextArchivesFile(path, fspace);
 			} else if (manualFormat == null) {
 				Console.ForegroundColor = ConsoleColor.Red;
 				Console.WriteLine("ERROR: Unknown text archive extension \"" + format + "\". Change the file extension or specify the format manually.");

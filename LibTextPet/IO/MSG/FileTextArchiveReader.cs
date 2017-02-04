@@ -10,21 +10,21 @@ using System.Text;
 
 namespace LibTextPet.IO.Msg {
 	/// <summary>
-	/// A reader that reads text archives from a ROM.
+	/// A reader that reads text archives from a file.
 	/// </summary>
-	public class ROMTextArchiveReader : ROMManager, IReader<TextArchive> {
+	public class FileTextArchiveReader : FileManager, IReader<TextArchive> {
 		/// <summary>
 		/// Gets the underlying text archive reader that is used to read text archives from the input stream.
 		/// </summary>
 		public BinaryTextArchiveReader TextArchiveReader { get; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM text archive reader should verify that any text archive read is 'good', and discard it if it is not.
+		/// Gets or sets a boolean that indicates whether this file text archive reader should verify that any text archive read is 'good', and discard it if it is not.
 		/// </summary>
 		public bool CheckGoodTextArchive { get; set; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM text archive reader should attempt to read the entire (rest of the) file.
+		/// Gets or sets a boolean that indicates whether this file text archive reader should attempt to read the entire (rest of the) file.
 		/// </summary>
 		public bool ReadEntireFile { get; set; }
 
@@ -34,26 +34,26 @@ namespace LibTextPet.IO.Msg {
 		public int MinimumSize { get; set; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM text archive reader should find the pointers of all text archives that were successfully read.
+		/// Gets or sets a boolean that indicates whether this file text archive reader should find the pointers of all text archives that were successfully read.
 		/// </summary>
 		public bool SearchPointers { get; set; }
 
 		/// <summary>
-		/// Creates a new ROM text archive reader that reads from the specified input stream and uses the specified game info.
+		/// Creates a new file text archive reader that reads from the specified input stream and uses the specified game info.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="game">The game info.</param>
-		public ROMTextArchiveReader(Stream stream, GameInfo game)
-			: this(stream, game, new ROMEntryCollection()) { }
+		public FileTextArchiveReader(Stream stream, GameInfo game)
+			: this(stream, game, new FileIndexEntryCollection()) { }
 
 		/// <summary>
-		/// Creates a new ROM text archive reader that reads from the specified input stream and uses the specified game info and ROM entries.
+		/// Creates a new file text archive reader that reads from the specified input stream and uses the specified game info and file entries.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="game">The game info.</param>
-		/// <param name="romEntries">The ROM entries to use.</param>
-		public ROMTextArchiveReader(Stream stream, GameInfo game, ROMEntryCollection romEntries)
-			: base(stream, FileAccess.Read, game, romEntries) {
+		/// <param name="fileIndex">The file entries to use.</param>
+		public FileTextArchiveReader(Stream stream, GameInfo game, FileIndexEntryCollection fileIndex)
+			: base(stream, FileAccess.Read, game, fileIndex) {
 			this.TextArchiveReader = new BinaryTextArchiveReader(stream, game);
 			this.CheckGoodTextArchive = false;
 			this.SearchPointers = true;
@@ -72,18 +72,18 @@ namespace LibTextPet.IO.Msg {
 			int size = 0;
 
 			// Check if there is an entry for the current position already.
-			bool entryExists = this.ROMEntries.Contains((long)this.BaseStream.Position);
-			ROMEntry entry;
+			bool entryExists = this.FileIndex.Contains((long)this.BaseStream.Position);
+			FileIndexEntry entry;
 
 			if (entryExists) {
-				entry = this.ROMEntries[start];
+				entry = this.FileIndex[start];
 
 				// Check if there are enough bytes left for the entry.
 				if (this.BaseStream.Position + entry.Size > this.BaseStream.Length) {
-					throw new InvalidOperationException("The size of the current ROM entry exceeds the number of bytes left in the current input stream.");
+					throw new InvalidOperationException("The size of the current file index entry exceeds the number of bytes left in the current input stream.");
 				}
 			} else {
-				entry = new ROMEntry((int)start);
+				entry = new FileIndexEntry((int)start);
 			}
 
 			TextArchive ta = null;
@@ -116,7 +116,7 @@ namespace LibTextPet.IO.Msg {
 						ta = tempReader.Read(length);
 
 						if (entryExists && entry.Compressed && ta == null) {
-							// ROM entry dictates that the text archive should be compressed, but no compressed text archive could be read.
+							// File index entry dictates that the text archive should be compressed, but no compressed text archive could be read.
 							return null;
 						}
 
@@ -138,11 +138,11 @@ namespace LibTextPet.IO.Msg {
 					size = (int)(this.BaseStream.Length - this.BaseStream.Position);
 					ta = this.TextArchiveReader.Read(size);
 				} else if (entryExists && entry.Size > 0) {
-					// Use the existing ROM entry.
+					// Use the existing file index entry.
 					size = entry.Size;
 					ta = this.TextArchiveReader.Read(size);
 				} else {
-					// No ROM entry or size available; need to determine the size.
+					// No file index entry or size available; need to determine the size.
 					ta = this.TextArchiveReader.Read();
 					size = (int)(this.BaseStream.Position - start);
 
@@ -177,8 +177,8 @@ namespace LibTextPet.IO.Msg {
 				return null;
 			}
 
-			// Update the ROM entry.
-			if (this.UpdateROMEntriesAndIdentifiers) {
+			// Update the file index entry.
+			if (this.UpdateFileIndex) {
 				UpdateEntry(start, compressed, sizeHeader, size, entry, pointers);
 			}
 
@@ -188,23 +188,23 @@ namespace LibTextPet.IO.Msg {
 			return ta;
 		}
 
-		private void UpdateEntry(long start, bool compressed, bool sizeHeader, int size, ROMEntry entry, IEnumerable<int> pointers) {
-			if (this.ROMEntries.Contains(entry)) {
+		private void UpdateEntry(long start, bool compressed, bool sizeHeader, int size, FileIndexEntry entry, IEnumerable<int> pointers) {
+			if (this.FileIndex.Contains(entry)) {
 				// Update the size and compression flags.
-				this.ROMEntries[start].Size = size;
-				this.ROMEntries[start].Compressed = compressed;
-				this.ROMEntries[start].SizeHeader = sizeHeader;
+				this.FileIndex[start].Size = size;
+				this.FileIndex[start].Compressed = compressed;
+				this.FileIndex[start].SizeHeader = sizeHeader;
 			} else {
-				// Create a new ROM entry.
-				entry = new ROMEntry((int)start, size, compressed, sizeHeader, pointers);
-				this.ROMEntries.Add(entry);
+				// Create a new file index entry.
+				entry = new FileIndexEntry((int)start, size, compressed, sizeHeader, pointers);
+				this.FileIndex.Add(entry);
 			}
 		}
 
 		/// <summary>
-		/// Find all pointers to the specified ROM offset in the input stream.
+		/// Find all pointers to the specified file offset in the input stream.
 		/// </summary>
-		/// <param name="offset">The ROM offset.</param>
+		/// <param name="offset">The file offset.</param>
 		/// <returns>The offsets of all pointers that were found.</returns>
 		private IEnumerable<int> FindPointers(int offset) {
 			List<int> pointers = new List<int>();
@@ -230,14 +230,14 @@ namespace LibTextPet.IO.Msg {
 		}
 
 		/// <summary>
-		/// Checks if the specified memory block would overlap any of the currently loaded ROM entries.
+		/// Checks if the specified memory block would overlap any of the currently loaded file index entries.
 		/// </summary>
 		/// <param name="offset">The offset of the memory block.</param>
 		/// <param name="size">The size, in bytes, of the memory block.</param>
 		/// <returns>true if there is overlap; otherwise, false;</returns>
 		private bool CheckOverlap(long offset, int size) {
-			// Check if the text archive encroaches on any other known ROM entries.
-			foreach (ROMEntry otherEntry in this.ROMEntries) {
+			// Check if the text archive encroaches on any other known file index entries.
+			foreach (FileIndexEntry otherEntry in this.FileIndex) {
 				// Ignore any entry for a text archive at or before this entry.
 				if (otherEntry.Offset <= offset) {
 					continue;

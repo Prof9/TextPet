@@ -81,7 +81,7 @@
     <Compile Include="Commands\LoadPluginsCommand.cs" />
     <Compile Include="CommandLineInterface.cs" />
     <Compile Include="Commands\InsertTextBoxesCommand.cs" />
-    <Compile Include="Commands\LoadROMEntriesCommand.cs" />
+    <Compile Include="Commands\LoadFileIndexCommand.cs" />
     <Compile Include="Commands\ReadTextArchivesCommand.cs" />
     <Compile Include="Commands\RegexCommand.cs" />
     <Compile Include="Commands\RunScriptCommand.cs" />
@@ -91,13 +91,13 @@
     <Compile Include="Commands\TrimCommand.cs" />
     <Compile Include="Commands\VerboseCommand.cs" />
     <Compile Include="Commands\FloodCommand.cs" />
-    <Compile Include="Commands\WriteROMEntriesCommand.cs" />
+    <Compile Include="Commands\WriteFileIndexCommand.cs" />
     <Compile Include="Commands\WriteTextArchivesCommand.cs" />
     <Compile Include="Events\BeginReadWriteEventArgs.cs" />
     <Compile Include="Events\GameInfoEventArgs.cs" />
     <Compile Include="Events\PluginsEventArgs.cs" />
     <Compile Include="Events\ReadWriteEventArgs.cs" />
-    <Compile Include="Events\ROMEntriesEventArgs.cs" />
+    <Compile Include="Events\FileIndexEventArgs.cs" />
     <Compile Include="Events\TextArchivesEventArgs.cs" />
     <Compile Include="Events\TestEventArgs.cs" />
     <Compile Include="GlobalSuppressions.cs" />

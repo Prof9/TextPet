@@ -7,54 +7,55 @@ using System.Text;
 
 namespace LibTextPet.IO {
 	/// <summary>
-	/// A reader that writes ROM entries to an output stream.
+	/// A reader that writes a file index to an output stream.
 	/// </summary>
-	public class ROMEntriesWriter : Manager, IWriter<ROMEntry>, IWriter<IEnumerable<ROMEntry>>, IDisposable {
+	public class FileIndexWriter : Manager, IWriter<FileIndexEntry>, IWriter<IEnumerable<FileIndexEntry>>, IDisposable {
 		/// <summary>
 		/// Gets the text writer that is used to write text to the output stream.
 		/// </summary>
 		protected TextWriter TextWriter { get; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM entries writer should write additional comments explaining the format used for ROM entries.
+		/// Gets or sets a boolean that indicates whether this file index writer should write additional comments explaining the format used for file index entries.
 		/// </summary>
 		public bool IncludeFormatComments { get; set; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM entries writer should write additional comments for the gaps between ROM entries.
+		/// Gets or sets a boolean that indicates whether this file index writer should write additional comments for the gaps between file index entries.
 		/// </summary>
 		public bool IncludeGapComments { get; set; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM entries writer should write additional comments from overlapping ROM entries.
+		/// Gets or sets a boolean that indicates whether this file index writer should write additional comments from overlapping file index entries.
 		/// </summary>
 		public bool IncludeOverlapComments { get; set; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM entries writer should write additional comments in case a pointer appears to be misaligned.
+		/// Gets or sets a boolean that indicates whether this file index writer should write additional comments in case a pointer appears to be misaligned.
 		/// </summary>
 		public bool IncludePointerWarnings { get; set; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this ROM entries writer should write additional comments containing a number of bytes following the end of each ROM entry.
+		/// Gets or sets a boolean that indicates whether this file index writer should write additional comments containing a number of bytes following the end of each file index entry.
 		/// </summary>
 		public bool IncludePostBytesComments { get; set; }
 
 		/// <summary>
-		/// Gets or sets a value that will be added to the size of all written ROM entries.
+		/// Gets or sets a value that will be added to the size of all written file index entries.
 		/// </summary>
 		public int AddSize { get; set; }
 
 		/// <summary>
-		/// Gets or sets the byte that will be ignored if a low number of it follows the end of a ROM entry.
+		/// Gets or sets the byte that will be ignored if a low number of it follows the end of a file index entry.
+		/// If set to -1, no bytes will be ignored.
 		/// </summary>
 		public int ExcludeByte { get; set; }
 
 		/// <summary>
-		/// Creates a new ROM entry writer that writes to the specified input stream.
+		/// Creates a new file index entry writer that writes to the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
-		public ROMEntriesWriter(Stream stream)
+		public FileIndexWriter(Stream stream)
 			: base(stream, false, FileAccess.Write) {
 			this.TextWriter = new StreamWriter(stream, new UTF8Encoding(false, true));
 			this.IncludeFormatComments = false;
@@ -67,46 +68,46 @@ namespace LibTextPet.IO {
 		}
 
 		/// <summary>
-		/// Writes the specified ROM entry to the output stream.
+		/// Writes the specified file index entry to the output stream.
 		/// </summary>
-		/// <param name="obj">The ROM entry to write.</param>
-		public void Write(ROMEntry obj) {
+		/// <param name="obj">The file index entry to write.</param>
+		public void Write(FileIndexEntry obj) {
 			if (obj == null) {
-				throw new ArgumentNullException(nameof(obj), "The ROM entry cannot be null.");
+				throw new ArgumentNullException(nameof(obj), "The file index entry cannot be null.");
 			}
 
-			this.Write(new ROMEntry[] { obj });
+			this.Write(new FileIndexEntry[] { obj });
 		}
 
 		/// <summary>
-		/// Writes the specified ROM entries to the output stream.
+		/// Writes the specified file index entries to the output stream.
 		/// </summary>
-		/// <param name="obj">The ROM entries to write.</param>
-		public void Write(IEnumerable<ROMEntry> obj) {
+		/// <param name="obj">The file index entries to write.</param>
+		public void Write(IEnumerable<FileIndexEntry> obj) {
 			this.Write(obj, null);
 		}
 
 		/// <summary>
-		/// Writes the specified ROM entries to the output stream, optionally writing some bytes from the ROM to aid with debugging.
+		/// Writes the specified file index entries to the output stream, optionally writing some bytes from the file to aid with debugging.
 		/// </summary>
-		/// <param name="obj">The ROM entries to write.</param>
-		/// <param name="rom">The ROM that the ROM entries correspond to, or null to not use a ROM.</param>
-		public void Write(IEnumerable<ROMEntry> obj, Stream rom) {
+		/// <param name="obj">The file index entries to write.</param>
+		/// <param name="file">The file that the file index entries correspond to, or null to not use a file.</param>
+		public void Write(IEnumerable<FileIndexEntry> obj, Stream file) {
 			// Check parameters.
 			if (obj == null) {
-				throw new ArgumentNullException(nameof(obj), "The ROM entries cannot be null.");
+				throw new ArgumentNullException(nameof(obj), "The file index entries cannot be null.");
 			}
-			if (rom != null) {
-				if (!rom.CanRead) {
-					throw new ArgumentException("The ROM does not support reading.");
+			if (file != null) {
+				if (!file.CanRead) {
+					throw new ArgumentException("The file does not support reading.");
 				}
-				if (!rom.CanSeek) {
-					throw new ArgumentException("The ROM does not support seeking.");
+				if (!file.CanSeek) {
+					throw new ArgumentException("The file does not support seeking.");
 				}
 			}
 			
-			// Sort the ROM entries by offset ascending.
-			IList<ROMEntry> sorted = new LinkedList<ROMEntry>(obj.OrderBy(e => e.Offset)).ToList();
+			// Sort the file index entries by offset ascending.
+			IList<FileIndexEntry> sorted = new LinkedList<FileIndexEntry>(obj.OrderBy(e => e.Offset)).ToList();
 
 			if (this.IncludeFormatComments) {
 				this.TextWriter.WriteLine("// offset:&%size=pointer,pointer,...");
@@ -114,7 +115,7 @@ namespace LibTextPet.IO {
 			}
 
 			for (int i = 0; i < sorted.Count; i++) {
-				ROMEntry entry = sorted[i];
+				FileIndexEntry entry = sorted[i];
 
 				// Write preceeding 'gap'.
 				if (this.IncludeGapComments && i > 0 && entry.Offset >= 4) {
@@ -122,22 +123,22 @@ namespace LibTextPet.IO {
 				}
 
 				if (this.IncludeOverlapComments) {
-					// Write any overlapping ROM entries.
+					// Write any overlapping file index entries.
 					WriteOverlapComments(obj, entry);
 				}
 
-				// Write the ROM entry.
+				// Write the file index entry.
 				WriteEntry(entry);
 
-				if (this.IncludePostBytesComments && rom != null) {
-					WritePostBytes(rom, sorted, i, entry);
+				if (this.IncludePostBytesComments && file != null) {
+					WritePostBytes(file, sorted, i, entry);
 				}
 			}
 
 			this.TextWriter.Flush();
 		}
 
-		private void WritePostBytes(Stream rom, IList<ROMEntry> sorted, int i, ROMEntry entry) {
+		private void WritePostBytes(Stream rom, IList<FileIndexEntry> sorted, int i, FileIndexEntry entry) {
 			long startPos = entry.Offset + entry.Size + this.AddSize;
 
 			// Print 16 bytes at most.
@@ -145,7 +146,7 @@ namespace LibTextPet.IO {
 
 			// Reduce to the number of bytes between this entry and the next entry.
 			if (i < sorted.Count - 1) {
-				ROMEntry next = sorted[i + 1];
+				FileIndexEntry next = sorted[i + 1];
 				int gap = next.Offset - (entry.Offset + entry.Size + this.AddSize);
 				if (gap >= 0 && gap < toPrint) {
 					toPrint = gap;
@@ -189,7 +190,7 @@ namespace LibTextPet.IO {
 			}
 		}
 
-		private void WriteGapComments(IList<ROMEntry> sorted, ROMEntry entry) {
+		private void WriteGapComments(IList<FileIndexEntry> sorted, FileIndexEntry entry) {
 			int prevEnd = sorted.TakeWhile(e => e.Offset < entry.Offset).Max(e => e.Offset + e.Size + this.AddSize);
 			int gap = entry.Offset - prevEnd;
 
@@ -202,15 +203,15 @@ namespace LibTextPet.IO {
 			}
 		}
 
-		private void WriteOverlapComments(IEnumerable<ROMEntry> obj, ROMEntry entry) {
-			IEnumerable<ROMEntry> overlaps = obj.Where(other => entry != other && entry.Overlaps(other));
+		private void WriteOverlapComments(IEnumerable<FileIndexEntry> obj, FileIndexEntry entry) {
+			IEnumerable<FileIndexEntry> overlaps = obj.Where(other => entry != other && entry.Overlaps(other));
 			if (overlaps.Any()) {
 				this.TextWriter.Write("// overlaps with ");
 				this.TextWriter.WriteLine(String.Join(", ", overlaps.Select(e => "0x" + e.Offset.ToString("X6", CultureInfo.InvariantCulture))));
 			}
 		}
 
-		private void WriteEntry(ROMEntry entry) {
+		private void WriteEntry(FileIndexEntry entry) {
 			this.TextWriter.Write("0x");
 			this.TextWriter.Write(entry.Offset.ToString("X6", CultureInfo.InvariantCulture));
 			this.TextWriter.Write(':');

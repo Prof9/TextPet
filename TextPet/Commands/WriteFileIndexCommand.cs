@@ -7,9 +7,9 @@ using System.Linq;
 using System.Text;
 
 namespace TextPet.Commands {
-	internal class WriteROMEntriesCommand : CliCommand {
-		public override string Name => "write-rom-entries";
-		public override string RunString => "Writing ROM entries...";
+	internal class WriteFileIndexCommand : CliCommand {
+		public override string Name => "write-file-index";
+		public override string RunString => "Writing file index...";
 
 		private const string pathArg = "path";
 
@@ -20,7 +20,7 @@ namespace TextPet.Commands {
 		private const string excludeByteArg = "exclude-byte";
 		private const string byteArg = "byte";
 
-		public WriteROMEntriesCommand(CommandLineInterface cli, TextPetCore core)
+		public WriteFileIndexCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
 				pathArg,
 			}, new OptionalArgument[] {
@@ -45,7 +45,7 @@ namespace TextPet.Commands {
 			int excludeByte = excludeByteStr != null ? NumberParser.ParseInt32(excludeByteStr) : -1;
 
 			using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read)) {
-				ROMEntriesWriter writer = new ROMEntriesWriter(fs);
+				FileIndexWriter writer = new FileIndexWriter(fs);
 				writer.AddSize = addSize;
 				writer.ExcludeByte = excludeByte;
 				writer.IncludeFormatComments = true;
@@ -59,7 +59,7 @@ namespace TextPet.Commands {
 					writer.IncludePostBytesComments = true;
 				}
 
-				writer.Write(this.Core.ROMEntries, this.Core.ROM);
+				writer.Write(this.Core.FileIndex, this.Core.LoadedFile);
 			}
 		}
 	}

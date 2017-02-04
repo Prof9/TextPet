@@ -7,9 +7,9 @@ using System.Text;
 
 namespace LibTextPet.IO.Msg {
 	/// <summary>
-	/// A manager that reads from and/or writes to a ROM.
+	/// A manager that reads from and/or writes to a file.
 	/// </summary>
-	public class ROMManager : Manager, IDisposable {
+	public class FileManager : Manager, IDisposable {
 		/// <summary>
 		/// Gets the binary reader that is used to read bytes from the base stream.
 		/// </summary>
@@ -26,26 +26,26 @@ namespace LibTextPet.IO.Msg {
 		protected GameInfo Game { get; }
 
 		/// <summary>
-		/// Gets the ROM entries for reading/writing text archives from/to the base stream.
+		/// Gets the file index for reading/writing text archives from/to the base stream.
 		/// </summary>
-		public ROMEntryCollection ROMEntries { get; }
+		public FileIndexEntryCollection FileIndex { get; }
 
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether the currently loaded ROM entries and the identifiers of written text archives will be updated after writing.
+		/// Gets or sets a boolean that indicates whether the currently loaded file index and the identifiers of written text archives will be updated after writing.
 		/// </summary>
-		public bool UpdateROMEntriesAndIdentifiers { get; set; }
+		public bool UpdateFileIndex { get; set; }
 
 		/// <summary>
-		/// Creates a new ROM manager that reads to and/or writes from the specified stream.
+		/// Creates a new file index manager that reads to and/or writes from the specified stream.
 		/// </summary>
 		/// <param name="stream">The stream to read from or write to.</param>
 		/// <param name="access">The type of access this manager requires.</param>
 		/// <param name="game">The game info to use.</param>
-		/// <param name="romEntries">The ROM entries to use.</param>
-		public ROMManager(Stream stream, FileAccess access, GameInfo game, ROMEntryCollection romEntries)
+		/// <param name="fileIndex">The file index to use.</param>
+		public FileManager(Stream stream, FileAccess access, GameInfo game, FileIndexEntryCollection fileIndex)
 			: base(stream, true, access, game) {
-			if (romEntries == null)
-				throw new ArgumentNullException(nameof(romEntries), "The ROM entries cannot be null.");
+			if (fileIndex == null)
+				throw new ArgumentNullException(nameof(fileIndex), "The file index cannot be null.");
 
 			if (access.HasFlag(FileAccess.Read)) {
 				this.BinaryReader = new BinaryReader(stream);
@@ -55,8 +55,8 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			this.Game = game;
-			this.ROMEntries = romEntries;
-			this.UpdateROMEntriesAndIdentifiers = true;
+			this.FileIndex = fileIndex;
+			this.UpdateFileIndex = true;
 		}
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2213:DisposableFieldsShouldBeDisposed", MessageId = "<BinaryReader>k__BackingField")]

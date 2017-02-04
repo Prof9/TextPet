@@ -4,15 +4,15 @@ using System.Linq;
 using System.Text;
 
 namespace TextPet.Commands {
-	internal class LoadROMEntriesCommand : CliCommand {
-		public override string Name => "load-rom-entries";
-		public override string RunString => "Loading ROM entries...";
+	internal class LoadFileIndexCommand : CliCommand {
+		public override string Name => "load-file-index";
+		public override string RunString => "Loading file index...";
 
 		private const string pathArg = "path";
 		private const string recursiveArg = "recursive";
 		private const string ignoreSizeArg = "ignore-size";
 
-		public LoadROMEntriesCommand(CommandLineInterface cli, TextPetCore core)
+		public LoadFileIndexCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[] {
 				pathArg,
 			}, new OptionalArgument[] {
@@ -25,7 +25,7 @@ namespace TextPet.Commands {
 			bool recursive = GetOptionalValues(recursiveArg) != null;
 			bool ignoreSize = GetOptionalValues(ignoreSizeArg) != null;
 
-			this.Core.LoadROMEntries(path, recursive, ignoreSize);
+			this.Core.LoadFileIndex(path, recursive, ignoreSize);
 		}
 	}
 }

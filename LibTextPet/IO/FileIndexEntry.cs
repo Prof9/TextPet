@@ -6,11 +6,11 @@ using System.Text;
 
 namespace LibTextPet.IO {
 	/// <summary>
-	/// A ROM entry for a single text archive.
+	/// A file index entry for a single text archive inside a larger file.
 	/// </summary>
-	public class ROMEntry {
+	public class FileIndexEntry {
 		/// <summary>
-		/// Gets the ROM offset of the text archive.
+		/// Gets the offset of the text archive in the file.
 		/// </summary>
 		public int Offset { get; set; }
 		/// <summary>
@@ -31,23 +31,23 @@ namespace LibTextPet.IO {
 		public ICollection<int> Pointers { get; }
 
 		/// <summary>
-		/// Creates a new ROM entry with the specified offset.
+		/// Creates a new file index entry with the specified offset.
 		/// </summary>
-		/// <param name="offset">The ROM offset of the text archive.</param>
-		public ROMEntry(int offset) 
+		/// <param name="offset">The offset of the text archive in the file.</param>
+		public FileIndexEntry(int offset) 
 			: this(offset, 0, false, false, new int[0]) { }
 
 		/// <summary>
-		/// Creates a new ROM entry with the specified offset, size, compression and pointer offsets.
+		/// Creates a new file index entry with the specified offset, size, compression and pointer offsets.
 		/// </summary>
-		/// <param name="offset">The ROM offset of the text archive.</param>
+		/// <param name="offset">The offset of the text archive in the file.</param>
 		/// <param name="size">The (compressed) size of the text archive.</param>
 		/// <param name="compressed">Whether the text archive is compressed.</param>
 		/// <param name="sizeHeader">Whether the text archive has a size header.</param>
 		/// <param name="pointers">The offsets of the pointers to the text archive.</param>
-		public ROMEntry(int offset, int size, bool compressed, bool sizeHeader, IEnumerable<int> pointers) {
+		public FileIndexEntry(int offset, int size, bool compressed, bool sizeHeader, IEnumerable<int> pointers) {
 			if (offset < 0)
-				throw new ArgumentOutOfRangeException(nameof(offset), offset, "The ROM offset cannot be negative.");
+				throw new ArgumentOutOfRangeException(nameof(offset), offset, "The file offset cannot be negative.");
 			if (size < 0)
 				throw new ArgumentOutOfRangeException(nameof(size), size, "The size cannot be negative.");
 			if (pointers == null)
@@ -61,13 +61,13 @@ namespace LibTextPet.IO {
 		}
 
 		/// <summary>
-		/// Checks whether this ROM entry overlaps another ROM entry.
+		/// Checks whether this file index entry overlaps another file index entry.
 		/// </summary>
-		/// <param name="other">The ROM entry to compare against.</param>
-		/// <returns>true if the ROM entries overlap; otherwise, false.</returns>
-		public bool Overlaps(ROMEntry other) {
+		/// <param name="other">The file index entry to compare against.</param>
+		/// <returns>true if the file entries overlap; otherwise, false.</returns>
+		public bool Overlaps(FileIndexEntry other) {
 			if (other == null)
-				throw new ArgumentNullException(nameof(other), "The other ROM entry cannot be null.");
+				throw new ArgumentNullException(nameof(other), "The other file index entry cannot be null.");
 
 			return Math.Max(this.Offset, other.Offset) < Math.Min(this.Offset + this.Size, other.Offset + other.Size);
 		}
@@ -76,7 +76,7 @@ namespace LibTextPet.IO {
 			if (obj == null || GetType() != obj.GetType())
 				return false;
 
-			ROMEntry entry = (ROMEntry)obj;
+			FileIndexEntry entry = (FileIndexEntry)obj;
 
 			if (!(this.Offset == entry.Offset && this.Size == entry.Size && this.Compressed == entry.Compressed)) {
 				return false;
@@ -97,7 +97,7 @@ namespace LibTextPet.IO {
 			return this.Offset.GetHashCode() ^ this.Size.GetHashCode() ^ this.Compressed.GetHashCode() ^ this.Pointers.GetHashCode();
 		}
 
-		public static bool operator ==(ROMEntry entry1, ROMEntry entry2) {
+		public static bool operator ==(FileIndexEntry entry1, FileIndexEntry entry2) {
 			if (ReferenceEquals(entry1, entry2)) {
 				return true;
 			} else if (ReferenceEquals(entry1, null) || ReferenceEquals(entry2, null)) {
@@ -107,7 +107,7 @@ namespace LibTextPet.IO {
 			}
 		}
 
-		public static bool operator !=(ROMEntry token1, ROMEntry token2) {
+		public static bool operator !=(FileIndexEntry token1, FileIndexEntry token2) {
 			return !(token1 == token2);
 		}
 	}
