@@ -24,6 +24,11 @@ namespace LibTextPet.IO.Msg {
 		public bool CheckGoodTextArchive { get; set; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether this ROM text archive reader should attempt to read the entire (rest of the) file.
+		/// </summary>
+		public bool ReadEntireFile { get; set; }
+
+		/// <summary>
 		/// Gets or sets the minimum size, in bytes, for all text archives; any archives smaller than this will be discarded if they have to pointers.
 		/// </summary>
 		public int MinimumSize { get; set; }
@@ -43,6 +48,7 @@ namespace LibTextPet.IO.Msg {
 			this.TextArchiveReader = new BinaryTextArchiveReader(stream, game);
 			this.CheckGoodTextArchive = false;
 			this.SearchPointers = true;
+			this.ReadEntireFile = false;
 			this.MinimumSize = 0;
 		}
 
@@ -117,14 +123,17 @@ namespace LibTextPet.IO.Msg {
 
 			// Try uncompressed.
 			if (ta == null) {
-				if (entryExists && entry.Size > 0) {
+				this.BaseStream.Position = start;
+				if (this.ReadEntireFile) {
+					// Read the rest of the file.
+					size = (int)(this.BaseStream.Length - this.BaseStream.Position);
+					ta = this.TextArchiveReader.Read(size);
+				} else if (entryExists && entry.Size > 0) {
 					// Use the existing ROM entry.
-					this.BaseStream.Position = start;
-					ta = this.TextArchiveReader.Read(entry.Size);
 					size = entry.Size;
+					ta = this.TextArchiveReader.Read(size);
 				} else {
 					// No ROM entry or size available; need to determine the size.
-					this.BaseStream.Position = start;
 					ta = this.TextArchiveReader.Read();
 					size = (int)(this.BaseStream.Position - start);
 
