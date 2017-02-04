@@ -45,13 +45,27 @@ namespace TextPet.Commands {
 					// Remove elements from the end of the script until the script-ending element or maximum is reached.
 					int trimmed = 0;
 					while (script.Count > endPos && (maxStr == null || trimmed < max)) {
-						// If the preverse text option is enabled, cancel if this would trim non-whitespace text.
-						if (preserveText) {
-							TextElement textElem = script[script.Count - 1] as TextElement;
-							if (textElem != null && !textElem.Text.All(c => Char.IsWhiteSpace(c))) {
+						TextElement textElem = script[script.Count - 1] as TextElement;
+						if (textElem != null) {
+							// If the preserve text option is enabled, cancel.
+							if (preserveText) {
+								break;
+							}
+
+							// Determine number of chars to trim.
+							int trimSize = max - trimmed;
+							if (textElem.Text.Length <= trimSize) {
+								// Remove entire text element.
+								trimSize = textElem.Text.Length;
+								script.RemoveAt(script.Count - 1);
+								trimmed += trimSize;
+								continue;
+							} else {
+								// Text element is too small; cancel.
 								break;
 							}
 						}
+						
 						// If the preserve commands option is enabled, cancel if this would trim commands.
 						if (preserveCommands) {
 							Command cmdElem = script[script.Count - 1] as Command;
