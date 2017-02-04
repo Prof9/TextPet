@@ -138,7 +138,7 @@ namespace LibTextPet.IO {
 			this.TextWriter.Flush();
 		}
 
-		private void WritePostBytes(Stream rom, IList<FileIndexEntry> sorted, int i, FileIndexEntry entry) {
+		private void WritePostBytes(Stream file, IList<FileIndexEntry> sorted, int i, FileIndexEntry entry) {
 			long startPos = entry.Offset + entry.Size + this.AddSize;
 
 			// Print 16 bytes at most.
@@ -160,8 +160,8 @@ namespace LibTextPet.IO {
 
 			// Read the bytes to print.
 			byte[] buffer = new byte[toPrint];
-			rom.Position = startPos;
-			int read = rom.Read(buffer, 0, buffer.Length);
+			file.Position = startPos;
+			int read = file.Read(buffer, 0, buffer.Length);
 
 			// Check if we should exclude these bytes.
 			bool exclude = false;

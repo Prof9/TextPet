@@ -65,13 +65,13 @@ namespace LibTextPet.IO {
 			fullText = this.StripRegex.Replace(fullText, "");
 			string[] lines = fullText.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-			FileIndexEntryCollection romIndex = new FileIndexEntryCollection();
+			FileIndexEntryCollection fileIndex = new FileIndexEntryCollection();
 
 			foreach (string line in lines) {
-				romIndex.Add(ReadEntry(line));
+				fileIndex.Add(ReadEntry(line));
 			}
 
-			return romIndex;
+			return fileIndex;
 		}
 
 		/// <summary>

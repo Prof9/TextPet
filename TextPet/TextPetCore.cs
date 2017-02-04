@@ -269,19 +269,19 @@ namespace TextPet {
 			reader.SearchPointers = searchPointers;
 
 			List<TextArchive> textArchives = new List<TextArchive>(this.FileIndex.Count);
-			foreach (FileIndexEntry romEntry in this.FileIndex) {
-				ReadingTextArchive?.Invoke(this, new TextArchivesEventArgs(path, romEntry.Offset));
+			foreach (FileIndexEntry entry in this.FileIndex) {
+				ReadingTextArchive?.Invoke(this, new TextArchivesEventArgs(path, entry.Offset));
 
-				this.LoadedFile.Position = romEntry.Offset;
+				this.LoadedFile.Position = entry.Offset;
 				TextArchive ta = reader.Read();
 
 				if (ta == null) {
-					throw new InvalidDataException("Could not read text archive at 0x" + romEntry.Offset.ToString("X6", CultureInfo.InvariantCulture) + ".");
+					throw new InvalidDataException("Could not read text archive at 0x" + entry.Offset.ToString("X6", CultureInfo.InvariantCulture) + ".");
 				}
 
 				textArchives.Add(ta);
 				this.TextArchives.Add(ta);
-				ReadTextArchive?.Invoke(this, new TextArchivesEventArgs(path, romEntry.Offset, ta));
+				ReadTextArchive?.Invoke(this, new TextArchivesEventArgs(path, entry.Offset, ta));
 			}
 
 			FinishedReadingTextArchives?.Invoke(this, new TextArchivesEventArgs(path, textArchives));
