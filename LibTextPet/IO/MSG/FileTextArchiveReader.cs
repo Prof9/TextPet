@@ -113,6 +113,8 @@ namespace LibTextPet.IO.Msg {
 						BinaryTextArchiveReader tempReader = new BinaryTextArchiveReader(ms, this.Game);
 						tempReader.IgnorePointerSyncErrors = this.TextArchiveReader.IgnorePointerSyncErrors;
 						tempReader.AutoSortPointers = this.TextArchiveReader.AutoSortPointers;
+						tempReader.ScriptReader.AcceptMostCompatibleFallback = this.TextArchiveReader.ScriptReader.AcceptMostCompatibleFallback;
+						tempReader.AutoSortPointers = this.TextArchiveReader.AutoSortPointers;
 						ta = tempReader.Read(length);
 
 						if (entryExists && entry.Compressed && ta == null) {

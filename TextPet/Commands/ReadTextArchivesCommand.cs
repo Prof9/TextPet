@@ -123,6 +123,7 @@ namespace TextPet.Commands {
 				reader.SearchPointers = false;
 				reader.UpdateFileIndex = false;
 				reader.TextArchiveReader.IgnorePointerSyncErrors = true;
+				reader.TextArchiveReader.ScriptReader.AcceptMostCompatibleFallback = true;
 
 				TextArchive ta = reader.Read();
 

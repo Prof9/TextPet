@@ -29,6 +29,13 @@ namespace LibTextPet.IO {
 		protected ConservativeStreamReader TextReader { get; private set; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates whether this script reader will accept fallback elements when using the most compatible command reader.
+		/// If this is set to false, script reading will abort if a fallback element cannot be resolved.
+		/// By default, this is set to false.
+		/// </summary>
+		public bool AcceptMostCompatibleFallback { get; set; }
+
+		/// <summary>
 		/// Creates a script reader that reads from the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
@@ -56,11 +63,20 @@ namespace LibTextPet.IO {
 		public virtual Script Read() {
 			long start = this.BaseStream.Position;
 			Script script = null;
+			bool abortOnFallback = true;
 
 			// Attempt to read the script with every command reader.
-			foreach (T commandReader in this.CommandReaders) {
+			for (int i = 0; i < this.CommandReaders.Count; i++) {
+				T commandReader = this.CommandReaders[i];
 				this.BaseStream.Position = start;
-				script = this.Read(commandReader, true);
+
+				// Turn off fallback abort for the last command reader, if the option is enabled.
+				if (this.AcceptMostCompatibleFallback && i == this.CommandReaders.Count - 1) {
+					abortOnFallback = false;
+				}
+
+				// Force accept last command reader.
+				script = this.Read(commandReader, abortOnFallback);
 
 				// If the script was read properly, stop.
 				if (script != null) {
