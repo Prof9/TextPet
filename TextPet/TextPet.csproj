@@ -215,10 +215,7 @@
     <None Include="plugins\bn5-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="plugins\bn5dse-utf8.tbl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="plugins\bn5dsu-utf8.tbl">
+    <None Include="plugins\bn5dse-used-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="plugins\bn6-utf8.tbl">
