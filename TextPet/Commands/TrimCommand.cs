@@ -14,6 +14,7 @@ namespace TextPet.Commands {
 		private const string amountArg = "amount";
 		private const string preserveTextArg = "preserve-text";
 		private const string preserveCommandsArg = "preserve-commands";
+		private const string splitTextArg = "split-text";
 
 		public TrimCommand(CommandLineInterface cli, TextPetCore core)
 			: base(cli, core, new string[0], new OptionalArgument[] {
@@ -22,6 +23,7 @@ namespace TextPet.Commands {
 				}),
 				new OptionalArgument(preserveTextArg, 't'),
 				new OptionalArgument(preserveCommandsArg, 'c'),
+				new OptionalArgument(splitTextArg, 'c'),
 			}) { }
 
 		protected override void RunImplementation() {
@@ -29,6 +31,7 @@ namespace TextPet.Commands {
 			int max = maxStr != null ? NumberParser.ParseInt32(maxStr) : int.MaxValue;
 			bool preserveText = GetOptionalValues(preserveTextArg) != null;
 			bool preserveCommands = GetOptionalValues(preserveCommandsArg) != null;
+			bool splitText = GetOptionalValues(splitTextArg) != null;
 
 			// Cycle through every script in every text archive.
 			foreach (TextArchive ta in this.Core.TextArchives) {
@@ -58,12 +61,15 @@ namespace TextPet.Commands {
 								// Remove entire text element.
 								trimSize = textElem.Text.Length;
 								script.RemoveAt(script.Count - 1);
-								trimmed += trimSize;
-								continue;
+							} else if (splitText) {
+								// Remove part of the text element.
+								textElem.Text = textElem.Text.Substring(0, textElem.Text.Length - trimSize);
 							} else {
 								// Text element is too small; cancel.
 								break;
 							}
+							trimmed += trimSize;
+							continue;
 						}
 						
 						// If the preserve commands option is enabled, cancel if this would trim commands.
