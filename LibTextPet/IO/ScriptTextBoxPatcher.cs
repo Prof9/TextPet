@@ -1,5 +1,6 @@
 ﻿using LibTextPet.General;
 using LibTextPet.IO.Msg;
+using LibTextPet.IO.TPL;
 using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,7 @@ namespace LibTextPet.IO {
 		/// Gets the command databases used by this patcher.
 		/// </summary>
 		protected ReadOnlyNamedCollection<CommandDatabase> Databases { get; }
+		protected ReadOnlyNamedCollection<TPLCommandReader> CommandReaders { get; }
 
 		/// <summary>
 		/// Creates a new text box patcher that uses the specified command databases.
@@ -26,6 +28,15 @@ namespace LibTextPet.IO {
 				throw new ArgumentNullException(nameof(databases), "The command databases cannot be null.");
 
 			this.Databases = new ReadOnlyNamedCollection<CommandDatabase>(databases);
+
+			List<TPLCommandReader> cmdReaders = new List<TPLCommandReader>(databases.Length);
+			using (MemoryStream dummyStream = new MemoryStream()) {
+				// We're not actually reading from the dummy stream, so we can close it after this.
+				foreach (CommandDatabase db in databases) {
+					cmdReaders.Add(new TPLCommandReader(dummyStream, db));
+				}
+			}
+			this.CommandReaders = new ReadOnlyNamedCollection<TPLCommandReader>(cmdReaders);
 		}
 
 		/// <summary>
@@ -78,6 +89,10 @@ namespace LibTextPet.IO {
 					// Remove the old text box from A.
 					boxA = RemoveTextBoxCommands(baseObj, a);
 
+					// Process the directives in boxB.
+					IList<DirectiveElement> directives = ExtractDirectives(boxB);
+					ProcessDirectives(boxA, directives, this.CommandReaders[baseObj.DatabaseName]);
+
 					// Patch box B commands with commands in A.
 					PatchTextBox(boxB, boxA, splitSnippet);
 
@@ -113,6 +128,30 @@ namespace LibTextPet.IO {
 		}
 
 		/// <summary>
+		/// Extracts all relevant directives from the specified text box.
+		/// </summary>
+		/// <param name="box">The text box to extract directives from.</param>
+		/// <returns>The extracted directives.</returns>
+		private static IList<DirectiveElement> ExtractDirectives(Script box) {
+			List<DirectiveElement> directives = new List<DirectiveElement>();
+
+			for (int i = 0; i < box.Count; i++) {
+				IScriptElement elem = box[i];
+
+				if (elem is DirectiveElement directive) {
+					if (directive.DirectiveType == DirectiveType.InsertCommand
+					||	directive.DirectiveType == DirectiveType.RemoveCommand
+					) {
+						box.RemoveAt(i--);
+						directives.Add(directive);
+					}
+				}
+			}
+
+			return directives;
+		}
+
+		/// <summary>
 		/// Extracts a (possibly split) text box from the specified script at the specified index, removing the elements in the script.
 		/// </summary>
 		/// <param name="script">The script to extract a text box from.</param>
@@ -121,9 +160,17 @@ namespace LibTextPet.IO {
 		private static Script RemoveSplitTextBox(Script script, int index) {
 			Script boxB = new Script();
 			while (index < script.Count && !EndsTextBox(script[index])) {
-				if (SplitsTextBox(script[index]) || IsPrinted(script[index])) {
+				IScriptElement elem = script[index];
+				if (SplitsTextBox(elem) || IsPrinted(elem)) {
 					// Only extract those elements that are actually printed.
-					boxB.Add(script[index]);
+					boxB.Add(elem);
+				}
+				if (elem is DirectiveElement dirElem && (
+					dirElem.DirectiveType == DirectiveType.InsertCommand ||
+					dirElem.DirectiveType == DirectiveType.RemoveCommand
+				)) {
+					// Also add directives that should be here.
+					boxB.Add(elem);
 				}
 				script.RemoveAt(index);
 			}
@@ -255,6 +302,54 @@ namespace LibTextPet.IO {
 			// Check if all commands were put in.
 			if (commands.Any()) {
 				throw new ArgumentException("Not all commands are accounted for in the text box. Missing commands: " + String.Join(", ", commands.Select(cmd => cmd.Name)), nameof(box));
+			}
+		}
+
+		/// <summary>
+		/// Processes the specified directives for the specified commands.
+		/// </summary>
+		/// <param name="cmds">The commands to apply changes to.</param>
+		/// <param name="directives">The directives to process.</param>
+		/// <param name="cmdReader">The TPL command reader to use.</param>
+		private static void ProcessDirectives(IList<Command> cmds, IList<DirectiveElement> directives, TPLReader<Command> cmdReader) {
+			foreach (DirectiveElement directive in directives) {
+				switch (directive.DirectiveType) {
+					case DirectiveType.InsertCommand:
+						foreach (Command cmd in cmdReader.Read(directive.Value)) {
+							cmds.Add(cmd);
+						}
+						break;
+					case DirectiveType.RemoveCommand:
+						string cmdName;
+						int cmdIndex;
+
+						int commaIndex = directive.Value.IndexOf(',');
+						if (commaIndex >= 0) {
+							cmdName = directive.Value.Substring(0, commaIndex);
+							cmdIndex = NumberParser.ParseInt32(directive.Value.Substring(commaIndex + 1));
+						} else {
+							cmdName = directive.Value;
+							cmdIndex = 0;
+						}
+
+						if (cmdIndex < 0)
+							throw new ArgumentException("A negative command index for the RemoveCommand directive is not allowed.");
+
+						bool removed = false;
+						int skip = cmdIndex;
+						for (int i = 0; i < cmds.Count; i++) {
+							if (cmds[i].Name == cmdName && skip-- <= 0) {
+								cmds.RemoveAt(i);
+								removed = true;
+								break;
+							}
+						}
+						if (!removed) {
+							throw new ArgumentException("RemoveCommand directive could not find a command \"" + cmdName + "\" with index " + cmdIndex + ".");
+						}
+
+						break;
+				}
 			}
 		}
 

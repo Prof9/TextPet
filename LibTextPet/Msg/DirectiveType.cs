@@ -11,5 +11,7 @@ namespace LibTextPet.Msg {
 		TextBoxSeparator,
 		TextBoxSplit,
 		ImportScript,
+		InsertCommand,
+		RemoveCommand,
 	}
 }

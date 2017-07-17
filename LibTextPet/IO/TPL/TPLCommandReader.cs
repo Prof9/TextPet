@@ -10,7 +10,7 @@ namespace LibTextPet.IO.TPL {
 	/// <summary>
 	/// A TextPet Language reader that reads script commands from an input stream.
 	/// </summary>
-	public class TPLCommandReader : TPLReader<Command> {
+	public class TPLCommandReader : TPLReader<Command>, INameable {
 		/// <summary>
 		/// Gets or sets a boolean that indicates whether this reader is currently reading data parameters.
 		/// </summary>
@@ -29,6 +29,11 @@ namespace LibTextPet.IO.TPL {
 				return this.Databases[0];
 			}
 		}
+
+		/// <summary>
+		/// Gets the name of this TPL command reader (based on the command database it is using).
+		/// </summary>
+		public string Name => this.Database.Name;
 
 		/// <summary>
 		/// Creates a new TextPet Language reader that reads script commands from the specified input stream, using the specified command database.
