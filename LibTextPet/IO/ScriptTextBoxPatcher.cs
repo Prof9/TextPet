@@ -159,8 +159,9 @@ namespace LibTextPet.IO {
 		/// <returns>The text box that was extracted.</returns>
 		private static Script RemoveSplitTextBox(Script script, int index) {
 			Script boxB = new Script();
-			while (index < script.Count && !EndsTextBox(script[index])) {
+			while (index < script.Count) {
 				IScriptElement elem = script[index];
+
 				if (SplitsTextBox(elem) || IsPrinted(elem)) {
 					// Only extract those elements that are actually printed.
 					boxB.Add(elem);
@@ -173,6 +174,10 @@ namespace LibTextPet.IO {
 					boxB.Add(elem);
 				}
 				script.RemoveAt(index);
+
+				if (EndsTextBox(elem)) {
+					break;
+				}
 			}
 
 			return boxB;
@@ -231,10 +236,12 @@ namespace LibTextPet.IO {
 					break;
 				}
 
-				DirectiveElement directive = script[start++] as DirectiveElement;
+				DirectiveElement directive = script[start] as DirectiveElement;
 				if (directive != null && directive.DirectiveType == DirectiveType.TextBoxSeparator) {
 					break;
 				}
+
+				start++;
 			}
 
 			return start;
