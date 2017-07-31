@@ -71,7 +71,7 @@ namespace LibTextPet.IO {
 
 				// Do we have text left in B?
 				if (b >= patchObj.Count) {
-					throw new ArgumentException("The patch script must have the same number of text boxes as the base script.", nameof(patchObj));
+					throw new ArgumentException("The patch script has fewer text boxes than the base script.", nameof(patchObj));
 				}
 
 				// Extract text box from B.
@@ -101,6 +101,11 @@ namespace LibTextPet.IO {
 						baseObj.Insert(a++, elem);
 					}
 				}
+			}
+
+			// Do we have text left?
+			if (FindNextTextBox(patchObj, b) < patchObj.Count) {
+				throw new ArgumentException("The patch script has more text boxes than the base script.", nameof(patchObj));
 			}
 		}
 
