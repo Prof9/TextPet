@@ -67,7 +67,7 @@ namespace LibTextPet.IO.TextBox {
 		private static IEnumerable<Token> CreateTokens(Match match) {
 			bool found = false;
 			for (int i = 1; i < match.Groups.Count; i++) {
-				if (match.Groups[i].Length > 0) {
+				if (match.Groups[i].Success) {
 					found = true;
 					int type = (int)Enum.Parse(typeof(TextBoxTokenType), TokenizerRegex.GroupNameFromNumber(i));
 					yield return new Token(type, match.Groups[i].Value);
