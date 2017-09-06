@@ -156,6 +156,21 @@ namespace TextPet {
 				// Reset object names.
 				this.SetObjectNames(null, null);
 
+				if (args[i] == "/*") {
+					bool terminated = false;
+					while (i < args.Count) {
+						if (args[i++] == "*/") {
+							terminated = true;
+							break;
+						}
+					}
+
+					if (!terminated) {
+						Console.WriteLine("ERROR: Non-terminated comment.");
+						break;
+					}
+				}
+
 				// Find a matching command.
 				CliCommand cmd = null;
 				foreach (CliCommand c in this.Commands) {
