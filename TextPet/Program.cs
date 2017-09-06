@@ -3,7 +3,7 @@
 [assembly: CLSCompliant(true)]
 namespace TextPet {	
 	class Program {
-		public static string Version => "v1.0-alpha";
+		public static string Version => "v1.0-alpha2";
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", MessageId = "args")]
 		static void Main(string[] args) {
