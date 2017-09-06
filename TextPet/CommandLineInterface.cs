@@ -87,6 +87,7 @@ namespace TextPet {
 				new LoadFileIndexCommand(this, this.Core),
 				new ReadTextArchivesCommand(this, this.Core),
 				new RegexCommand(this, this.Core),
+				new RenameCommand(this, this.Core),
 				new RunScriptCommand(this, this.Core),
 				new SearchCommand(this, this.Core),
 				new SilentCommand(this, this.Core),

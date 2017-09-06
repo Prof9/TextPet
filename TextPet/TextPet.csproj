@@ -75,6 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CliCommand.cs" />
+    <Compile Include="Commands\RenameCommand.cs" />
     <Compile Include="Commands\ClearCommand.cs" />
     <Compile Include="Commands\GameCommand.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
