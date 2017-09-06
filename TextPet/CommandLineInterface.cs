@@ -79,6 +79,7 @@ namespace TextPet {
 
 			this.Commands = new CliCommand[] {
 				new ClearCommand(this, this.Core),
+				new DeleteCommand(this, this.Core),
 				new FloodCommand(this, this.Core),
 				new GameCommand(this, this.Core),
 				new HelpCommand(this, this.Core),
