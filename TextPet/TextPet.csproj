@@ -76,6 +76,7 @@
   <ItemGroup>
     <Compile Include="CliCommand.cs" />
     <Compile Include="Commands\DeleteCommand.cs" />
+    <Compile Include="Commands\LoadFileCommand.cs" />
     <Compile Include="Commands\RenameCommand.cs" />
     <Compile Include="Commands\ClearCommand.cs" />
     <Compile Include="Commands\GameCommand.cs" />

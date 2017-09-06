@@ -85,6 +85,7 @@ namespace TextPet {
 				new HelpCommand(this, this.Core),
 				new InsertTextBoxesCommand(this, this.Core),
 				new LoadPluginsCommand(this, this.Core),
+				new LoadFileCommand(this, this.Core),
 				new LoadFileIndexCommand(this, this.Core),
 				new ReadTextArchivesCommand(this, this.Core),
 				new RegexCommand(this, this.Core),
