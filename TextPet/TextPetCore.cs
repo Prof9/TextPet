@@ -461,7 +461,10 @@ namespace TextPet {
 
 			VerifyGameInitialized();
 
-			Directory.CreateDirectory(Path.GetDirectoryName(path));
+			string dir = Path.GetDirectoryName(path);
+			if (!string.IsNullOrEmpty(dir)) {
+				Directory.CreateDirectory(dir);
+			}
 
 			// Sort the text archives.
 			this._textArchives.Sort((a, b) => String.CompareOrdinal(a.Identifier, b.Identifier));
