@@ -61,69 +61,75 @@ namespace LibTextPet.IO {
 				throw new ArgumentException("The number of scripts in the patch text archive exceeds the number of scripts in the base text archive.", nameof(patchObj));
 
 			int total = Math.Min(baseObj.Count, patchObj.Count);
-			for (int scriptNum = 0; scriptNum < total; scriptNum++) {
-				Script patchScript = patchObj[scriptNum];
+			int scriptNum = 0;
+			try {
+				for (scriptNum = 0; scriptNum < total; scriptNum++) {
+					Script patchScript = patchObj[scriptNum];
 
-				// Is there a patch script available?
-				if (patchScript == null || patchScript.Count <= 0) {
-					continue;
+					// Is there a patch script available?
+					if (patchScript == null || patchScript.Count <= 0) {
+						continue;
+					}
+
+					// Is this an imported script?
+					DirectiveElement dirElem = patchScript[0] as DirectiveElement;
+					if (dirElem != null && dirElem.DirectiveType == DirectiveType.ImportScript) {
+						if (patchScript.Count != 1) {
+							throw new FormatException("Script import directive must be the only script element. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+						}
+						if (!ImportScriptRegex.IsMatch(dirElem.Value)) {
+							throw new FormatException("Invalid syntax for script import directive \"" + dirElem.Value + "\". (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+						}
+
+						string[] importPars = dirElem.Value.Split(',');
+						string importTAID = importPars[0];
+						int importScriptNum = NumberParser.ParseInt32(importPars[1]);
+
+						IList<TextArchive> importTAs = null;
+						if (patchObj.Identifier == importTAID && patchObj[importScriptNum].Any()) {
+							// Try to import from the current patch object if it's nonempty.
+							importTAs = new TextArchive[] { patchObj };
+						} else if (baseObj.Identifier == importTAID) {
+							// Try to import from the current base object.
+							importTAs = new TextArchive[] { baseObj };
+						} else {
+							importTAs = importableTAs.Where(ta => ta.Identifier == importTAID).ToList();
+						}
+						if (importTAs.Count < 1) {
+							throw new InvalidDataException("Could not find text archive \"" + importTAID + "\" for script importing. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+						}
+						if (importTAs.Count > 1) {
+							throw new InvalidDataException("Ambiguous text archive \"" + importTAID + "\" for script importing. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+						}
+						TextArchive importTA = importTAs[0];
+
+						if (importScriptNum < 0 || importScriptNum >= importTA.Count) {
+							throw new InvalidDataException("Cannot import script " + importScriptNum + "from text archive \"" + importTAID + "\"; script does not exist. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
+						}
+
+						patchScript = importTA[importScriptNum];
+						using (MemoryStream ms = new MemoryStream()) {
+							TextBoxScriptWriter tbsw = new TextBoxScriptWriter(ms);
+							TextBoxScriptTemplateReader tbstr = new TextBoxScriptTemplateReader(ms, this.Databases[patchScript.DatabaseName]);
+							tbsw.Write(patchScript);
+							ms.Position = 0;
+							patchScript = tbstr.ReadSingle();
+						}
+					}
+
+					if (patchScript != null && patchScript.Count > 0) {
+						// Clone the patch script.
+						Script patchScriptClone = new Script(patchScript.DatabaseName);
+						foreach (IScriptElement elem in patchScript) {
+							patchScriptClone.Add(elem);
+						}
+
+						this.ScriptPatcher.Patch(baseObj[scriptNum], patchScriptClone);
+					}
 				}
-
-				// Is this an imported script?
-				DirectiveElement dirElem = patchScript[0] as DirectiveElement;
-				if (dirElem != null && dirElem.DirectiveType == DirectiveType.ImportScript) {
-					if (patchScript.Count != 1) {
-						throw new FormatException("Script import directive must be the only script element. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
-					}
-					if (!ImportScriptRegex.IsMatch(dirElem.Value)) {
-						throw new FormatException("Invalid syntax for script import directive \"" + dirElem.Value + "\". (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
-					}
-
-					string[] importPars = dirElem.Value.Split(',');
-					string importTAID = importPars[0];
-					int importScriptNum = NumberParser.ParseInt32(importPars[1]);
-
-					IList<TextArchive> importTAs = null;
-					if (patchObj.Identifier == importTAID && patchObj[importScriptNum].Any()) {
-						// Try to import from the current patch object if it's nonempty.
-						importTAs = new TextArchive[] { patchObj };
-					} else if (baseObj.Identifier == importTAID) {
-						// Try to import from the current base object.
-						importTAs = new TextArchive[] { baseObj };
-					} else {
-						importTAs = importableTAs.Where(ta => ta.Identifier == importTAID).ToList();
-					}
-					if (importTAs.Count < 1) {
-						throw new InvalidDataException("Could not find text archive \"" + importTAID + "\" for script importing. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
-					}
-					if (importTAs.Count > 1) {
-						throw new InvalidDataException("Ambiguous text archive \"" + importTAID + "\" for script importing. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
-					}
-					TextArchive importTA = importTAs[0];
-
-					if (importScriptNum < 0 || importScriptNum >= importTA.Count) {
-						throw new InvalidDataException("Cannot import script " + importScriptNum + "from text archive \"" + importTAID + "\"; script does not exist. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
-					}
-
-					patchScript = importTA[importScriptNum];
-					using (MemoryStream ms = new MemoryStream()) {
-						TextBoxScriptWriter tbsw = new TextBoxScriptWriter(ms);
-						TextBoxScriptTemplateReader tbstr = new TextBoxScriptTemplateReader(ms, this.Databases[patchScript.DatabaseName]);
-						tbsw.Write(patchScript);
-						ms.Position = 0;
-						patchScript = tbstr.ReadSingle();
-					}
-				}
-
-				if (patchScript != null && patchScript.Count > 0) {
-					// Clone the patch script.
-					Script patchScriptClone = new Script(patchScript.DatabaseName);
-					foreach (IScriptElement elem in patchScript) {
-						patchScriptClone.Add(elem);
-					}
-
-					this.ScriptPatcher.Patch(baseObj[scriptNum], patchScriptClone);
-				}
+			} catch (Exception ex) {
+				// TODO: THIS BUT NOT AWFUL
+				throw new InvalidOperationException(ex.Message + " (Error occurred in script " + scriptNum + " of text archive " + baseObj.Identifier + ")");
 			}
 		}
 	}
