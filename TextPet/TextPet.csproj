@@ -278,6 +278,15 @@
     <None Include="plugins\mmbn45s.ini">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="plugins\mmsf1.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\rnr1-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="plugins\sf1-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="scripts\fix-6cf-jp.tpl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
