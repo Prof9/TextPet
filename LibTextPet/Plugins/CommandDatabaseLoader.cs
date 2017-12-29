@@ -101,214 +101,220 @@ namespace LibTextPet.Plugins {
 		/// </summary>
 		/// <param name="enumerator">The enumerator to read from.</param>
 		/// <param name="defs">The previously loaded command defitions.</param>
-		/// <param name="jumpContinueValues">The values for jump targets that lead to continuing the current script.</param>
-		/// <param name="extension">true if the command definition is an extension; otherwise, false.</param>
+		/// <param name="jumpContVals">The values for jump targets that lead to continuing the current script.</param>
+		/// <param name="isExt">true if the command definition is an extension; otherwise, false.</param>
 		/// <returns>The resulting command definition.</returns>
-		private static CommandDefinition LoadCommandDefinition(IEnumerator<IniSection> enumerator, IEnumerable<CommandDefinition> defs, IList<long> jumpContinueValues, bool extension) {
+		private static CommandDefinition LoadCommandDefinition(IEnumerator<IniSection> enumerator, IEnumerable<CommandDefinition> defs, IList<long> jumpContVals, bool isExt) {
 			if (enumerator == null)
 				throw new ArgumentNullException(nameof(enumerator), "The enumerator cannot be null.");
 			if (defs == null)
 				throw new ArgumentNullException(nameof(defs), "The command definitions cannot be null.");
 
-			if (extension) {
+			if (isExt) {
 				ValidateCurrentSectionNameAny(enumerator, "EXTENSION");
 			} else {
 				ValidateCurrentSectionNameAny(enumerator, "COMMAND");
 			}
 			ValidateCurrentSectionPropertiesAll(enumerator, "NAME", "MASK", "BASE");
 
-			IniSection section = enumerator.Current;
+			IniSection cmdSection = enumerator.Current;
 
 			// Set required properties.
-			string name = section.PropertyAsString("NAME");
-			string baseString = section.PropertyAsString("BASE", "");
-			string maskString = section.PropertyAsString("MASK", "");
+			string name = cmdSection.PropertyAsString("NAME");
+			string baseString = cmdSection.PropertyAsString("BASE", "");
+			string maskString = cmdSection.PropertyAsString("MASK", "");
 
 			// Parse base and mask.
 			byte[] baseSeq = NumberParser.ParseHexString(baseString).ToArray();
 			byte[] maskSeq = NumberParser.ParseHexString(maskString).ToArray();
 			if (baseSeq.Length < maskSeq.Length) {
 				Array.Resize(ref baseSeq, maskSeq.Length);
+			} else if (baseSeq.Length > maskSeq.Length) {
+				throw new InvalidDataException("Base sequence for command \"" + name + "\" is longer than mask sequence.");
 			}
-
-			// Set optional properties to their defaults.
-			string desc = section.PropertyAsString("DESC");
-			long dadd = section.PropertyAsInt64("DADD", 0);
-			long plen = section.PropertyAsInt64("PLEN", 0);
-			EndType ends = ParseEndType(section.PropertyAsString("ENDS", "DEFAULT"));
-			bool prnt = section.PropertyAsBoolean("PRNT", false);
-			string mugs = section.PropertyAsString("MUGS", null);
-			long rwnd = section.PropertyAsInt64("RWND", 0);
-
-			List<ParameterDefinition> pars = new List<ParameterDefinition>();
-			ParameterDefinition lengthPar = null;
-			List<ParameterDefinition> dataPars = new List<ParameterDefinition>();
 
 			// Find the base command.
-			CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.ToUpperInvariant() == name.ToUpperInvariant());
+			CommandDefinition superCmdDef = FindPreviousCommand(defs, isExt, name);
 
-			// Load extended properties (for extensions).
-			if (extension) {
-				if (super == null)
-					throw new KeyNotFoundException("Unknown base command " + name + ".");
+			// Set optional properties.
+			string desc = cmdSection.PropertyAsString("DESC", superCmdDef?.Description ?? "");
+			long plen = cmdSection.PropertyAsInt64("PLEN", superCmdDef?.PriorityLength ?? 0);
+			EndType ends = ParseEndType(cmdSection.PropertyAsString("ENDS", null) ?? (superCmdDef?.EndType.ToString() ?? EndType.Default.ToString()));
+			bool prnt = cmdSection.PropertyAsBoolean("PRNT", superCmdDef?.Prints ?? false);
+			string mugs = cmdSection.PropertyAsString("MUGS", superCmdDef?.MugshotParameterName);
+			long rwnd = cmdSection.PropertyAsInt64("RWND", superCmdDef?.RewindCount ?? 0);
 
-				// Copy properties.
-				desc = super.Description;
-				ends = super.EndType;
-				dadd = super.DataCountOffset;
-				
-				// Clone all parameter definitions.
-				pars = CloneParameters(super.Elements);
-				dataPars = CloneParameters(super.DataParameters);
-				if (super.LengthParameter != null) {
-					lengthPar = new ParameterDefinition(super.LengthParameter);
-				}
-			} else if (super != null) {
-				// Duplicate command.
-				string baseStr = BitConverter.ToString(baseSeq).Replace('-', ' ');
-				string superBaseStr = BitConverter.ToString(super.Base.ToArray()).Replace('-', ' ');
+			// Load parameters.
+			List<CommandElementDefinition> elemDefs = LoadCommandElementDefinitions(enumerator, jumpContVals, superCmdDef);
 
-				throw new InvalidDataException("Command with base " + baseStr + " attempts to use name " + name + ", "
-					+ "but this name is already in use by command with base " + superBaseStr + ".");
-			}
-
-			// Load all parameters.
-			bool skip = false;
-			bool stop = false;
-			while (AdvanceEnumerator(enumerator, skip, stop)) {
-				ParameterDefinition par = null;
-				bool dataPar = false;
-
-				switch (enumerator.Current.Name.ToUpperInvariant()) {
-					case "PARAMETER":
-						par = LoadParameterDefinition(enumerator, pars, jumpContinueValues, false, extension);
-						break;
-					case "LENGTH":
-						if (extension)
-							throw new InvalidDataException("Extension command " + name + " cannot change length parameter.");
-						if (lengthPar != null)
-							throw new InvalidDataException("Length parameter for " + name + " command is already defined.");
-
-						lengthPar = LoadParameterDefinition(enumerator, new ParameterDefinition[0], jumpContinueValues, true, false);
-						break;
-					case "DATA":
-						par = LoadParameterDefinition(enumerator, dataPars, jumpContinueValues, false, extension);
-						dataPar = true;
-						break;
-					default:
-						stop = true;
-						break;
-				}
-				
-				// Add or overwrite the (data) parameter.
-				if (par != null) {
-					List<ParameterDefinition> searchPars = dataPar ? dataPars : pars;
-
-					// If this command is an extension, do not add any parameters.
-					if (extension) {
-						// Overwrite the (data) parameter.
-						int index = searchPars.FindIndex(pd => pd.Name.ToUpperInvariant() == par.Name.ToUpperInvariant());
-						if (index == -1)
-							throw new KeyNotFoundException("Command " + name + " does not have a parameter " + par.Name + " to extend.");
-
-						searchPars[index] = par;
-					} else {
-						// Add the (data) parameter.
-						searchPars.Add(par);
-					}
-				}
-			}
-
-			return new CommandDefinition(name, desc, baseSeq, maskSeq, ends, prnt, mugs, dadd, plen, rwnd, pars, lengthPar, dataPars);
+			return new CommandDefinition(name, desc, baseSeq, maskSeq, ends, prnt, mugs, plen, rwnd, elemDefs);
 		}
 
 		/// <summary>
-		/// Loads a parameter definition from the specified INI section enumerator.
+		/// Loads command element definitions from the specified INI section enumerator.
 		/// </summary>
 		/// <param name="enumerator">The enumerator to read from.</param>
-		/// <param name="defs">The previously loaded parameter definitions.</param>
-		/// /// <param name="jumpContinueValues">The values for jump targets that lead to continuing the current script.</param>
-		/// <param name="length">true if the parameter definition is a length parameter; otherwise, false.</param>
-		/// <param name="extension">true if the parameter definition is an extension; otherwise, false.</param>
-		/// <returns>The resulting parameter definition.</returns>
-		private static ParameterDefinition LoadParameterDefinition(IEnumerator<IniSection> enumerator, IEnumerable<ParameterDefinition> defs, IList<long> jumpContinueValues, bool length, bool extension) {
-			if (enumerator == null)
-				throw new ArgumentNullException(nameof(enumerator), "The enumerator cannot be null.");
-			if (defs == null)
-				throw new ArgumentNullException(nameof(defs), "The parameter definitions cannot be null.");
-			if (length && extension)
-				throw new ArgumentException("Length parameters cannot be extended.");
+		/// <param name="jumpContVals">The values for jump targets that lead to continuing the current script</param>
+		/// <param name="superCmdDef">The command definition for the base command, or null if this command is not an extension.</param>
+		/// <returns></returns>
+		private static List<CommandElementDefinition> LoadCommandElementDefinitions(IEnumerator<IniSection> enumerator, IList<long> jumpContVals, CommandDefinition superCmdDef) {
+			// List of command elements in insertion order.
+			List<string> elemList = new List<string>();
+			// Dictionary of command elements mapping to parameters.
+			Dictionary<string, IList<ParameterDefinition>> parDict = CreateParameterDictionary(superCmdDef, elemList);
 
-			if (extension) {
-				ValidateCurrentSectionNameAny(enumerator, "Parameter", "Data");
+			bool skip = false;
+			bool stop = false;
+			while (AdvanceEnumerator(enumerator, skip, stop)) {
+				IniSection section = enumerator.Current;
+
+				switch (section.Name.ToUpperInvariant()) {
+				case "PARAMETER":
+					break;
+				default:
+					stop = true;
+					continue;
+				}
+
+				// Validate parameter block.
+				ValidateCurrentSectionNameAny(enumerator, "Parameter");
 				ValidateCurrentSectionPropertiesAll(enumerator, "name");
-			} else if (length) {
-				ValidateCurrentSectionNameAny(enumerator, "Length");
-				ValidateCurrentSectionPropertiesAll(enumerator, "offs", "bits");
-			} else {
-				ValidateCurrentSectionNameAny(enumerator, "Parameter", "Data");
-				ValidateCurrentSectionPropertiesAll(enumerator, "name", "offs", "bits");
+
+				// Get parameter name.
+				string parNameFull = section.PropertyAsString("NAME");
+				string[] parName = parNameFull.Split('.');
+				if (parName.Length >= 2) {
+					throw new InvalidDataException("Nested data parameters are not supported.");
+				}
+				if (parName.Length < 1) {
+					throw new InvalidDataException("Unnamed parameters are not supported.");
+				}
+				string parNameMain = parName[parName.Length - 1];
+
+				// Find the base parameter.
+				ParameterDefinition superPar = null;
+				if (parDict.ContainsKey(parName[0])) {
+					superPar = parDict[parName[0]].FirstOrDefault(pd => pd.Name.Equals(parNameMain, StringComparison.InvariantCultureIgnoreCase));
+				}
+				if (superCmdDef != null && superPar == null) {
+					throw new InvalidDataException("Base parameter \"" + parNameFull + "\" not found.");
+				}
+				if (superCmdDef == null && superPar != null) {
+					throw new InvalidDataException("Parameter \"" + parNameFull + "\" is already defined.");
+				}
+
+				// Load properties.
+				int offset = 0;
+				int shift = 0;
+				string offs = section.PropertyAsString("offs", null);
+				if (offs != null) {
+					string[] offsParts = offs.Split('.', ',');
+
+					if (offsParts.Length < 1 || offsParts.Length > 2) {
+						throw new InvalidDataException("Invalid offset format for parameter \"" + parNameFull + "\".");
+					}
+
+					offset = NumberParser.ParseInt32(offsParts[0]);
+					shift = offsParts.Length == 2 ? NumberParser.ParseInt32(offsParts[1]) : 0;
+				} else if (superPar != null) {
+					offset = superPar.Offset;
+					shift = superPar.Shift;
+				}
+
+				int parBits = (int)section.PropertyAsInt64("bits", superPar?.Bits ?? 8);
+				string parDesc = section.PropertyAsString("desc", superPar?.Description);
+				string parType = section.PropertyAsString("type", "DEC").ToUpperInvariant(); // TODO
+				int parAddv = (int)section.PropertyAsInt64("addv", superPar?.Add ?? 0);
+				string parValn = section.PropertyAsString("valn", superPar?.ValueEncodingName);
+
+				// Create the parameter.
+				bool isJump = parType == "JUMP";
+				ParameterDefinition parDef = new ParameterDefinition(parNameMain, parDesc, offset, shift, parBits, parAddv, isJump, parValn);
+
+				// Set jump continue values.
+				if (isJump) {
+					parDef.JumpContinueValues = jumpContVals;
+				}
+
+				// Process the new parameter.
+				if (superCmdDef == null) {
+					// Add as new parameter.
+					if (parName.Length == 1) {
+						// Add to top-level elements.
+						elemList.Add(parDef.Name);
+					}
+					if (!parDict.ContainsKey(parName[0])) {
+						parDict[parName[0]] = new List<ParameterDefinition>();
+					}
+					parDict[parName[0]].Add(parDef);
+				} else {
+					// Replace parameter.
+					int i = parDict[parName[0]].IndexOf(superPar);
+					parDict[parName[0]][i] = parDef;
+				}
 			}
 
-			IniSection section = enumerator.Current;
+			// Create the command elements.
+			List<CommandElementDefinition> elemDefs = new List<CommandElementDefinition>();
+			foreach (string elemName in elemList) {
+				CommandElementDefinition elemDef;
+				ICollection<ParameterDefinition> parDefs = parDict[elemName];
 
-			// Set required properties.
-			string name = section.PropertyAsString("name");
-			if (length && name == null) {
-				name = "length";
+				if (parDefs.Count == 1) {
+					elemDef = new CommandElementDefinition(parDefs.First());
+				} else {
+					elemDef = new CommandElementDefinition(parDefs.First(), parDefs.Skip(1));
+				}
 			}
 
-			// Find the base command.
-			ParameterDefinition super = defs.FirstOrDefault(pd => pd.Name.ToUpperInvariant() == name.ToUpperInvariant());
-			if (extension && super == null)
-				throw new KeyNotFoundException("Unknown base parameter " + name + ".");
+			return elemDefs;
+		}
 
-			// Load required properties.
-			int offset;
-			int shift;
-			int bits;
-			if (extension) {
-				// Copy properties.
-				offset = super.Offset;
-				shift = super.Shift;
-				bits = super.Bits;
-			} else {
-				string[] offs = section.PropertyAsString("offs").Split('.', ',');
-				bits = (int)section.PropertyAsInt64("bits");
+		/// <summary>
+		/// Creates a parameter dictionary using the specified base command, populating the specified element list.
+		/// </summary>
+		/// <param name="superCmdDef"></param>
+		/// <param name="elemList"></param>
+		/// <returns></returns>
+		private static Dictionary<string, IList<ParameterDefinition>> CreateParameterDictionary(CommandDefinition superCmdDef, List<string> elemList) {
+			Dictionary<string, IList<ParameterDefinition>> parDict = new Dictionary<string, IList<ParameterDefinition>>(StringComparer.InvariantCultureIgnoreCase);
 
-				// Parse offset.
-				if (offs.Length < 1 || offs.Length > 2)
-					throw new InvalidDataException("Invalid offset format.");
-				offset = NumberParser.ParseInt32(offs[0]);
-				shift = offs.Length == 2 ? NumberParser.ParseInt32(offs[1]) : 0;
+			if (superCmdDef != null) {
+				// Add the super elements to the list and dictionary.
+				foreach (CommandElementDefinition superElemDef in superCmdDef.Elements) {
+					elemList.Add(superElemDef.Name);
+
+					List<ParameterDefinition> dataPars = new List<ParameterDefinition>();
+					if (superElemDef.HasMultipleDataEntries) {
+						dataPars.Add(superElemDef.LengthParameterDefinition.Clone());
+						dataPars.AddRange(superElemDef.DataParameterDefinitions.Select(pd => pd.Clone()));
+					} else {
+						dataPars.Add(superElemDef.MainParameterDefinition.Clone());
+					}
+					parDict[superElemDef.Name] = dataPars;
+				}
 			}
 
-			// Set optional properties.
-			string desc = section.PropertyAsString("desc", null);
-			string type = section.PropertyAsString("type", "DEC").ToUpperInvariant();
-			int dataGroup = (int)section.PropertyAsInt64("dgrp", 0);
-			long extBase = 0;
-			string valueEncoding = section.PropertyAsString("valn", null);
+			return parDict;
+		}
 
-			if (length && valueEncoding != null) {
-				throw new InvalidDataException("Length parameter does not support value encoding.");
+		/// <summary>
+		/// Finds a base command in the specified set of command definitions with the specified name.
+		/// </summary>
+		/// <param name="defs">The previously defined command definitions.</param>
+		/// <param name="isExt">true if the base command is to be extended; otherwise, false.</param>
+		/// <param name="name">The name of the command to find.</param>
+		/// <returns>The base command, or null if there is no base command.</returns>
+		private static CommandDefinition FindPreviousCommand(IEnumerable<CommandDefinition> defs, bool isExt, string name) {
+			CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+			if (isExt && super == null) {
+				throw new InvalidDataException("No command \"" + name + "\" found to extend.");
+			}
+			if (!isExt && super != null) {
+				throw new InvalidDataException("Command with name \"" + name + "\" already defined.");
 			}
 
-			// Load properties from base.
-			if (extension) {
-				desc = super.Description;
-				extBase = section.PropertyAsInt64("extb", 0);
-			}
-
-			bool isJump = type == "JUMP";
-			ParameterDefinition parDef = new ParameterDefinition(name, desc, offset, shift, bits, isJump, extBase, dataGroup, valueEncoding);
-
-			// Set jump continue values.
-			if (isJump) {
-				parDef.JumpContinueValues = jumpContinueValues;
-			}
-
-			return parDef;
+			return super;
 		}
 
 		/// <summary>
@@ -317,9 +323,6 @@ namespace LibTextPet.Plugins {
 		/// <param name="value">The value to parse.</param>
 		/// <returns>The parsed end type.</returns>
 		private static EndType ParseEndType(string value) {
-			if (value == null)
-				throw new ArgumentNullException(nameof(value), "The value cannot be null.");
-
 			EndType endType = EndType.Default;
 			switch (value.ToUpperInvariant()) {
 				case "ALWAYS":
@@ -334,22 +337,6 @@ namespace LibTextPet.Plugins {
 					break;
 			}
 			return endType;
-		}
-
-		/// <summary>
-		/// Clones the specified parameters.
-		/// </summary>
-		/// <param name="pars">The parameters to clone.</param>
-		/// <returns>The cloned parameters.</returns>
-		private static List<ParameterDefinition> CloneParameters(IEnumerable<ParameterDefinition> pars) {
-			if (pars == null)
-				throw new ArgumentNullException(nameof(pars), "The parameters cannot be null.");
-
-			List<ParameterDefinition> cloned = new List<ParameterDefinition>();
-			foreach (ParameterDefinition par in pars) {
-				cloned.Add(new ParameterDefinition(par));
-			}
-			return cloned;
 		}
 	}
 }

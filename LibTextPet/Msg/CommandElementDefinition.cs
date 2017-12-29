@@ -84,21 +84,26 @@ namespace LibTextPet.Msg {
 
 
 		/// <summary>
-		/// Creates a new command element definition that is a copy of the current instance.
+		/// Creates a new command element definition that is a deep clone of the current instance.
 		/// </summary>
-		/// <returns>A new command element definition that is a copy of this instance.</returns>
+		/// <returns>A new command element definition that is a deep clone of this instance.</returns>
 		public CommandElementDefinition Clone() {
 			if (this.HasMultipleDataEntries) {
-				return new CommandElementDefinition(this.LengthParameterDefinition, this.DataParameterDefinitions);
+				return new CommandElementDefinition(
+					this.LengthParameterDefinition.Clone(),
+					this.DataParameterDefinitions.Select(def => def.Clone())
+				);
 			} else {
-				return new CommandElementDefinition(this.MainParameterDefinition);
+				return new CommandElementDefinition(
+					this.MainParameterDefinition.Clone()
+				);
 			}
 		}
 
 		/// <summary>
-		/// Creates a new object that is a copy of the current instance.
+		/// Creates a new object that is a deep clone of the current instance.
 		/// </summary>
-		/// <returns>A new object that is a copy of this instance.</returns>
+		/// <returns>A new object that is a deep clone of this instance.</returns>
 		object ICloneable.Clone() {
 			return this.Clone();
 		}

@@ -69,6 +69,18 @@ namespace LibTextPet.Msg {
 		public ReadOnlyNamedCollection<CommandElementDefinition> Elements { get; }
 
 		/// <summary>
+		/// Gets a one-dimensional list of all (sub-)parameter definitions in this script command definition.
+		/// </summary>
+		/// <returns>The list of parameter definitions.</returns>
+		public IEnumerable<ParameterDefinition> FlattenParameters() {
+			foreach (CommandElementDefinition elemDef in this.Elements) {
+				foreach (ParameterDefinition parDef in elemDef.DataParameterDefinitions) {
+					yield return parDef;
+				}
+			}
+		}
+
+		/// <summary>
 		/// Gets the number of bytes this command should rewind after being read.
 		/// </summary>
 		public long RewindCount { get; }
@@ -155,13 +167,23 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <returns>A new script command definition that is a copy of this instance.</returns>
 		public CommandDefinition Clone() {
-			CommandElementDefinition[] elems = new CommandElementDefinition[this.Elements.Count];
-			for (int i = 0; i < elems.Length; i++) {
-				elems[i] = (CommandElementDefinition)this.Elements[i].Clone();
+			byte[] newBase = new byte[this.Base.Count];
+			for (int i = 0; i < newBase.Length; i++) {
+				newBase[i] = this.Base[i];
 			}
-			
-			return new CommandDefinition(this.Name, this.Description, this.Base.ToArray(), this.Mask.ToArray(),
-				this.EndType, this.Prints, this.MugshotParameterName, this.PriorityLength, this.RewindCount, elems);
+
+			byte[] newMask = new byte[this.Mask.Count];
+			for (int i = 0; i < newMask.Length; i++) {
+				newMask[i] = this.Mask[i];
+			}
+
+			return new CommandDefinition(
+				String.Copy(this.Name), String.Copy(this.Description),
+				newBase, newMask,
+				this.EndType, this.Prints, String.Copy(this.MugshotParameterName),
+				this.PriorityLength, this.RewindCount,
+				this.Elements.Select(elemDef => elemDef.Clone())
+			);
 		}
 
 		/// <summary>

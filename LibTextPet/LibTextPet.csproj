@@ -108,7 +108,6 @@
     <Compile Include="Msg\DirectiveElement.cs" />
     <Compile Include="Msg\DirectiveType.cs" />
     <Compile Include="Msg\CommandElementDefinition.cs" />
-    <Compile Include="Msg\ParameterType.cs" />
     <Compile Include="Plugins\GameLoader.cs" />
     <Compile Include="IO\ScriptTextBoxPatcher.cs" />
     <Compile Include="Text\ConservativeStreamReader.cs" />

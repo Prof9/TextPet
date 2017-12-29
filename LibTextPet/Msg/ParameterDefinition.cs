@@ -7,7 +7,7 @@ namespace LibTextPet.Msg {
 	/// <summary>
 	/// A definition of a script command parameter.
 	/// </summary>
-	public sealed class ParameterDefinition : IDefinition, ICloneable, INameable {
+	public sealed class ParameterDefinition : IDefinition, INameable, ICloneable {
 		/// <summary>
 		/// Gets the name of the command parameter.
 		/// </summary>
@@ -29,18 +29,13 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		public int Bits { get; private set; }
 		/// <summary>
+		/// Gets the number that is added to the value of this command parameter.
+		/// </summary>
+		public long Add { get; private set; }
+		/// <summary>
 		/// Gets a boolean that indicates whether the command parameter is a jump target.
 		/// </summary>
 		public bool IsJump { get; private set; }
-
-		/// <summary>
-		/// Gets the base extension value for the command parameter.
-		/// </summary>
-		public long ExtensionBase { get; private set; }
-		/// <summary>
-		/// Gets the data group for the command parameter.
-		/// </summary>
-		public int DataGroup { get; private set; }
 
 		/// <summary>
 		/// Gets the name of this parameter's value encoding.
@@ -64,10 +59,11 @@ namespace LibTextPet.Msg {
 		/// <param name="offset">The byte offset of the command parameter from the start of the command.</param>
 		/// <param name="shift">The bit sub-offset of the command parameter from the start of the parameter.</param>
 		/// <param name="bits">The size of the command parameter in bits.</param>
+		/// <param name="add">The value to add to the value of the command parameter.</param>
 		/// <param name="isJump">A boolean that indicates whether the command parameter is a jump target.</param>
 		/// <param name="extBase">The extension base value of the command parameter.</param>
 		public ParameterDefinition(string name, string description, int offset,
-			int shift, int bits, bool isJump, long extBase, int dataGroup, string valueEncoding) {
+			int shift, int bits, long add, bool isJump, string valueEncoding) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (name.Length <= 0)
@@ -78,17 +74,14 @@ namespace LibTextPet.Msg {
 				throw new ArgumentOutOfRangeException(nameof(shift), shift, "The bit sub-offset cannot be less than 0.");
 			if (bits < 1)
 				throw new ArgumentOutOfRangeException(nameof(bits), bits, "The bit count cannot be less than 1.");
-			if (dataGroup < 0)
-				throw new ArgumentOutOfRangeException(nameof(dataGroup), dataGroup, "The data group number cannot be less than 0.");
 
 			this.Name = name;
 			this.Description = description ?? "";
 			this.Offset = offset;
 			this.Shift = shift;
 			this.Bits = bits;
+			this.Add = add;
 			this.IsJump = isJump;
-			this.ExtensionBase = extBase;
-			this.DataGroup = dataGroup;
 			this.ValueEncodingName = valueEncoding;
 			this.ValueEncoding = null;
 		}
@@ -140,17 +133,6 @@ namespace LibTextPet.Msg {
 			return result;
 		}
 
-		/// <summary>
-		/// Constructs a new script command parameter definition that is identical to the given parameter definition.
-		/// </summary>
-		/// <param name="definition">The parameter definition to base the new parameter definition off of.</param>
-		public ParameterDefinition(ParameterDefinition definition)
-			: this(PassThroughNonNull(definition).Name, PassThroughNonNull(definition).Description, PassThroughNonNull(definition).Offset,
-			PassThroughNonNull(definition).Shift, PassThroughNonNull(definition).Bits, PassThroughNonNull(definition).IsJump,
-			definition.ExtensionBase, definition.DataGroup, definition.ValueEncodingName) {
-			this.ValueEncoding = definition.ValueEncoding;
-			this.JumpContinueValues = definition.JumpContinueValues;
-		}
 		private static ParameterDefinition PassThroughNonNull(ParameterDefinition definition) {
 			if (definition == null)
 				throw new ArgumentNullException(nameof(definition), "The parameter definition cannot be null.");
@@ -162,7 +144,7 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		public long Minimum {
 			get {
-				return this.ExtensionBase;
+				return this.Add;
 			}
 		}
 
@@ -172,7 +154,7 @@ namespace LibTextPet.Msg {
 		public long Maximum {
 			get {
 				// 1 needs to be a long here, otherwise this breaks if this.Bits >= 32.
-				return this.ExtensionBase + ((long)1 << this.Bits) - 1;
+				return this.Add + ((long)1 << this.Bits) - 1;
 			}
 		}
 
@@ -195,17 +177,6 @@ namespace LibTextPet.Msg {
 		/// <returns>true if the value is in range; otherwise, false.</returns>
 		public bool InRange(long value) {
 			return value >= this.Minimum && value <= this.Maximum;
-		}
-
-		/// <summary>
-		/// Extends this parameter definition with the given extension base value.
-		/// </summary>
-		/// <param name="extensionBase">The base value to extend by.</param>
-		/// <returns>A new parameter definition that is an extension of this parameter definition.</returns>
-		public ParameterDefinition Extend(int extensionBase) {
-			ParameterDefinition extension = new ParameterDefinition(this);
-			extension.ExtensionBase = extensionBase;
-			return extension;
 		}
 
 		/// <summary>
@@ -297,17 +268,22 @@ namespace LibTextPet.Msg {
 		}
 
 		/// <summary>
-		/// Creates a new parameter definition that is a copy of the current instance.
+		/// Creates a new parameter definition that is a deep clone of the current instance.
 		/// </summary>
-		/// <returns>A new parameter definition that is a copy of this instance.</returns>
+		/// <returns>A new parameter definition that is a deep clone of this instance.</returns>
 		public ParameterDefinition Clone() {
-			return new ParameterDefinition(this);
+			return new ParameterDefinition(
+				String.Copy(this.Name), String.Copy(this.Description),
+				this.Offset, this.Shift, this.Bits,
+				this.Add, this.IsJump,
+				String.Copy(this.ValueEncodingName)
+			);
 		}
 
 		/// <summary>
-		/// Creates a new object that is a copy of the current instance.
+		/// Creates a new object that is a deep clone of the current instance.
 		/// </summary>
-		/// <returns>A new object that is a copy of this instance.</returns>
+		/// <returns>A new object that is a deep clone of this instance.</returns>
 		object ICloneable.Clone() {
 			return this.Clone();
 		}
