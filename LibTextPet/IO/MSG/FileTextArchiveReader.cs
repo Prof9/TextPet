@@ -320,19 +320,11 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="taSize">The text archive size.</param>
 		/// <returns>true if the command contains an out-of-range jump; otherwise, false.</returns>
 		private static bool CommandContainsOutOfRangeJump(Command cmd, int taSize) {
-			foreach (Parameter par in cmd.Parameters) {
+			foreach (Parameter par in cmd.FlattenParameters()) {
 				if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= taSize) {
 					return true;
 				}
 			}
-			foreach (IEnumerable<Parameter> dataEntry in cmd.Data) {
-				foreach (Parameter par in dataEntry) {
-					if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= taSize) {
-						return true;
-					}
-				}
-			}
-
 			return false;
 		}
 	}

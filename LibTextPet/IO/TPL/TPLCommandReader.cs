@@ -80,7 +80,7 @@ namespace LibTextPet.IO.TPL {
 					} else {
 						// Check if the parameter name exists.
 						// Are we reading regular parameters or data parameters?
-						ReadOnlyNamedCollection<ParameterDefinition> defs = readingDataParameters ? obj.Definition.DataParameters : obj.Definition.Parameters;
+						ReadOnlyNamedCollection<ParameterDefinition> defs = readingDataParameters ? obj.Definition.DataParameters : obj.Definition.Elements;
 						if (!defs.Contains(token.Value)) {
 							// Unrecognized parameter; treat as if the command ended.
 							// TODO: validate command.
@@ -123,7 +123,7 @@ namespace LibTextPet.IO.TPL {
 
 								// TODO: Validate current data entry for strict mode.
 								// Add a new data entry.
-								obj.Data.Add(obj.Data.CreateDefaultEntry());
+								obj.Data.Add(obj.Data.CreateDataEntry());
 								return ProcessResult.ConsumeAndContinue;
 							} else {
 								// I don't know what this is.
@@ -142,7 +142,7 @@ namespace LibTextPet.IO.TPL {
 							}
 
 							// Begin a new data entry.
-							obj.Data.Add(obj.Data.CreateDefaultEntry());
+							obj.Data.Add(obj.Data.CreateDataEntry());
 
 							return ProcessResult.ConsumeAndContinue;
 						case "]":

@@ -12,27 +12,22 @@ namespace LibTextPet.Msg {
 		/// Gets the name of the command parameter.
 		/// </summary>
 		public string Name { get; private set; }
-
 		/// <summary>
 		/// Gets a description of the command parameter.
 		/// </summary>
 		public string Description { get; private set; }
-
 		/// <summary>
 		/// Gets the byte offset of the command parameter from the start of the command.
 		/// </summary>
 		public int Offset { get; private set; }
-
 		/// <summary>
 		/// Gets the bit sub-offset of the command parameter from the start of the parameter.
 		/// </summary>
 		public int Shift { get; private set; }
-
 		/// <summary>
 		/// Gets the size of the command parameter in bits.
 		/// </summary>
 		public int Bits { get; private set; }
-
 		/// <summary>
 		/// Gets a boolean that indicates whether the command parameter is a jump target.
 		/// </summary>
@@ -42,7 +37,6 @@ namespace LibTextPet.Msg {
 		/// Gets the base extension value for the command parameter.
 		/// </summary>
 		public long ExtensionBase { get; private set; }
-
 		/// <summary>
 		/// Gets the data group for the command parameter.
 		/// </summary>
@@ -52,7 +46,6 @@ namespace LibTextPet.Msg {
 		/// Gets the name of this parameter's value encoding.
 		/// </summary>
 		public string ValueEncodingName { get; private set; }
-
 		/// <summary>
 		/// Gets or sets this parameter's value encoding.
 		/// </summary>

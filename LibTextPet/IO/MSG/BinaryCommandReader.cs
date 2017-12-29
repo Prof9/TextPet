@@ -119,22 +119,22 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			// Read parameters.
-			foreach (ParameterDefinition parDef in definition.Parameters) {
+			foreach (ParameterDefinition parDef in definition.Elements) {
 				long value = ReadParameterValueFromBytes(bytes, parDef, 0);
 
 				// If the parameter value is not in range, the command is invalid.
-				if (!cmd.Parameters[parDef.Name].InRange(value)) {
+				if (!cmd.Elements[parDef.Name].InRange(value)) {
 					return null;
 				}
 
-				cmd.Parameters[parDef.Name].SetInt64(value);
+				cmd.Elements[parDef.Name].SetInt64(value);
 			}
 
 			// Read data parameters.
 			if (definition.HasData) {
 				// Create empty data entries.
 				for (int i = 0; i < length; i++) {
-					cmd.Data.Add(cmd.Data.CreateDefaultEntry());
+					cmd.Data.Add(cmd.Data.CreateDataEntry());
 				}
 				
 				// Calculate the offsets for the data groups.

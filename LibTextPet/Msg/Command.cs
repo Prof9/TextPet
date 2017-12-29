@@ -21,77 +21,38 @@ namespace LibTextPet.Msg {
 		public string Name => this.Definition.Name;
 
 		/// <summary>
-		/// Gets a description of this script command.
-		/// </summary>
-		public string Description => this.Definition.Description;
-
-		/// <summary>
-		/// Gets a boolean that indicates whether this script command contains data parameters.
-		/// </summary>
-		public bool HasData => this.Definition.HasData;
-
-		/// <summary>
 		/// Gets a boolean that indicates whether this script command ends script execution.
 		/// </summary>
 		public bool EndsScript {
 			get {
 				switch (this.Definition.EndType) {
-					case EndType.Always:
-						return true;
-					case EndType.Never:
-						return false;
-					case EndType.Default:
-					default:
-						// Create a list of every parameter in this command.
-						List<Parameter> pars = new List<Parameter>();
-						// Add regular parameters.
-						pars.AddRange(this.Parameters);
-						// Add data parameters.
-						foreach (ReadOnlyNamedCollection<Parameter> entry in this.Data) {
-							pars.AddRange(entry);
-						}
-
-						// Check all parameters for jump parameters.
-						int jumpPars = 0, extJumps = 0;
-						foreach (Parameter par in pars) {
-							if (par.IsJump) {
-								jumpPars++;
-								if (!par.Definition.JumpContinueValues.Contains(par.ToInt64())) {
-									extJumps++;
-								}
+				case EndType.Always:
+					return true;
+				case EndType.Never:
+					return false;
+				case EndType.Default:
+				default:
+					int jumpPars = 0;
+					int extJumps = 0;
+					foreach (Parameter par in this.FlattenParameters()) {
+						if (par.Definition.IsJump) {
+							jumpPars++;
+							if (!par.JumpContinuesScript) {
+								extJumps++;
 							}
 						}
+					}
 
-						// End script execution if the command has jump parameters that all target external scripts.
-						return jumpPars > 0 && jumpPars == extJumps;
+					// End script execution if the command has jump parameters that all target external scripts.
+					return jumpPars > 0 && jumpPars == extJumps;
 				}
-			}
-		}
-
-		/// <summary>
-		/// Gets the length of this script command, and all parameters, in bytes.
-		/// </summary>
-		public long ByteLength {
-			get {
-				return this.Definition.MinimumLength
-					+ this.Data.Count * this.Definition.TotalDataEntryLength;
 			}
 		}
 
 		/// <summary>
 		/// Gets the parameters of this script command.
 		/// </summary>
-		public ReadOnlyNamedCollection<Parameter> Parameters { get; private set; }
-
-		private readonly DataEntryCollection data;
-		/// <summary>
-		/// Gets the data parameters of this script command.
-		/// </summary>
-		public DataEntryCollection Data {
-			get {				
-				return this.data;
-			}
-		}
+		public ReadOnlyNamedCollection<CommandElement> Elements { get; private set; }
 
 		/// <summary>
 		/// Constructs a script command from the given definition.
@@ -102,48 +63,31 @@ namespace LibTextPet.Msg {
 				throw new ArgumentNullException(nameof(definition), "The command definition cannot be null.");
 
 			this.Definition = definition;
-			
-			// Create all empty parameters.
-			List<Parameter> pars = new List<Parameter>(definition.Parameters.Count);
-			foreach (ParameterDefinition par in definition.Parameters) {
-				pars.Add(new Parameter(par));
-			}
-			this.Parameters = new ReadOnlyNamedCollection<Parameter>(pars);
 
-			// Create length parameter and data parameter array.
-			if (definition.HasData) {
-				this.data = new DataEntryCollection(definition.DataParameters);
-			} else {
-				this.data = new DataEntryCollection(true);
+			List<CommandElement> elems = new List<CommandElement>(definition.Elements.Count);
+			foreach (CommandElementDefinition elemDef in definition.Elements) {
+				elems.Add(new CommandElement(elemDef));
 			}
+			this.Elements = new ReadOnlyNamedCollection<CommandElement>(elems);
 		}
 
 		/// <summary>
-		/// Calculates the offsets, in bytes, for each data group in the data parameters.
+		/// Gets a one-dimensional list of all (sub-)parameters in this script command.
 		/// </summary>
-		/// <returns>The offsets per data group.</returns>
-		public ReadOnlyCollection<int> CalculateDataGroupOffsets() {
-			int[] dataGroupOffsets = new int[this.Definition.DataEntryLengths.Count];
-
-			int offset = 0;
-			for (int i = 0; i < dataGroupOffsets.Length; i++) {
-				dataGroupOffsets[i] = offset;
-				// Calculate the next offset.
-				offset += this.Definition.DataEntryLengths[i] * this.Data.Count;
+		/// <returns>The list of parameters.</returns>
+		public IEnumerable<Parameter> FlattenParameters() {
+			foreach (CommandElement elem in this.Elements) {
+				foreach (Parameter par in elem.FlattenParameters()) {
+					yield return par;
+				}
 			}
-
-			return new ReadOnlyCollection<int>(dataGroupOffsets);
 		}
 
 		public override string ToString() => this.Name;
 
 		public override bool Equals(object obj) {
-			if (obj == null || GetType() != obj.GetType())
-				return false;
-
-			Command cmd = (Command)obj;
-
-			return this.Equals(cmd);
+			return obj is Command cmd
+				&& this.Equals(cmd);
 		}
 
 		public bool Equals(IScriptElement other) {
@@ -152,25 +96,13 @@ namespace LibTextPet.Msg {
 				return false;
 			}
 
-			// This is a reference check, but should be fine as all command definitions must be unique.
 			if (this.Definition != otherCmd.Definition) {
 				return false;
 			}
 
-			// Check normal parameter;
-			if (!Enumerable.SequenceEqual(this.Parameters, otherCmd.Parameters)) {
+			// Check command elements;
+			if (!Enumerable.SequenceEqual(this.Elements, otherCmd.Elements)) {
 				return false;
-			}
-
-			if (this.Data.Count != otherCmd.Data.Count) {
-				return false;
-			}
-
-			// Check data parameters.
-			for (int i = 0; i < this.Data.Count; i++) {
-				if (!Enumerable.SequenceEqual(this.Data[i], otherCmd.Data[i])) {
-					return false;
-				}
 			}
 
 			// Definition and parameter values match.
@@ -180,14 +112,9 @@ namespace LibTextPet.Msg {
 		public override int GetHashCode() {
 			int hash = this.Definition.GetHashCode();
 
-			foreach (Parameter par in this.Parameters) {
+			// Really shoddy hash.
+			foreach (Parameter par in this.FlattenParameters()) {
 				hash ^= par.GetHashCode();
-			}
-
-			foreach (IEnumerable<Parameter> dataEntry in this.Data) {
-				foreach (Parameter dataPar in dataEntry) {
-					hash ^= dataPar.GetHashCode();
-				}
 			}
 
 			return hash;

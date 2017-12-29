@@ -14,56 +14,48 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the definition of this command parameter.
 		/// </summary>
-		public ParameterDefinition Definition { get; private set; }
+		public ParameterDefinition Definition { get; }
 
+		/// <summary>
+		/// Gets the name of this parameter.
+		/// </summary>
+		public string Name => this.Definition.Name;
+
+
+		/// <summary>
+		/// Gets a boolean that indicates whether this parameter is a jump target.
+		/// </summary>
+		public bool IsJump
+			=> this.Definition.IsJump;
+
+		/// <summary>
+		/// Gets a boolean that indicates whether this parameter continues the current script, if selected as jump target.
+		/// </summary>
+		public bool JumpContinuesScript
+			=> this.Definition.JumpContinueValues.Contains(this.ToInt64());
+
+
+		private byte[] rawBytes;
 		private readonly byte[] conversionBuffer;
-		private readonly byte[] rawBytes;
 
 		/// <summary>
 		/// Gets this command parameter's value as a byte array.
 		/// </summary>
 		public IEnumerable<byte> Bytes {
 			get {
-				return new List<byte>(this.rawBytes);
+				foreach (byte b in this.rawBytes) {
+					yield return b;
+				}
 			}
-			protected set {
-				if (value == null)
-					throw new ArgumentNullException(nameof(value), "The byte array cannot be null.");
-
+			set {
 				byte[] newBytes = value.ToArray();
 
-				if (newBytes.Length != this.rawBytes.Length)
-					throw new ArgumentException("The length of the given byte array does not equal the length of this command parameter's raw byte array.", nameof(value));
+				if (this.rawBytes.Length != newBytes.Length) {
+					this.rawBytes = new byte[newBytes.Length];
+				}
 
-				Array.Copy(newBytes, this.rawBytes, this.rawBytes.Length);
-				Array.Copy(newBytes, this.conversionBuffer, Math.Min(this.rawBytes.Length, this.conversionBuffer.Length));
-			}
-		}
-
-		/// <summary>
-		/// Gets the name of this command parameter.
-		/// </summary>
-		public string Name {
-			get {
-				return this.Definition.Name;
-			}
-		}
-
-		/// <summary>
-		/// Gets a description of this command parameter.
-		/// </summary>
-		public string Description {
-			get {
-				return this.Definition.Description;
-			}
-		}
-
-		/// <summary>
-		/// Gets a boolean that indicates whether this command parameter is a jump target.
-		/// </summary>
-		public bool IsJump {
-			get {
-				return this.Definition.IsJump;
+				Array.Copy(newBytes, this.rawBytes, newBytes.Length);
+				Array.Copy(newBytes, this.conversionBuffer, Math.Min(newBytes.Length, this.conversionBuffer.Length));
 			}
 		}
 
@@ -96,6 +88,7 @@ namespace LibTextPet.Msg {
 				throw new ArgumentNullException(nameof(parameter), "The command parameter cannot be null.");
 			return parameter;
 		}
+
 
 		/// <summary>
 		/// Reads the new value for this command parameter from the given byte sequence.
@@ -187,18 +180,6 @@ namespace LibTextPet.Msg {
 		}
 
 		/// <summary>
-		/// Copies the given bytes to this command parameter's raw bytes.
-		/// </summary>
-		/// <param name="sequence">The byte sequence to copy.</param>
-		protected void SetBytes(byte[] sequence) {
-			if (sequence == null)
-				throw new ArgumentNullException(nameof(sequence), "The byte sequence cannot be null.");
-
-			Array.Resize(ref sequence, this.rawBytes.Length);
-			this.Bytes = sequence;
-		}
-
-		/// <summary>
 		/// Checks whether the given value is within the range allowed by this command parameter.
 		/// </summary>
 		/// <param name="value">The value to check.</param>
@@ -243,13 +224,9 @@ namespace LibTextPet.Msg {
 			// Parse string.
 			long result = this.Definition.ParseString(value);
 
-			if (!InRange(result))
-				throw new ArgumentOutOfRangeException("Value " + result + " is out of range.");
-
-			SetBytes(BitConverter.GetBytes(result - this.Definition.ExtensionBase));
+			this.Bytes = BitConverter.GetBytes(result - this.Definition.ExtensionBase);
 		}
 
-		
 
 		/// <summary>
 		/// Converts this command parameter to a boolean representation.
@@ -271,11 +248,7 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <param name="value">The new value for this command parameter.</param>
 		public void SetBoolean(bool value) {
-			if (value) {
-				SetBytes(new byte[] { 0x01 });
-			} else {
-				SetBytes(new byte[] { 0x00 });
-			}
+			this.Bytes = new byte[] { (byte)(value ? 1 : 0) };
 		}
 
 		/// <summary>
@@ -291,10 +264,7 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <param name="v">The new value for this command parameter.</param>
 		public void SetInt64(long value) {
-			if (!InRange(value))
-				throw new ArgumentOutOfRangeException("Value " + value + " is out of range.");
-
-			SetBytes(BitConverter.GetBytes(value - this.Definition.ExtensionBase));
+			this.Bytes = BitConverter.GetBytes(value - this.Definition.ExtensionBase);
 		}
 
 		/// <summary>
@@ -311,12 +281,8 @@ namespace LibTextPet.Msg {
 		/// <param name="obj">Another object to compare to.</param>
 		/// <returns>true if obj and this instance are the same type and represent the same value; otherwise, false.</returns>
 		public override bool Equals(object obj) {
-			if (obj == null || GetType() != obj.GetType())
-				return false;
-
-			Parameter par = (Parameter)obj;
-
-			return this.Equals(par);
+			return obj is Parameter par
+				&& this.Equals(par);
 		}
 
 		/// <summary>
@@ -328,7 +294,6 @@ namespace LibTextPet.Msg {
 			if (other == null) {
 				return false;
 			}
-
 			return ByteSequenceEqualityComparer.Instance.Equals(this.Bytes, other.Bytes);
 		}
 

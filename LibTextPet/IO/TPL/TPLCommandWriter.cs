@@ -36,7 +36,7 @@ namespace LibTextPet.IO.TPL {
 			builder.AppendFormat("{0}{1}{2}", indent, obj.Name, newLine);
 
 			// Write the parameters.
-			foreach (Parameter par in obj.Parameters) {
+			foreach (Parameter par in obj.Elements) {
 				builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = {2}{3}", indent, par.Name, par.ToString(), newLine);
 			}
 

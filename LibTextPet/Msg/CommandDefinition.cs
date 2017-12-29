@@ -66,46 +66,12 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the definitions of the parameters of the script command.
 		/// </summary>
-		public ReadOnlyNamedCollection<ParameterDefinition> Parameters { get; }
-
-		/// <summary>
-		/// Gets the total length in bytes of a single data entry across all data groups.
-		/// </summary>
-		public long TotalDataEntryLength { get; }
-
-		/// <summary>
-		/// Gets the value offset for the amount of data entries as dictated by the script command's length parameter.
-		/// </summary>
-		public long DataCountOffset { get; }
+		public ReadOnlyNamedCollection<CommandElementDefinition> Elements { get; }
 
 		/// <summary>
 		/// Gets the number of bytes this command should rewind after being read.
 		/// </summary>
 		public long RewindCount { get; }
-
-		/// <summary>
-		/// Gets the definition of the data length parameter of the script command.
-		/// </summary>
-		public ParameterDefinition LengthParameter { get; }
-
-		/// <summary>
-		/// Gets the definition of the data parameter of the script command.
-		/// </summary>
-		public ReadOnlyNamedCollection<ParameterDefinition> DataParameters { get; }
-
-		/// <summary>
-		/// Gets the lengths of a single data entry for each data group.
-		/// </summary>
-		public ReadOnlyCollection<int> DataEntryLengths { get; }
-
-		/// <summary>
-		/// Gets a boolean that indicates whether this script command contains data parameters.
-		/// </summary>
-		public bool HasData {
-			get {
-				return this.LengthParameter != null;
-			}
-		}
 
 		/// <summary>
 		/// Constructs a script command definition with the given name, description, base, mask and parameter definitions.
@@ -124,8 +90,7 @@ namespace LibTextPet.Msg {
 		/// <param name="lengthPar">The parameter definition of the data length, or null.</param>
 		/// <param name="dataPars">The parameter definitions of the data parameters, or null.</param>
 		public CommandDefinition(string name, string description, byte[] baseSequence, byte[] mask, EndType endType, bool prints, string mugshotName,
-			long dataCountOffset, long priorityLength, long rewind, IEnumerable<ParameterDefinition> pars, ParameterDefinition lengthPar,
-			IEnumerable<ParameterDefinition> dataPars) {
+			long priorityLength, long rewind, IEnumerable<CommandElementDefinition> elems) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (name.Length <= 0)
@@ -140,46 +105,6 @@ namespace LibTextPet.Msg {
 				throw new ArgumentException("The mask must be the same length as the base.", nameof(mask));
 			if (priorityLength < 0)
 				throw new ArgumentOutOfRangeException(nameof(priorityLength), priorityLength, "The priority length cannot be negative.");
-			if (dataPars != null && dataPars.Any() && lengthPar == null)
-				throw new ArgumentNullException(nameof(lengthPar), "Length parameter missing.");
-
-			// Sort the data parameters into their respective data groups.
-			List<List<ParameterDefinition>> dataGroups = new List<List<ParameterDefinition>>();
-			if (dataPars != null) {
-				foreach (ParameterDefinition dataPar in dataPars) {
-					// Create the data group, if it does not exist yet.
-					while (dataGroups.Count < dataPar.DataGroup + 1) {
-						dataGroups.Add(new List<ParameterDefinition>());
-					}
-
-					// Add it to the proper data group.
-					dataGroups[dataPar.DataGroup].Add(dataPar);
-				}
-			}
-
-			// Calculate the data entry lengths and offsets.
-			int totalDataEntryLength = 0;
-			int[] dataGroupLengths = new int[dataGroups.Count];
-			for (int i = 0; i < dataGroups.Count; i++) {
-				// Is the group empty?
-				if (dataGroups[i].Count < 1) {
-					throw new ArgumentException("Data group " + i + " does not contain any data parameters.");
-				}
-
-				// Calculate how many bytes this data entry takes up.
-				int bytesNeeded = 0;
-				foreach (ParameterDefinition dataPar in dataGroups[i]) {
-					if (dataPar.MinimumByteCount > bytesNeeded) {
-						bytesNeeded = dataPar.MinimumByteCount;
-					}
-				}
-
-				// Set the length for this data group.
-				dataGroupLengths[i] = bytesNeeded;
-
-				// Increment the total data entry length.
-				totalDataEntryLength += bytesNeeded;
-			}
 
 			this.Name = name;
 			this.Description = description ?? "";
@@ -187,14 +112,9 @@ namespace LibTextPet.Msg {
 			this.Mask = new ReadOnlyCollection<byte>(mask);
 			this.EndType = endType;
 			this.Prints = prints;
-			this.TotalDataEntryLength = totalDataEntryLength;
-			this.DataCountOffset = dataCountOffset;
 			this.RewindCount = rewind;
 			this.PriorityLength = priorityLength;
-			this.Parameters = new ReadOnlyNamedCollection<ParameterDefinition>(pars ?? new ParameterDefinition[0]);
-			this.LengthParameter = lengthPar;
-			this.DataParameters = new ReadOnlyNamedCollection<ParameterDefinition>(dataPars ?? new ParameterDefinition[0]);
-			this.DataEntryLengths = new ReadOnlyCollection<int>(dataGroupLengths);
+			this.Elements = new ReadOnlyNamedCollection<CommandElementDefinition>(elems ?? new CommandElementDefinition[0]);
 
 			// Set the mugshot parameter name.
 			SetMugshotName(mugshotName);
@@ -210,10 +130,15 @@ namespace LibTextPet.Msg {
 			} else {
 				// Check that the mugshot parameter exists.
 				bool found = false;
-				foreach (ParameterDefinition par in this.Parameters) {
-					if (par.Name == mugshotName) {
-						found = true;
-						break;
+				foreach (CommandElementDefinition elem in this.Elements) {
+					if (elem.HasMultipleDataEntries) {
+						continue;
+					}
+					foreach (ParameterDefinition par in elem.DataParameterDefinitions) {
+						if (par.Name == mugshotName) {
+							found = true;
+							break;
+						}
 					}
 				}
 				if (!found) {
@@ -230,24 +155,13 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <returns>A new script command definition that is a copy of this instance.</returns>
 		public CommandDefinition Clone() {
-			ParameterDefinition[] pars = new ParameterDefinition[this.Parameters.Count];
-			for (int i = 0; i < pars.Length; i++) {
-				pars[i] = (ParameterDefinition)this.Parameters[i].Clone();
-			}
-
-			ParameterDefinition lengthPar = null;
-			ParameterDefinition[] dataPars = null;
-			if (this.HasData) {
-				lengthPar = new ParameterDefinition(this.LengthParameter);
-				dataPars = new ParameterDefinition[this.DataParameters.Count];
-				for (int i = 0; i < dataPars.Length; i++) {
-					dataPars[i] = this.DataParameters[i].Clone();
-				}
+			CommandElementDefinition[] elems = new CommandElementDefinition[this.Elements.Count];
+			for (int i = 0; i < elems.Length; i++) {
+				elems[i] = (CommandElementDefinition)this.Elements[i].Clone();
 			}
 			
 			return new CommandDefinition(this.Name, this.Description, this.Base.ToArray(), this.Mask.ToArray(),
-				this.EndType, this.Prints, this.MugshotParameterName, this.DataCountOffset, this.PriorityLength, this.RewindCount,
-				pars, lengthPar, dataPars);
+				this.EndType, this.Prints, this.MugshotParameterName, this.PriorityLength, this.RewindCount, elems);
 		}
 
 		/// <summary>

@@ -104,8 +104,11 @@
     <Compile Include="IO\TPL\IndentedWriter.cs" />
     <Compile Include="IO\TPL\TPLCommandWriter.cs" />
     <Compile Include="IO\TPL\TPLScriptWriter.cs" />
+    <Compile Include="Msg\CommandElement.cs" />
     <Compile Include="Msg\DirectiveElement.cs" />
     <Compile Include="Msg\DirectiveType.cs" />
+    <Compile Include="Msg\CommandElementDefinition.cs" />
+    <Compile Include="Msg\ParameterType.cs" />
     <Compile Include="Plugins\GameLoader.cs" />
     <Compile Include="IO\ScriptTextBoxPatcher.cs" />
     <Compile Include="Text\ConservativeStreamReader.cs" />
@@ -121,7 +124,6 @@
     <Compile Include="IO\Msg\BinaryTextArchiveReader.cs" />
     <Compile Include="Msg\ByteElement.cs" />
     <Compile Include="Msg\CommandDatabase.cs" />
-    <Compile Include="Msg\DataEntryCollection.cs" />
     <Compile Include="Msg\EndType.cs" />
     <Compile Include="General\ByteSequenceEqualityComparer.cs" />
     <Compile Include="Msg\CommandDefinition.cs" />

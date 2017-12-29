@@ -158,7 +158,7 @@ namespace LibTextPet.Plugins {
 				dadd = super.DataCountOffset;
 				
 				// Clone all parameter definitions.
-				pars = CloneParameters(super.Parameters);
+				pars = CloneParameters(super.Elements);
 				dataPars = CloneParameters(super.DataParameters);
 				if (super.LengthParameter != null) {
 					lengthPar = new ParameterDefinition(super.LengthParameter);

@@ -256,222 +256,92 @@ namespace LibTextPet.Msg {
 		}
 
 		/// <summary>
-		/// Sets the parameter with the given name in the given script command to the given value. If necessary, the command is replaced by an extension command that supports the new range.
-		/// </summary>
-		/// <param name="cmd">The script command to modify a parameter of.</param>
-		/// <param name="parName">The name of the parameter to modify.</param>
-		/// <param name="value">The value to set the parameter to.</param>
-		/// <param name="dataEntry">The index of the data entry to set.</param>
-		/// <returns>The modified command.</returns>
-		public Command SetParameter(Command cmd, string parName, string value) {
-			return SetParameter(cmd, parName, value, false, 0);
-		}
-
-		/// <summary>
-		/// Sets the data parameter with the given name in the given script command to the given value. If necessary, the command is replaced by an extension command that supports the new range.
-		/// </summary>
-		/// <param name="cmd">The script command to modify a data parameter of.</param>
-		/// <param name="parName">The name of the data parameter to modify.</param>
-		/// <param name="value">The value to set the data parameter to.</param>
-		/// <param name="dataEntry">The index of the data entry to set.</param>
-		/// <returns>The modified command.</returns>
-		public Command SetParameter(Command cmd, string parName, string value, int dataEntry) {
-			return SetParameter(cmd, parName, value, true, dataEntry);
-		}
-
-		/// <summary>
-		/// Sets the parameter with the given name in the given script command to the given value. If necessary, the command is replaced by an extension command that supports the new range.
-		/// </summary>
-		/// <param name="cmd">The script command to modify a parameter of.</param>
-		/// <param name="parName">The name of the parameter to modify.</param>
-		/// <param name="value">The value to set the parameter to.</param>
-		/// <param name="isDataPar">Whether the parameter is a data parameter or a regular parameter.</param>
-		/// <param name="dataEntry">The index of the data entry to set.</param>
-		/// <returns>The modified command.</returns>
-		private Command SetParameter(Command cmd, string parName, string value, bool isDataPar, int dataEntry) {
-			if (cmd == null)
-				throw new ArgumentNullException(nameof(cmd), "The script command cannot be null.");
-			if (parName == null)
-				throw new ArgumentNullException(nameof(parName), "The parameter name cannot be null.");
-			if (String.IsNullOrWhiteSpace(parName))
-				throw new ArgumentException("The parameter name cannot be empty.", nameof(parName));
-			if (isDataPar && (dataEntry < 0 || dataEntry >= cmd.Data.Count))
-				throw new ArgumentOutOfRangeException(nameof(dataEntry), dataEntry, "The data entry index falls outside the range of the script command's current collection of data entries.");
-			if (!isDataPar && !cmd.Definition.Parameters.Contains(parName))
-				throw new ArgumentException("The command does not contain a parameter named \"" + parName + "\".", nameof(parName));
-			if (isDataPar && !cmd.Definition.DataParameters.Contains(parName))
-				throw new ArgumentException("The command does not contain a data parameter named \"" + parName + "\".", nameof(parName));
-
-			// Get the parameter definition.
-			Parameter currentPar;
-			if (isDataPar) {
-				currentPar = cmd.Data[dataEntry][parName];
-			} else {
-				currentPar = cmd.Parameters[parName];
-			}
-
-			long parsed = currentPar.Definition.ParseString(value);
-			if (currentPar.InRange(parsed)) {
-				// Set the parameter normally.
-				currentPar.SetInt64(parsed);
-
-				// Return the modified original command.
-				return cmd;
-			} else {
-				// Find parameters where the value falls within range.
-				IEnumerable<CommandDefinition> cmdDefs = this.FindParameterRange(cmd.Name, parName, isDataPar, parsed);
-
-				foreach (CommandDefinition extDef in cmdDefs) {
-					// Check if command is suitable.
-					if (!IsSuitable(cmd, extDef, parName)) {
-						continue;
-					}
-
-					// Create augmented command.
-					return AugmentCommand(cmd, extDef, parName, parsed, isDataPar, dataEntry);
-				}
-
-				throw new ArgumentOutOfRangeException(nameof(value), value, "Could not find any suitable command extension where the value falls within range.");
-			}
-		}
-
-		/// <summary>
-		/// Creates a new script command augmented from the specified command, with the specified parameter set.
+		/// Creates a new script command augmented from the specified command with the new specified command definition.
 		/// </summary>
 		/// <param name="cmd">The script command to augment.</param>
-		/// <param name="extDef">The command definition of the augmented command.</param>
-		/// <param name="parName">The name of the parameter to set.</param>
-		/// <param name="value">The new value to set the parameter to.</param>
-		/// <param name="isDataPar">Whether the parameter to set is a data parameter.</param>
-		/// <param name="dataEntry">The index of the data entry to set the parameter of. If the parameter is not a data parameter, this method parameter is ignored.</param>
+		/// <param name="extDef">The new definition for the command.</param>
 		/// <returns>The augmented command.</returns>
-		private static Command AugmentCommand(Command cmd, CommandDefinition extDef, string parName, long value, bool isDataPar, int dataEntry) {
+		private static Command AugmentCommand(Command cmd, CommandDefinition newDef) {
 			// Create a new command.
-			Command ext = new Command(extDef);
+			Command newCmd = new Command(newDef);
 
-			// Copy over the parameters.
-			foreach (Parameter par in cmd.Parameters) {
-				// Skip the parameter to be modified.
-				if (!isDataPar && StringComparer.OrdinalIgnoreCase.Equals(par.Name, parName)) {
-					continue;
-				}
+			// Copy over the elements.
+			foreach (CommandElement elem in cmd.Elements) {
+				CommandElement newElem = newCmd.Elements[elem.Name];
 
-				ext.Parameters[par.Name].SetInt64(par.ToInt64());
-			}
-			// Copy over the data parameters.
-			for (int i = 0; i < cmd.Data.Count; i++) {
-				ext.Data.Add(ext.Data.CreateDefaultEntry());
+				// Add the data entries.
+				for (int i = 0; i < elem.Count; i++) {
+					ReadOnlyNamedCollection<Parameter> dataEntry = newElem.CreateDataEntry();
 
-				foreach (Parameter par in cmd.Data[i]) {
-					// Skip the data parameter to be modified.
-					if (isDataPar && dataEntry == i && StringComparer.OrdinalIgnoreCase.Equals(par.Name, parName)) {
-						continue;
+					// Copy over the parameters.
+					foreach (Parameter par in elem[i]) {
+						dataEntry[par.Name].Bytes = par.Bytes;
 					}
 
-					ext.Data[i][par.Name].SetInt64(par.ToInt64());
+					newElem.Add(dataEntry);
 				}
 			}
 
-			// Set the new parameter.
-			if (isDataPar) {
-				ext.Data[dataEntry][parName].SetInt64(value);
-			} else {
-				ext.Parameters[parName].SetInt64(value);
-			}
-
-			return ext;
+			return newCmd;
 		}
 
 		/// <summary>
-		/// Checks whether the specified command definition is suitable for the specified command, with optional exclusion of the specified parameters.
+		/// Validates the specified command; if it is found to be invalid, creates a valid version of the command using a different command definition, if possible.
 		/// </summary>
-		/// <param name="command">The command to check against.</param>
-		/// <param name="newDefinition">The new command definition to check for suitability.</param>
-		/// <param name="excludedParameters">The parameters to exclude from the check.</param>
-		/// <returns>true if the command definition is suitable; otherwise, false.</returns>
-		public static bool IsSuitable(Command command, CommandDefinition newDefinition, params string[] excludedParameters) {
-			if (command == null)
-				throw new ArgumentNullException(nameof(command), "The command cannot be null.");
-			if (newDefinition == null)
-				return false;			
-			
-			// Check regular parameters.
-			foreach (Parameter par in command.Parameters) {
-				// Check if the new definition contains all parameters.
-				if (!newDefinition.Parameters.Contains(par.Name)) {
-					return false;
-				}
+		/// <param name="cmd">The command to validate.</param>
+		/// <returns>The valid command (possibly the original command), or null if no valid command could be created.</returns>
+		public Command MakeValidCommand(Command cmd) {
+			if (cmd == null)
+				throw new ArgumentNullException(nameof(cmd), "The command to make valid cannot be null.");
 
-				// If parameter is excluded, skip range check.
-				if (excludedParameters.Contains(par.Name, StringComparer.OrdinalIgnoreCase)) {
-					continue;
-				}
+			// Check if already suitable.
+			if (IsSuitable(cmd, cmd.Definition)) {
+				return cmd;
+			}
 
-				// Check if parameter is in range.
-				if (!newDefinition.Parameters[par.Name].InRange(par.ToInt64())) {
-					return false;
+			foreach (CommandDefinition canDef in this.Find(cmd.Name)) {
+				if (IsSuitable(cmd, canDef)) {
+					return AugmentCommand(cmd, canDef);
 				}
 			}
 
-			// Check data parameters.
-			foreach (ReadOnlyNamedCollection<Parameter> entry in command.Data) {
-				foreach (Parameter par in entry) {
-					// Check if the new definition contains all parameters.
-					if (!newDefinition.DataParameters.Contains(par.Name)) {
-						return false;
-					}
+			return null;
+		}
 
-					// If parameter is excluded, skip range check.
-					if (excludedParameters.Contains(par.Name, StringComparer.OrdinalIgnoreCase)) {
-						continue;
-					}
+		/// <summary>
+		/// Checks whether the specified command definition is suitable for the current state of the specified command.
+		/// </summary>
+		/// <param name="command">The command to check against.</param>
+		/// <param name="newDefinition">The command definition to check for suitability.</param>
+		/// <returns>true if the command definition is suitable; otherwise, false.</returns>
+		private static bool IsSuitable(Command cmd, CommandDefinition newCmdDef) {
+			// Loop through all elements.
+			foreach (CommandElement elem in cmd.Elements) {
+				// Check if the new definition contains all elements.
+				if (!newCmdDef.Elements.Contains(elem.Name)) {
+					return false;
+				}
+				CommandElementDefinition newElemDef = newCmdDef.Elements[elem.Name];
 
-					// Check if parameter is in range.
-					if (!newDefinition.DataParameters[par.Name].InRange(par.ToInt64())) {
-						return false;
+				// Loop through all data entries.
+				foreach (ReadOnlyNamedCollection<Parameter> entry in elem) {
+					foreach (Parameter par in entry) {
+						// Check if the new definition contains all parameters.
+						if (!newElemDef.DataParameterDefinitions.Contains(par.Name)) {
+							return false;
+						}
+						ParameterDefinition newParDef = newElemDef.DataParameterDefinitions[par.Name];
+
+						// Check if parameter is in range.
+						if (!newParDef.InRange(par.ToInt64())) {
+							return false;
+						}
 					}
 				}
 			}
 
 			// All checks passed.
 			return true;
-		}
-
-		/// <summary>
-		/// Finds all commands with the given name where the given value falls within the range of the given parameter.
-		/// </summary>
-		/// <param name="cmdName">The name of the script command to search for; case-insensitive.</param>
-		/// <param name="parName">The name of the parameter to check the range of; case-insensitive.</param>
-		/// <param name="dataPar">Whether the parameter is a data parameter or a regular parameter.</param>
-		/// <param name="value">The value to check.</param>
-		/// <returns>The commands found.</returns>
-		public IEnumerable<CommandDefinition> FindParameterRange(string cmdName, string parName, bool dataPar, long value) {
-			if (cmdName == null)
-				throw new ArgumentNullException(nameof(cmdName), "The command name cannot be null.");
-			if (String.IsNullOrWhiteSpace(cmdName))
-				throw new ArgumentException("The command name cannot be empty.", nameof(cmdName));
-			if (parName == null)
-				throw new ArgumentNullException(nameof(parName), "The parameter name cannot be null.");
-			if (String.IsNullOrWhiteSpace(parName))
-				throw new ArgumentException("The parameter name cannot be empty.", nameof(parName));
-			
-			// Check every command with the given name.
-			foreach (CommandDefinition cmdDef in this.Find(cmdName)) {
-				// Find the proper parameter definition.
-				ParameterDefinition parDef = null;
-				if (dataPar && cmdDef.DataParameters.Contains(parName)) {
-					parDef = cmdDef.DataParameters[parName];
-				} else if (!dataPar && cmdDef.Parameters.Contains(parName)) {
-					parDef = cmdDef.Parameters[parName];
-				}
-
-				if (parDef != null) {
-					// If the given value is in range for the given parameter, return it as a result.
-					if (parDef.InRange(value)) {
-						yield return cmdDef;
-					}
-				}
-			}
 		}
 
 		/// <summary>

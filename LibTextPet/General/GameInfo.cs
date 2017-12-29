@@ -177,7 +177,7 @@ namespace LibTextPet.General {
 			// Iterate through all commands in the database.
 			foreach (CommandDefinition cmd in db) {
 				// Iterate through all parameters.
-				foreach (ParameterDefinition par in cmd.Parameters.Union(cmd.DataParameters)) {
+				foreach (ParameterDefinition par in cmd.Elements.Union(cmd.DataParameters)) {
 					// Does the parameter not have value encoding or is it already loaded?
 					if (par.ValueEncodingName == null || par.ValueEncoding != null) {
 						continue;

@@ -32,7 +32,7 @@ namespace LibTextPet.IO.Msg {
 			obj.Definition.Base.CopyTo(bytes, 0);
 
 			// Write the parameters.
-			foreach (Parameter par in obj.Parameters) {
+			foreach (Parameter par in obj.Elements) {
 				WriteParameterValueToBytes(par.ToInt64(), bytes, par.Definition, 0);
 			}
 
