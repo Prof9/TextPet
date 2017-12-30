@@ -12,9 +12,9 @@ namespace LibTextPet.IO.TPL {
 	/// </summary>
 	public class TPLCommandReader : TPLReader<Command>, INameable {
 		/// <summary>
-		/// Gets or sets a boolean that indicates whether this reader is currently reading data parameters.
+		/// Gets or sets the command element definition for the current data block.
 		/// </summary>
-		private bool readingDataParameters;
+		private CommandElementDefinition currentDataBlockDefinition;
 
 		/// <summary>
 		/// Gets a boolean that indicates whether all parameters are required to be set.
@@ -59,7 +59,7 @@ namespace LibTextPet.IO.TPL {
 		/// </summary>
 		/// <returns>null.</returns>
 		protected override Command BeginRead() {
-			this.readingDataParameters = false;
+			this.currentDataBlockDefinition = null;
 			// We can't create the command yet, as we don't know which one it is.
 			return null;
 		}
@@ -72,86 +72,107 @@ namespace LibTextPet.IO.TPL {
 		/// <returns>A result value that indicates whether the token was consumed, and whether to continue reading.</returns>
 		protected override ProcessResult ProcessToken(Command obj, Token token, CommandDatabase db) {
 			switch (token.Class) {
-				case (int)TPLTokenType.Word:
-					if (obj == null) {
-						// First word must be the command name.
-						obj = CreateCommand(token);
-						return new ProcessResult(obj, true, true);
-					} else {
-						// Check if the parameter name exists.
-						// Are we reading regular parameters or data parameters?
-						ReadOnlyNamedCollection<ParameterDefinition> defs = readingDataParameters ? obj.Definition.DataParameters : obj.Definition.Elements;
-						if (!defs.Contains(token.Value)) {
-							// Unrecognized parameter; treat as if the command ended.
+			case (int)TPLTokenType.Word:
+				if (obj == null) {
+					// First word must be the command name.
+					obj = CreateCommand(token);
+					return new ProcessResult(obj, true, true);
+				} else {
+					// Get the definition for the current command element.
+					CommandElementDefinition elemDef = this.currentDataBlockDefinition;
+					if (elemDef == null) {
+						// If not in a data block, get it from the command definition.
+						ReadOnlyNamedCollection<CommandElementDefinition> elemDefs = obj.Definition.Elements;
+						if (!elemDefs.Contains(token.Value)) {
+							// Unrecognized element; treat as if the command ended.
 							// TODO: validate command.
 							return ProcessResult.Stop;
 						}
-						
-						// Read the '='.
-						if (ReadToken((int)TPLTokenType.Symbol).Value != "=") {
-							throw new InvalidDataException("Unexpected token; '=' expected.");
+						elemDef = elemDefs[token.Value];
+					}
+
+					// Check that this is a valid parameter in the current command element.
+					ReadOnlyNamedCollection<ParameterDefinition> defs = elemDef.DataParameterDefinitions;
+					if (!defs.Contains(token.Value)) {
+						// Unrecognized parameter in the middle of a command element.
+						throw new InvalidDataException("Unrecognized parameter \"" + token.Value + "\" for element \"" + elemDef.Name + "\".");
+					}
+					ParameterDefinition parDef = defs[token.Value];
+
+					// Read the '='.
+					if (ReadToken((int)TPLTokenType.Symbol).Value != "=") {
+						throw new InvalidDataException("Unexpected token; '=' expected.");
+					}
+
+					CommandElement elem = obj.Elements[elemDef.Name];
+
+					if (elemDef.HasMultipleDataEntries) {
+						// Go into a data block.
+						// Check that we're not already in a data block.
+						if (this.currentDataBlockDefinition != null) {
+							throw new InvalidDataException("Nested data blocks are not supported.");
+						}
+
+						// Read the '['.
+						if (ReadToken((int)TPLTokenType.Symbol).Value != "[") {
+							throw new InvalidDataException("Unexpected token; '[' expected.");
+						}
+
+						this.currentDataBlockDefinition = elemDef;
+					} else {
+						// Create data entry if none exist.
+						if (!elem.Any()) {
+							elem.Add(elem.CreateDataEntry());
 						}
 
 						// Read the value.
 						string value = ReadString((int)TPLTokenType.Word);
 
 						// Set the value.
-						if (this.readingDataParameters) {
-							this.Database.SetParameter(obj, token.Value, value, obj.Data.Count - 1);
-						} else {
-							this.Database.SetParameter(obj, token.Value, value);
+						elem[elem.Count - 1][parDef.Name].SetString(value);
+					}
+
+					return ProcessResult.ConsumeAndContinue;
+				}
+			case (int)TPLTokenType.Symbol:
+				switch (token.Value) {
+				case "}":
+					// Read explicit script terminator.
+					// TODO: validate command for strict mode.
+					return ProcessResult.Stop;
+				case ";":
+					// Read explicit command terminator.
+					// TODO: validate command for strict mode.
+					return ProcessResult.ConsumeAndStop;
+				case ",":
+					// Are we currently reading data parameters?
+					if (this.currentDataBlockDefinition != null) {
+						if (obj == null) {
+							throw new ArgumentNullException(nameof(obj), "The command to be modified cannot be null when reading data entries.");
 						}
 
+						// Add a new data entry.
+						CommandElement elem = obj.Elements[this.currentDataBlockDefinition.Name];
+						elem.Add(elem.CreateDataEntry());
+
 						return ProcessResult.ConsumeAndContinue;
+					} else {
+						throw new InvalidDataException("Unexpected token ','.");
 					}
-				case (int)TPLTokenType.Symbol:
-					switch (token.Value) {
-						case "}":
-							// Read explicit script terminator.
-							// TODO: validate command for strict mode.
-							return ProcessResult.Stop;
-						case ";":
-							// Read explicit command terminator.
-							// TODO: validate command for strict mode.
-							return ProcessResult.ConsumeAndStop;
-						case ",":
-							// Are we currently reading data parameters?
-							if (readingDataParameters) {
-								if (obj == null) {
-									throw new ArgumentNullException(nameof(obj), "The command to be modified cannot be null when reading data entries.");
-								}
-
-								// TODO: Validate current data entry for strict mode.
-								// Add a new data entry.
-								obj.Data.Add(obj.Data.CreateDataEntry());
-								return ProcessResult.ConsumeAndContinue;
-							} else {
-								// I don't know what this is.
-								// Just ignore it. Maybe it'll go away.
-								break;
-							}
-						case "[":
-							// Read data start.
-							if (this.readingDataParameters) {
-								throw new InvalidOperationException("Nested data parameter reading is not supported.");
-							}
-							this.readingDataParameters = true;
-
-							if (obj == null) {
-								throw new ArgumentNullException(nameof(obj), "The command to be modified cannot be null when reading data parameters.");
-							}
-
-							// Begin a new data entry.
-							obj.Data.Add(obj.Data.CreateDataEntry());
-
-							return ProcessResult.ConsumeAndContinue;
-						case "]":
-							// Read data end.
-							// TODO: Validate current data entry for strict mode.
-							this.readingDataParameters = false;
-							return ProcessResult.ConsumeAndStop;
+				case "[":
+					throw new InvalidDataException("Unnamed data blocks are not supported.");
+				case "]":
+					if (this.currentDataBlockDefinition == null) {
+						// Not in a data block so this ']' makes no sense.
+						throw new InvalidDataException("Unexpected token ']'.");
 					}
-					break;
+
+					// Read data end.
+					// TODO: Validate current data entry for strict mode.
+					this.currentDataBlockDefinition = null;
+					return ProcessResult.ConsumeAndStop;
+				}
+				break;
 			}
 			return ProcessResult.Stop;
 		}

@@ -35,26 +35,32 @@ namespace LibTextPet.IO.TPL {
 			// Write the name of the command.
 			builder.AppendFormat("{0}{1}{2}", indent, obj.Name, newLine);
 
-			// Write the parameters.
-			foreach (Parameter par in obj.Elements) {
-				builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = {2}{3}", indent, par.Name, par.ToString(), newLine);
-			}
+			// Write the command elements.
+			foreach (CommandElement elem in obj.Elements) {
+				if (elem.Definition.HasMultipleDataEntries) {
+					// Write the data entries.
+					builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = [{2}", indent, elem.Name, newLine);
+					// Yeah this is kinda dumb huh. TODO: Integrate this into IndentedWriter.
+					indent += '\t';
+				}
 
-			// Write the data entries.
-			if (obj.HasData) {
-				builder.AppendFormat("{0}\t[{1}", indent, newLine);
-				// Loop through every data entry.
-				for (int i = 0; i < obj.Data.Count; i++) {
-					ReadOnlyNamedCollection<Parameter> entry = obj.Data[i];
-					// Loop through every data parameter.
+				// Write the data entries.
+				for (int i = 0; i < elem.Count; i++) {
+					ReadOnlyNamedCollection<Parameter> entry = elem[i];
+					// Write every parameter.
 					for (int j = 0; j < entry.Count; j++) {
 						Parameter par = entry[j];
 						// Only write a comma after the last data parameter of the non-last entry.
-						bool writeComma = j == entry.Count - 1 && i != obj.Data.Count - 1;
-						builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t\t{1} = {2}{3}{4}", indent, par.Name, par.ToString(), writeComma ? "," : "", newLine);
+						bool writeComma = j == entry.Count - 1 && i != elem.Count - 1;
+						builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = {2}{3}{4}", indent, par.Name, par.ToString(), writeComma ? "," : "", newLine);
 					}
 				}
-				builder.AppendFormat("{0}\t]{1}", indent, newLine);
+
+				if (elem.Definition.HasMultipleDataEntries) {
+					// TODO: Integrate this into IndentedWriter.
+					indent = indent.Substring(1);
+					builder.AppendFormat("{0}\t]{1}", indent, newLine);
+				}
 			}
 
 			// Return the resulting string.

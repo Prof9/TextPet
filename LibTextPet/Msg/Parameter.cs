@@ -224,7 +224,7 @@ namespace LibTextPet.Msg {
 			// Parse string.
 			long result = this.Definition.ParseString(value);
 
-			this.Bytes = BitConverter.GetBytes(result - this.Definition.ExtensionBase);
+			this.Bytes = BitConverter.GetBytes(result - this.Definition.Add);
 		}
 
 
@@ -256,7 +256,7 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <returns>A 64-bit integer representation of this command parameter.</returns>
 		public long ToInt64() {
-			return BitConverter.ToInt64(conversionBuffer, 0) + this.Definition.ExtensionBase;
+			return BitConverter.ToInt64(conversionBuffer, 0) + this.Definition.Add;
 		}
 
 		/// <summary>
@@ -264,7 +264,7 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <param name="v">The new value for this command parameter.</param>
 		public void SetInt64(long value) {
-			this.Bytes = BitConverter.GetBytes(value - this.Definition.ExtensionBase);
+			this.Bytes = BitConverter.GetBytes(value - this.Definition.Add);
 		}
 
 		/// <summary>
