@@ -98,65 +98,38 @@ namespace LibTextPet.IO.Msg {
 				}
 			}
 
-			// Read length.
-			long length = 0;
-			if (definition.HasData) {
-				length = ReadParameterValueFromBytes(bytes, definition.LengthParameter, 0) + definition.DataCountOffset;
+			// Read elements.
+			foreach (CommandElementDefinition elemDef in definition.Elements) {
+				CommandElement elem = cmd.Elements[elemDef.Name];
+
+				// Get the number of entries in the element.
+				long length = 1;
+				if (elemDef.HasMultipleDataEntries) {
+					if (!this.ReadParameterValue(bytes, elemDef.LengthParameterDefinition, out length)) {
+						// Failed to read parameter.
+						return null;
+					}
+				}
 
 				// If length is invalid, the command cannot be read.
 				if (length <= 0) {
 					return null;
 				}
 
-				buffer = new byte[length * definition.TotalDataEntryLength];
-				if (this.BaseStream.Read(buffer, 0, buffer.Length) < buffer.Length) {
-					// Cannot read enough bytes.
-					return null;
-				}
-				foreach (byte b in buffer) {
-					bytes.Add(b);
-				}
-			}
-
-			// Read parameters.
-			foreach (ParameterDefinition parDef in definition.Elements) {
-				long value = ReadParameterValueFromBytes(bytes, parDef, 0);
-
-				// If the parameter value is not in range, the command is invalid.
-				if (!cmd.Elements[parDef.Name].InRange(value)) {
-					return null;
-				}
-
-				cmd.Elements[parDef.Name].SetInt64(value);
-			}
-
-			// Read data parameters.
-			if (definition.HasData) {
-				// Create empty data entries.
+				// Read data entries.
 				for (int i = 0; i < length; i++) {
-					cmd.Data.Add(cmd.Data.CreateDataEntry());
-				}
-				
-				// Calculate the offsets for the data groups.
-				IList<int> dataGroupOffsets = cmd.CalculateDataGroupOffsets();
+					if (elemDef.HasMultipleDataEntries) {
+						elem.Add(elem.CreateDataEntry());
+					}
 
-				// Read all data entries.
-				for (int i = 0; i < length; i++) {
-					// Read every data parameter in the entry.
-					foreach (ParameterDefinition parDef in definition.DataParameters) {
-						// Calculate the base offset for this parameter.
-						int offset = definition.MinimumLength
-							+ dataGroupOffsets[parDef.DataGroup]
-							+ i * definition.DataEntryLengths[parDef.DataGroup];
-
-						long value = ReadParameterValueFromBytes(bytes, parDef, offset);
-
-						// If the data parameter value is not in range, the command is invalid.
-						if (!cmd.Data[i][parDef.Name].InRange(value)) {
+					foreach (ParameterDefinition parDef in elemDef.DataParameterDefinitions) {
+						long value;
+						if (!this.ReadParameterValue(bytes, parDef, out value)) {
+							// Failed to read parameter.
 							return null;
 						}
 
-                        cmd.Data[i][parDef.Name].SetInt64(ReadParameterValueFromBytes(bytes, parDef, offset));
+						elem[i][parDef.Name].SetInt64(value);
 					}
 				}
 			}
@@ -168,30 +141,64 @@ namespace LibTextPet.IO.Msg {
 		}
 
 		/// <summary>
+		/// Reads the value of a parameter with the specified definition from the current stream, reading extra bytes if needed.
+		/// </summary>
+		/// <param name="readBytes">The sequence of bytes that have already been read.</param>
+		/// <param name="parDef">The parameter definition to use.</param>
+		/// <param name="result">When this method returns, contains the value of the parameter that was read.</param>
+		/// <returns>true if the parameter value was read successfully; otherwise, false.</returns>
+		protected bool ReadParameterValue(IList<byte> readBytes, ParameterDefinition parDef, out long result) {
+			if (readBytes == null)
+				throw new ArgumentNullException(nameof(readBytes), "The byte sequence cannot be null.");
+			if (parDef == null)
+				throw new ArgumentNullException(nameof(parDef), "The parameter definition cannot be null.");
+
+			// TODO: Add relative offset.
+			int offset = 0;
+			int bytesNeeded = offset + parDef.Offset + parDef.MinimumByteCount;
+			
+			// Read extra bytes if needed.
+			if (readBytes.Count < bytesNeeded) {
+				byte[] buffer = new byte[readBytes.Count - bytesNeeded];
+				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
+					// Cannot read enough bytes.
+					result = 0;
+					return false;
+				}
+				foreach (byte b in buffer) {
+					readBytes.Add(b);
+				}
+			}
+
+			result = ReadParameterValueFromBytes(readBytes, parDef, offset);
+			return true;
+		}
+
+		/// <summary>
 		/// Reads the value of a parameter with the given definition from the given byte sequence, from the given offset.
 		/// </summary>
 		/// <param name="bytes">The byte sequence to read from.</param>
-		/// <param name="definition">The parameter definition to use.</param>
+		/// <param name="parDef">The parameter definition to use.</param>
 		/// <param name="offset">The value to add for the parameter byte offset. Normally, this should be zero, except for data parameters.</param>
 		/// <returns>The value that was read.</returns>
-		protected static long ReadParameterValueFromBytes(IList<byte> bytes, ParameterDefinition definition, int offset) {
+		protected static long ReadParameterValueFromBytes(IList<byte> bytes, ParameterDefinition parDef, int offset) {
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
-			if (definition == null)
-				throw new ArgumentNullException(nameof(definition), "The parameter definition cannot be null.");
+			if (parDef == null)
+				throw new ArgumentNullException(nameof(parDef), "The parameter definition cannot be null.");
 			if (offset < 0)
 				throw new ArgumentOutOfRangeException(nameof(offset), offset, "The offset cannot be negative.");
 
 			long value = 0;
 
 			// The number of bits to read.
-			int bits = definition.Bits;
+			int bits = parDef.Bits;
 			// The bit position for writing to the output value.
 			int outshift = 0;
 			// The bit position for reading from the input bytes.
-			int inshift = definition.Shift % 8;
+			int inshift = parDef.Shift % 8;
 			// The byte position for reading from the input bytes.
-			offset += definition.Offset + definition.Shift / 8;
+			offset += parDef.Offset + parDef.Shift / 8;
 
 			// Read entire value.
 			int mask = 0xFF;
@@ -209,7 +216,7 @@ namespace LibTextPet.IO.Msg {
 				offset += 1;
 			}
 
-			return value + definition.ExtensionBase;
+			return value + parDef.Add;
 		}
 	}
 }

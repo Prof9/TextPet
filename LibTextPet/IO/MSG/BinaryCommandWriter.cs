@@ -1,4 +1,5 @@
-﻿using LibTextPet.Msg;
+﻿using LibTextPet.General;
+using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,72 +27,75 @@ namespace LibTextPet.IO.Msg {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The script command cannot be null.");
 
-			byte[] bytes = new byte[obj.ByteLength];
-
 			// Write the base.
-			obj.Definition.Base.CopyTo(bytes, 0);
-
-			// Write the parameters.
-			foreach (Parameter par in obj.Elements) {
-				WriteParameterValueToBytes(par.ToInt64(), bytes, par.Definition, 0);
+			IList<byte> bytes = new List<byte>();
+			foreach (byte b in obj.Definition.Base) {
+				bytes.Add(b);
 			}
 
-			// Write the length and data parameters, if any.
-			if (obj.Definition.HasData) {
-				// Write the length parameter.
-				WriteParameterValueToBytes(obj.Data.Count - obj.Definition.DataCountOffset,
-					bytes, obj.Definition.LengthParameter, 0);
+			// Extend to mask length if needed.
+			while (bytes.Count < obj.Definition.Mask.Count) {
+				bytes.Add(0);
+			}
 
-				// Write each data entry.
-				IList<int> dataGroupOffsets = obj.CalculateDataGroupOffsets();
-				for (int i = 0; i < obj.Data.Count; i++) {
-					Collection<Parameter> dataEntry = obj.Data[i];
+			// Write the elements.
+			foreach (CommandElement elem in obj.Elements) {
+				// Write the length length.
+				if (elem.Definition.HasMultipleDataEntries) {
+					WriteParameterValueToBytes(elem.Count, bytes, elem.Definition.LengthParameterDefinition);
+				}
 
-                    foreach (Parameter dataPar in dataEntry) {
-						ParameterDefinition def = obj.Definition.DataParameters[dataPar.Name];
-
-						// Calculate the base offset for this parameter.
-						int offset = obj.Definition.MinimumLength
-							+ dataGroupOffsets[def.DataGroup]
-							+ i * obj.Definition.DataEntryLengths[def.DataGroup];
-
-						WriteParameterValueToBytes(dataPar.ToInt64(), bytes, def, offset);
+				// Write the data parameters.
+				foreach (ReadOnlyNamedCollection<Parameter> entry in elem) {
+					foreach (Parameter par in entry) {
+						WriteParameterValueToBytes(par, bytes);
 					}
 				}
 			}
 
 			// Perform rewind (or fast-forward, though that's probably not something you'd ever want, but hey).
-			int writeCount = (int)(bytes.Length - obj.Definition.RewindCount);
-			if (writeCount > bytes.Length) {
-				Array.Resize(ref bytes, writeCount);
-			}
-
-			this.BaseStream.Write(bytes, 0, writeCount);
+			int writeCount = (int)(bytes.Count - obj.Definition.RewindCount);
+			byte[] buffer = bytes.Take(writeCount).ToArray();
+			this.BaseStream.Write(buffer, 0, buffer.Length);
 		}
 
 		/// <summary>
-		/// Writes the value of a parameter with the given definition to the given byte sequence, from the given offset.
+		/// Writes the value of the specified parameter to the specified byte sequence.
+		/// </summary>
+		/// <param name="par">The parameter to write..</param>
+		/// <param name="bytes">The byte sequence to write to.</param>
+		protected static void WriteParameterValueToBytes(Parameter par, IList<byte> bytes)
+			=> WriteParameterValueToBytes(par.ToInt64(), bytes, par.Definition);
+
+		/// <summary>
+		/// Writes the value of a parameter with the specified definition to the specified byte sequence.
 		/// </summary>
 		/// <param name="value">The value to write.</param>
 		/// <param name="bytes">The byte sequence to write to.</param>
-		/// <param name="definition">The parameter definition to use.</param>
-		/// <param name="offset">The value to add for the parameter byte offset. Normally, this should be zero, except for data parameters.</param>
-		protected static void WriteParameterValueToBytes(long value, IList<byte> bytes, ParameterDefinition definition, int offset) {
+		/// <param name="parDef">The parameter definition to use.</param></param>
+		protected static void WriteParameterValueToBytes(long value, IList<byte> bytes, ParameterDefinition parDef) {
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
-			if (definition == null)
-				throw new ArgumentNullException(nameof(definition), "The parameter definition cannot be null.");
-			if (value < definition.Minimum || value > definition.Maximum)
+			if (parDef == null)
+				throw new ArgumentNullException(nameof(parDef), "The parameter definition cannot be null.");
+			if (value < parDef.Minimum || value > parDef.Maximum)
 				throw new ArgumentOutOfRangeException(nameof(value), value, "The value falls outside the allowed range.");
-			if (offset < 0)
-				throw new ArgumentOutOfRangeException(nameof(offset), offset, "The offset cannot be negative.");
+
+			// TODO: Add relative offset.
+			int offset = 0;
+			int bytesNeeded = offset + parDef.Offset + parDef.MinimumByteCount;
+
+			// Add extra bytes if needed.
+			while (bytes.Count < bytesNeeded) {
+				bytes.Add(0);
+			}
 
 			// The number of bits to write.
-			int bits = definition.Bits;
+			int bits = parDef.Bits;
 			// The bit position for writing to the output bytes.
-			int outshift = definition.Shift % 8;
+			int outshift = parDef.Shift % 8;
 			// The byte position for writing to the output bytes.
-			offset += definition.Offset + definition.Shift / 8;
+			offset += parDef.Offset + parDef.Shift / 8;
 
 			// Write entire value.
 			while (bits > 0) {

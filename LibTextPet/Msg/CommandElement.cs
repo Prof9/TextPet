@@ -39,8 +39,12 @@ namespace LibTextPet.Msg {
 		}
 
 
-		protected override void InsertItem(int index, ReadOnlyNamedCollection<Parameter> item)
-			=> base.InsertItem(index, PassThroughValidate(item, nameof(item)));
+		protected override void InsertItem(int index, ReadOnlyNamedCollection<Parameter> item) {
+			if (!this.Definition.HasMultipleDataEntries && this.Count >= 1) {
+				throw new InvalidOperationException("This command element does not support multiple data entries.");
+			}
+			base.InsertItem(index, PassThroughValidate(item, nameof(item)));
+		}
 
 		protected override void SetItem(int index, ReadOnlyNamedCollection<Parameter> item)
 			=> base.SetItem(index, PassThroughValidate(item, nameof(item)));
