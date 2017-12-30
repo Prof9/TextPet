@@ -31,6 +31,11 @@ namespace LibTextPet.Msg {
 				throw new ArgumentNullException("The command element definition cannot be null.");
 
 			this.Definition = definition;
+
+			// Create initial data entry.
+			if (!definition.HasMultipleDataEntries) {
+				this.Add(this.CreateDataEntry());
+			}
 		}
 
 

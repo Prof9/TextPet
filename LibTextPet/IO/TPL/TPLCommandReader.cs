@@ -106,7 +106,7 @@ namespace LibTextPet.IO.TPL {
 
 					CommandElement elem = obj.Elements[elemDef.Name];
 
-					if (elemDef.HasMultipleDataEntries) {
+					if (elemDef.HasMultipleDataEntries && this.currentDataBlockDefinition == null) {
 						// Go into a data block.
 						// Check that we're not already in a data block.
 						if (this.currentDataBlockDefinition != null) {
@@ -118,10 +118,11 @@ namespace LibTextPet.IO.TPL {
 							throw new InvalidDataException("Unexpected token; '[' expected.");
 						}
 
+						// Set current data block.
 						this.currentDataBlockDefinition = elemDef;
 					} else {
-						// Create data entry if none exist.
-						if (!elem.Any()) {
+						// Create first data entry if none exist.
+						if (elemDef.HasMultipleDataEntries && !elem.Any()) {
 							elem.Add(elem.CreateDataEntry());
 						}
 
