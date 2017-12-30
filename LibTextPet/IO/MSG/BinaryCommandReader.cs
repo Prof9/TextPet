@@ -83,7 +83,7 @@ namespace LibTextPet.IO.Msg {
 			Command cmd = new Command(definition);
 
 			// Read base bytes.
-			byte[] buffer = new byte[definition.Base.Count];
+			byte[] buffer = new byte[Math.Max(definition.Base.Count, definition.Mask.Count)];
 			if (this.BaseStream.Read(buffer, 0, buffer.Length) < buffer.Length) {
 				// Cannot read enough bytes.
 				return null;
@@ -91,7 +91,7 @@ namespace LibTextPet.IO.Msg {
 			IList<byte> bytes = new List<byte>(buffer);
 
 			// Verify base bytes.
-			for (int i = 0; i < definition.Base.Count; i++) {
+			for (int i = 0; i < Math.Min(definition.Base.Count, definition.Mask.Count); i++) {
 				if ((bytes[i] & definition.Mask[i]) != definition.Base[i]) {
 					// Base mismatch; return null.
 					return null;
@@ -112,7 +112,7 @@ namespace LibTextPet.IO.Msg {
 				}
 
 				// If length is invalid, the command cannot be read.
-				if (length <= 0) {
+				if (length < 0) {
 					return null;
 				}
 
@@ -159,7 +159,7 @@ namespace LibTextPet.IO.Msg {
 			
 			// Read extra bytes if needed.
 			if (readBytes.Count < bytesNeeded) {
-				byte[] buffer = new byte[readBytes.Count - bytesNeeded];
+				byte[] buffer = new byte[bytesNeeded - readBytes.Count];
 				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
 					// Cannot read enough bytes.
 					result = 0;

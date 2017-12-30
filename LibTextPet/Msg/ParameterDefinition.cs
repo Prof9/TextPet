@@ -164,7 +164,7 @@ namespace LibTextPet.Msg {
 		public int MinimumByteCount {
 			get {
 				// Calculate the number of bits required.
-				int bits = this.Offset * 8 + this.Shift + this.Bits;
+				int bits = this.Shift + this.Bits;
 				// Calculate the number of bytes required (rounded up).
 				return (bits + 7) / 8;
 			}

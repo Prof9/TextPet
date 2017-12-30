@@ -265,6 +265,8 @@ namespace LibTextPet.Plugins {
 				} else {
 					elemDef = new CommandElementDefinition(parDefs.First(), parDefs.Skip(1));
 				}
+
+				elemDefs.Add(elemDef);
 			}
 
 			return elemDefs;

@@ -74,8 +74,7 @@ namespace LibTextPet.IO {
 				if (this.AcceptMostCompatibleFallback && i == this.CommandReaders.Count - 1) {
 					abortOnFallback = false;
 				}
-
-				// Force accept last command reader.
+				
 				script = this.Read(commandReader, abortOnFallback);
 
 				// If the script was read properly, stop.

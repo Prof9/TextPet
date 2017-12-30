@@ -27,7 +27,7 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <param name="definition">The command element definition to use.</param>
 		public CommandElement(CommandElementDefinition definition) {
-			if (Definition == null)
+			if (definition == null)
 				throw new ArgumentNullException("The command element definition cannot be null.");
 
 			this.Definition = definition;
@@ -79,15 +79,11 @@ namespace LibTextPet.Msg {
 			return entry;
 		}
 
-
 		/// <summary>
 		/// Creates a default data entry for this multi parameter.
 		/// </summary>
 		/// <returns>The default data entry.</returns>
 		public ReadOnlyNamedCollection<Parameter> CreateDataEntry() {
-			if (!this.Definition.HasMultipleDataEntries)
-				throw new InvalidOperationException("This command element has no data parameters.");
-
 			// Create new data parameters.
 			Parameter[] pars = new Parameter[this.Definition.DataParameterDefinitions.Count];
 			for (int i = 0; i < pars.Length; i++) {

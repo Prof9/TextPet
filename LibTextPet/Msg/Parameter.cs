@@ -197,7 +197,7 @@ namespace LibTextPet.Msg {
 
 			// Try encoding using value encoding.
 			if (this.Definition.ValueEncoding != null) {
-				result = this.Definition.ValueEncoding.GetString(this.rawBytes);
+				result = this.Definition.ValueEncoding.GetString(this.rawBytes.Take(this.Definition.MinimumByteCount).ToArray());
 
 				// Did we encode it correctly?
 				if (result.Contains('\uFFFD')) {

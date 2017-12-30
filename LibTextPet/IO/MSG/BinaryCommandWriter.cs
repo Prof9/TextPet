@@ -62,7 +62,7 @@ namespace LibTextPet.IO.Msg {
 		/// <summary>
 		/// Writes the value of the specified parameter to the specified byte sequence.
 		/// </summary>
-		/// <param name="par">The parameter to write..</param>
+		/// <param name="par">The parameter to write.</param>
 		/// <param name="bytes">The byte sequence to write to.</param>
 		protected static void WriteParameterValueToBytes(Parameter par, IList<byte> bytes)
 			=> WriteParameterValueToBytes(par.ToInt64(), bytes, par.Definition);
