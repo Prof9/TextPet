@@ -2,6 +2,7 @@
 using LibTextPet.General;
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace LibTextPet.Msg {
 	/// <summary>
@@ -52,6 +53,11 @@ namespace LibTextPet.Msg {
 		public ICollection<long> JumpContinueValues { get; internal set; }
 
 		/// <summary>
+		/// Gets the data group sizes for this parameter's sub-parameters.
+		/// </summary>
+		public ReadOnlyCollection<int> DataGroupSizes { get; private set; }
+
+		/// <summary>
 		/// Constructs a script command parameter definition with the given name, description, byte offset, bit sub-offset and amount of bits.
 		/// </summary>
 		/// <param name="name">The name of the command parameter.</param>
@@ -61,9 +67,10 @@ namespace LibTextPet.Msg {
 		/// <param name="bits">The size of the command parameter in bits.</param>
 		/// <param name="add">The value to add to the value of the command parameter.</param>
 		/// <param name="isJump">A boolean that indicates whether the command parameter is a jump target.</param>
-		/// <param name="extBase">The extension base value of the command parameter.</param>
+		/// <param name="valueEncoding">The name of the encoding to use for this parameter's value.</param>
+		/// <param name="dataGroupSizes">The list of data group sizes for this parameter's sub-parameters, or null.</param>
 		public ParameterDefinition(string name, string description, int offset,
-			int shift, int bits, long add, bool isJump, string valueEncoding) {
+			int shift, int bits, long add, bool isJump, string valueEncoding, IList<int> dataGroupSizes) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (name.Length <= 0)
@@ -84,6 +91,7 @@ namespace LibTextPet.Msg {
 			this.IsJump = isJump;
 			this.ValueEncodingName = valueEncoding;
 			this.ValueEncoding = null;
+			this.DataGroupSizes = new ReadOnlyCollection<int>(dataGroupSizes ?? new List<int>(0));
 		}
 
 		/// <summary>
@@ -272,11 +280,15 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <returns>A new parameter definition that is a deep clone of this instance.</returns>
 		public ParameterDefinition Clone() {
+			int[] dataGroupSizes = new int[this.DataGroupSizes.Count];
+			this.DataGroupSizes.CopyTo(dataGroupSizes, 0);
+
 			return new ParameterDefinition(
 				String.Copy(this.Name), String.Copy(this.Description),
 				this.Offset, this.Shift, this.Bits,
 				this.Add, this.IsJump,
-				String.Copy(this.ValueEncodingName)
+				String.Copy(this.ValueEncodingName),
+				dataGroupSizes
 			);
 		}
 

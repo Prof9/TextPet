@@ -270,7 +270,7 @@ namespace LibTextPet.Plugins {
 		/// Gets the value of the specified property as a comma-separated list of strings.
 		/// </summary>
 		/// <param name="key">The key of the property.</param>
-		/// <returns>The values of the property, or an empty list if the property does not exist.</returns>
+		/// <returns>The values of the property, or null if the property does not exist.</returns>
 		public IList<string> PropertyAsStringList(string key) {
 			if (key == null)
 				throw new ArgumentNullException(nameof(key), "The key cannot be null.");
@@ -285,7 +285,7 @@ namespace LibTextPet.Plugins {
 				s = this[key];
 				list = s.Split(',');
 			} else {
-				list = new string[0];
+				return null;
 			}
 
 			if (!this.Verbatim) {
@@ -297,8 +297,16 @@ namespace LibTextPet.Plugins {
 			return list.ToList();
 		}
 
+		/// <summary>
+		/// Gets the value of the specified property as a comma-separated list of 64-bit signed integers.
+		/// </summary>
+		/// <param name="key">The key of the property.</param>
+		/// <returns>The values of the property, or null if the property does not exist.</returns>
 		public IList<long> PropertyAsInt64List(string key) {
 			IList<string> stringList = PropertyAsStringList(key);
+			if (stringList == null) {
+				return null;
+			}
 
 			List<long> int64List = new List<long>(stringList.Count);
 			foreach (string s in stringList) {

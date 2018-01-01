@@ -40,11 +40,11 @@ namespace LibTextPet.Plugins {
 			ValidateCurrentSectionPropertiesAll(enumerator, "name", "cdbs", "tblf");
 
 			string name = enumerator.Current.PropertyAsString("NAME");
-			IEnumerable<string> dbNames = enumerator.Current.PropertyAsStringList("CDBS");
+			IEnumerable<string> dbNames = enumerator.Current.PropertyAsStringList("CDBS") ?? new List<string>();
 			string encName = enumerator.Current.PropertyAsString("TBLF");
 
 			string fullName = enumerator.Current.PropertyAsString("FULL", "");
-			ICollection<string> valNames = enumerator.Current.PropertyAsStringList("VALS");
+			ICollection<string> valNames = enumerator.Current.PropertyAsStringList("VALS") ?? new List<string>();
 
 			// Add default plugins.
 			valNames.Add("bool");

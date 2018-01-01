@@ -46,7 +46,7 @@ namespace LibTextPet.Plugins {
 
 			CommandDatabase db = new CommandDatabase(enumerator.Current["name"]);
 			string split = enumerator.Current.PropertyAsString("splt", null);
-			IList<long> jumpContVals = enumerator.Current.PropertyAsInt64List("cont");
+			IList<long> jumpContVals = enumerator.Current.PropertyAsInt64List("cont") ?? new List<long>(0);
 
 			bool skip = false;
 			bool stop = false;
@@ -227,9 +227,17 @@ namespace LibTextPet.Plugins {
 				int parAddv = (int)section.PropertyAsInt64("addv", superPar?.Add ?? 0);
 				string parValn = section.PropertyAsString("valn", superPar?.ValueEncodingName);
 
+				IList<int> parDgrp = section.PropertyAsInt64List("dgrp")?.Select(x => (int)x).ToList();
+				if (parDgrp == null) {
+					parDgrp = new int[superPar.DataGroupSizes.Count];
+					superPar.DataGroupSizes.CopyTo((int[])parDgrp, 0);
+				}
+
 				// Create the parameter.
 				bool isJump = parType == "JUMP";
-				ParameterDefinition parDef = new ParameterDefinition(parNameMain, parDesc, offset, shift, parBits, parAddv, isJump, parValn);
+				ParameterDefinition parDef = new ParameterDefinition(
+					parNameMain, parDesc, offset, shift, parBits, parAddv, isJump, parValn, parDgrp
+				);
 
 				// Set jump continue values.
 				if (isJump) {
