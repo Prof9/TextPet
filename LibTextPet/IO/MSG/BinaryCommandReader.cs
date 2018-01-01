@@ -148,7 +148,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="parDef">The parameter definition to use.</param>
 		/// <param name="result">When this method returns, contains the value of the parameter that was read.</param>
 		/// <returns>true if the parameter value was read successfully; otherwise, false.</returns>
-		protected bool ReadParameterValue(IList<byte> readBytes, ParameterDefinition parDef, out long result) {
+		private bool ReadParameterValue(IList<byte> readBytes, ParameterDefinition parDef, out long result) {
 			if (readBytes == null)
 				throw new ArgumentNullException(nameof(readBytes), "The byte sequence cannot be null.");
 			if (parDef == null)
@@ -182,7 +182,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="parDef">The parameter definition to use.</param>
 		/// <param name="offset">The value to add for the parameter byte offset. Normally, this should be zero, except for data parameters.</param>
 		/// <returns>The value that was read.</returns>
-		protected static long ReadParameterValueFromBytes(IList<byte> bytes, ParameterDefinition parDef, int offset) {
+		private static long ReadParameterValueFromBytes(IList<byte> bytes, ParameterDefinition parDef, int offset) {
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
 			if (parDef == null)

@@ -157,6 +157,7 @@ namespace LibTextPet.Plugins {
 		/// <param name="jumpContVals">The values for jump targets that lead to continuing the current script</param>
 		/// <param name="superCmdDef">The command definition for the base command, or null if this command is not an extension.</param>
 		/// <returns></returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1309:UseOrdinalStringComparison", MessageId = "System.String.Equals(System.String,System.StringComparison)")]
 		private static List<CommandElementDefinition> LoadCommandElementDefinitions(IEnumerator<IniSection> enumerator, IList<long> jumpContVals, CommandDefinition superCmdDef) {
 			// List of command elements in insertion order.
 			List<string> elemList = new List<string>();
@@ -286,6 +287,7 @@ namespace LibTextPet.Plugins {
 		/// <param name="superCmdDef"></param>
 		/// <param name="elemList"></param>
 		/// <returns></returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1309:UseOrdinalStringComparison", MessageId = "System.Collections.Generic.Dictionary`2<System.String,System.Collections.Generic.IList`1<LibTextPet.Msg.ParameterDefinition>>.#ctor(System.Collections.Generic.IEqualityComparer`1<System.String>)")]
 		private static Dictionary<string, IList<ParameterDefinition>> CreateParameterDictionary(CommandDefinition superCmdDef, List<string> elemList) {
 			Dictionary<string, IList<ParameterDefinition>> parDict = new Dictionary<string, IList<ParameterDefinition>>(StringComparer.InvariantCultureIgnoreCase);
 
@@ -315,6 +317,7 @@ namespace LibTextPet.Plugins {
 		/// <param name="isExt">true if the base command is to be extended; otherwise, false.</param>
 		/// <param name="name">The name of the command to find.</param>
 		/// <returns>The base command, or null if there is no base command.</returns>
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1309:UseOrdinalStringComparison", MessageId = "System.String.Equals(System.String,System.StringComparison)")]
 		private static CommandDefinition FindPreviousCommand(IEnumerable<CommandDefinition> defs, bool isExt, string name) {
 			CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
 			if (isExt && super == null) {

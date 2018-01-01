@@ -12,7 +12,7 @@ namespace LibTextPet.IO.TPL {
 	/// A TextPet Language script writer that writes a script to an output stream.
 	/// </summary>
 	public class TPLScriptWriter : ScriptWriter {
-		protected int ConsecutiveByteElements;
+		protected int ConsecutiveByteElements { get; set; }
 
 		/// <summary>
 		/// Creates a new TextPet Language script writer that writes to the specified output stream.
@@ -115,12 +115,12 @@ namespace LibTextPet.IO.TPL {
 		/// <summary>
 		/// Writes the given fallback element to the output stream.
 		/// </summary>
-		/// <param name="elem">The fallback element to write.</param>
-		protected override void WriteFallback(IScriptElement elem) {
-			if (elem == null)
-				throw new ArgumentNullException(nameof(elem), "The script element cannot be null.");
+		/// <param name="element">The fallback element to write.</param>
+		protected override void WriteFallback(IScriptElement element) {
+			if (element == null)
+				throw new ArgumentNullException(nameof(element), "The script element cannot be null.");
 
-			if (elem is ByteElement byteElem) {
+			if (element is ByteElement byteElem) {
 				if (this.ConsecutiveByteElements >= 8) {
 					this.ConsecutiveByteElements = 0;
 					this.TextWriter.WriteLine();
@@ -139,7 +139,7 @@ namespace LibTextPet.IO.TPL {
 				return;
 			}
 
-			base.WriteFallback(elem);
+			base.WriteFallback(element);
 		}
 
 		protected override void ProcessDirective(DirectiveElement directive) {

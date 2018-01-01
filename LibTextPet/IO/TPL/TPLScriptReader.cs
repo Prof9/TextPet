@@ -110,7 +110,7 @@ namespace LibTextPet.IO.TPL {
 				ReadToken((int)TPLTokenType.HeredocEnd);
 				return ProcessResult.ConsumeAndContinue;
 			case (int)TPLTokenType.Word:
-				if (token.Value.StartsWith("$")) {
+				if (token.Value.StartsWith("$", StringComparison.OrdinalIgnoreCase)) {
 					// Read raw byte.
 					if (token.Value.Length <= 1 || token.Value.Length > 3) {
 						throw new ArgumentException("Invalid hexadecimal byte element '" + token.Value + "'.", nameof(token));

@@ -73,7 +73,7 @@ namespace TextPet.Commands {
 
 						// If the preserve commands option is enabled, cancel if this would trim commands.
 						if (preserveCommands) {
-							if (script[script.Count - 1] is Command cmdElem) {
+							if (script[script.Count - 1] is Command) {
 								break;
 							}
 						}

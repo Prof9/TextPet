@@ -2,6 +2,10 @@
 <Dictionary>
   <Words>
     <Recognized>
+      <Word>Def</Word>
+      <Word>Defs</Word>
+      <Word>Elem</Word>
+      <Word>Elems</Word>
       <Word>Heredoc</Word>
       <Word>IgnorePointerSyncErrors</Word>
       <Word>Ini</Word>
@@ -12,9 +16,9 @@
       <Word>Sync</Word>
       <Word>Tokenizer</Word>
     </Recognized>
-    <DiscreteExceptions>
-      <Term>scriptwriter</Term>
-    </DiscreteExceptions>
+    <Compound>
+      <Term CompoundAlternate="ScriptWriter">scriptwriter</Term>
+    </Compound>
   </Words>
   <Acronyms>
     <CasingExceptions>

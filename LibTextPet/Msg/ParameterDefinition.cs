@@ -138,12 +138,6 @@ namespace LibTextPet.Msg {
 			return result;
 		}
 
-		private static ParameterDefinition PassThroughNonNull(ParameterDefinition definition) {
-			if (definition == null)
-				throw new ArgumentNullException(nameof(definition), "The parameter definition cannot be null.");
-			return definition;
-		}
-
 		/// <summary>
 		/// Gets the minimum value this command parameter can take on.
 		/// </summary>

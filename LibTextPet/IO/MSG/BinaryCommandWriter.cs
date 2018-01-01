@@ -66,8 +66,14 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <param name="par">The parameter to write.</param>
 		/// <param name="bytes">The byte sequence to write to.</param>
-		protected static void WriteParameterValueToBytes(Parameter par, IList<byte> bytes)
-			=> WriteParameterValueToBytes(par.ToInt64(), bytes, par.Definition);
+		protected static void WriteParameterValueToBytes(Parameter par, IList<byte> bytes) {
+			if (par == null)
+				throw new ArgumentNullException(nameof(par), "The parameter cannot be null.");
+			if (bytes == null)
+				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
+
+			WriteParameterValueToBytes(par.ToInt64(), bytes, par.Definition);
+		}
 
 		/// <summary>
 		/// Writes the value of a parameter with the specified definition to the specified byte sequence.

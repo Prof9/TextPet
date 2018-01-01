@@ -28,7 +28,7 @@ namespace LibTextPet.Msg {
 		/// <param name="definition">The command element definition to use.</param>
 		public CommandElement(CommandElementDefinition definition) {
 			if (definition == null)
-				throw new ArgumentNullException("The command element definition cannot be null.");
+				throw new ArgumentNullException(nameof(definition), "The command element definition cannot be null.");
 
 			this.Definition = definition;
 
