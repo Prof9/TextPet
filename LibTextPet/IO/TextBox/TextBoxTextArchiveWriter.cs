@@ -49,8 +49,7 @@ namespace LibTextPet.IO.TextBox {
 				// Skip scripts that are not printed.
 				bool isEmpty = true;
 				foreach (IScriptElement elem in script) {
-					Command cmd = elem as Command;
-					if ((cmd != null && cmd.Definition.Prints) || elem is TextElement) {
+					if ((elem is Command cmd && cmd.Definition.Prints) || elem is TextElement) {
 						isEmpty = false;
 						break;
 					}

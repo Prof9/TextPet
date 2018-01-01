@@ -46,22 +46,19 @@ namespace LibTextPet.IO {
 
 			foreach (IScriptElement element in obj) {
 				// Try to write the next element as a command.
-				Command command = element as Command;
-				if (command != null) {
+				if (element is Command command) {
 					WriteCommand(command);
 					continue;
 				}
 
 				// Try to write the next element as a string.
-				TextElement text = element as TextElement;
-				if (text != null) {
+				if (element is TextElement text) {
 					WriteText(text.Text);
 					continue;
 				}
 
 				// Try to process the next element as a directive.
-				DirectiveElement directive = element as DirectiveElement;
-				if (directive != null) {
+				if (element is DirectiveElement directive) {
 					ProcessDirective(directive);
 					continue;
 				}

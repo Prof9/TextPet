@@ -117,11 +117,12 @@ namespace TextPet.Commands {
 		/// <param name="patchMode">Whether previously loaded text archives should be patched.</param>
 		public void ReadTextArchivesBinary(string path, bool patchMode) {
 			this.Core.ReadTextArchives(path, this.Recursive, patchMode, delegate (MemoryStream ms, string file) {
-				FileTextArchiveReader reader = new FileTextArchiveReader(ms, this.Core.Game);
-				reader.CheckGoodTextArchive = false;
-				reader.ReadEntireFile = true;
-				reader.SearchPointers = false;
-				reader.UpdateFileIndex = false;
+				FileTextArchiveReader reader = new FileTextArchiveReader(ms, this.Core.Game) {
+					CheckGoodTextArchive = false,
+					ReadEntireFile = true,
+					SearchPointers = false,
+					UpdateFileIndex = false
+				};
 				reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 				reader.TextArchiveReader.ScriptReader.AcceptMostCompatibleFallback = true;
 

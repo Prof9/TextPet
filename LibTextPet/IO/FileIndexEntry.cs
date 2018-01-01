@@ -100,7 +100,7 @@ namespace LibTextPet.IO {
 		public static bool operator ==(FileIndexEntry entry1, FileIndexEntry entry2) {
 			if (ReferenceEquals(entry1, entry2)) {
 				return true;
-			} else if (ReferenceEquals(entry1, null) || ReferenceEquals(entry2, null)) {
+			} else if (entry1 is null || entry2 is null) {
 				return false;
 			} else {
 				return entry1.Equals(entry2);

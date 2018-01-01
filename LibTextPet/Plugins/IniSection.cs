@@ -214,13 +214,11 @@ namespace LibTextPet.Plugins {
 			if (key == null)
 				throw new ArgumentNullException(nameof(key), "The key cannot be null.");
 
-			long r;
-
 			if (!this.Verbatim) {
 				key = key.Trim();
 			}
 
-			if (!this.ContainsKey(key) || !NumberParser.TryParseInt64(this[key], out r)) {
+			if (!this.ContainsKey(key) || !NumberParser.TryParseInt64(this[key], out long r)) {
 				r = defaultValue;
 			}
 			return r;
@@ -310,8 +308,7 @@ namespace LibTextPet.Plugins {
 
 			List<long> int64List = new List<long>(stringList.Count);
 			foreach (string s in stringList) {
-				long n;
-				if (!NumberParser.TryParseInt64(s, out n)) {
+				if (!NumberParser.TryParseInt64(s, out long n)) {
 					throw new ArgumentException("Could not parse \"" + s + "\" as a number.", nameof(key));
 				}
 				int64List.Add(n);

@@ -113,8 +113,7 @@ namespace TextPet {
 					LoadedPlugin?.Invoke(this, new PluginsEventArgs(file, plugin));
 
 					// Add the plugin to the set of games if it was a game plugin.
-					GameInfo game = plugin as GameInfo;
-					if (game != null) {
+					if (plugin is GameInfo game) {
 						this.Games.Add(game);
 					}
 				}
@@ -264,9 +263,10 @@ namespace TextPet {
 
 			LoadFile(path);
 
-			FileTextArchiveReader reader = new FileTextArchiveReader(this.LoadedFile, this.Game, this.FileIndex);
-			reader.UpdateFileIndex = updateIndex;
-			reader.SearchPointers = searchPointers;
+			FileTextArchiveReader reader = new FileTextArchiveReader(this.LoadedFile, this.Game, this.FileIndex) {
+				UpdateFileIndex = updateIndex,
+				SearchPointers = searchPointers
+			};
 
 			List<TextArchive> textArchives = new List<TextArchive>(this.FileIndex.Count);
 			foreach (FileIndexEntry entry in this.FileIndex) {
@@ -444,9 +444,9 @@ namespace TextPet {
 		/// <param name="noIds">If true, text archive IDs are not included in the output.</param>
 		public void WriteTextArchivesTPL(string path, bool single, bool noIds) {
 			WriteTextArchives(path, "tpl", single, delegate (MemoryStream ms, TextArchive ta) {
-				TPLTextArchiveWriter writer = new TPLTextArchiveWriter(ms);
-				writer.IncludeIdentifiers = !noIds;
-				writer.Write(ta);
+				new TPLTextArchiveWriter(ms) {
+					IncludeIdentifiers = !noIds
+				}.Write(ta);
 			});
 		}
 
@@ -476,11 +476,10 @@ namespace TextPet {
 				this.LoadedFile.CopyTo(ms);
 
 				// Set up the text archive writer.
-				FileTextArchiveWriter writer = new FileTextArchiveWriter(ms, this.Game, this.FileIndex);
-				writer.UpdateFileIndex = true;
-				if (freeSpaceOffset > 0) {
-					writer.FreeSpaceOffset = freeSpaceOffset;
-				}
+				FileTextArchiveWriter writer = new FileTextArchiveWriter(ms, this.Game, this.FileIndex) {
+					UpdateFileIndex = true,
+					FreeSpaceOffset = freeSpaceOffset > 0 ? freeSpaceOffset : ms.Length
+				};
 
 				// Write ALL the text archives!
 				foreach (TextArchive ta in this.TextArchives) {
@@ -521,11 +520,12 @@ namespace TextPet {
 				TextArchive ta1, ta2;
 				byte[] before = ms.ToArray();
 				byte[] after;
-				
+
 				// Read the text archive from binary.
 				// Could be done by re-using the ReadTextArchiveBinary delegate?
-				BinaryTextArchiveReader msgReader = new BinaryTextArchiveReader(ms, this.Game);
-				msgReader.IgnorePointerSyncErrors = true;
+				BinaryTextArchiveReader msgReader = new BinaryTextArchiveReader(ms, this.Game) {
+					IgnorePointerSyncErrors = true
+				};
 				ta1 = msgReader.Read((int)ms.Length);
 				ta1.Identifier = Path.GetFileNameWithoutExtension(file);
 				ta2 = ta1;
@@ -596,9 +596,9 @@ namespace TextPet {
 					textWriter.Flush();
 				}
 
-				TextBoxTextArchiveWriter writer = new TextBoxTextArchiveWriter(ms);
-				writer.IncludeIdentifiers = !noIds;
-				writer.Write(ta);
+				new TextBoxTextArchiveWriter(ms) {
+					IncludeIdentifiers = !noIds
+				}.Write(ta);
 
 				first = false;
 			});

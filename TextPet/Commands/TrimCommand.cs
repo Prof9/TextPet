@@ -48,8 +48,7 @@ namespace TextPet.Commands {
 					// Remove elements from the end of the script until the script-ending element or maximum is reached.
 					int trimmed = 0;
 					while (script.Count > endPos && (maxStr == null || trimmed < max)) {
-						TextElement textElem = script[script.Count - 1] as TextElement;
-						if (textElem != null) {
+						if (script[script.Count - 1] is TextElement textElem) {
 							// If the preserve text option is enabled, cancel.
 							if (preserveText) {
 								break;
@@ -71,11 +70,10 @@ namespace TextPet.Commands {
 							trimmed += trimSize;
 							continue;
 						}
-						
+
 						// If the preserve commands option is enabled, cancel if this would trim commands.
 						if (preserveCommands) {
-							Command cmdElem = script[script.Count - 1] as Command;
-							if (cmdElem != null) {
+							if (script[script.Count - 1] is Command cmdElem) {
 								break;
 							}
 						}

@@ -45,21 +45,15 @@ namespace TextPet.Commands {
 			int excludeByte = excludeByteStr != null ? NumberParser.ParseInt32(excludeByteStr) : -1;
 
 			using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read)) {
-				FileIndexWriter writer = new FileIndexWriter(fs);
-				writer.AddSize = addSize;
-				writer.ExcludeByte = excludeByte;
-				writer.IncludeFormatComments = true;
-
-				if (comments) {
-					writer.IncludeGapComments = true;
-					writer.IncludeOverlapComments = true;
-					writer.IncludePointerWarnings = true;
-				}
-				if (bytes) {
-					writer.IncludePostBytesComments = true;
-				}
-
-				writer.Write(this.Core.FileIndex, this.Core.LoadedFile);
+				new FileIndexWriter(fs) {
+					AddSize = addSize,
+					ExcludeByte = excludeByte,
+					IncludeFormatComments = true,
+					IncludeGapComments = comments,
+					IncludeOverlapComments = comments,
+					IncludePointerWarnings = comments,
+					IncludePostBytesComments = bytes
+				}.Write(this.Core.FileIndex, this.Core.LoadedFile);
 			}
 		}
 	}

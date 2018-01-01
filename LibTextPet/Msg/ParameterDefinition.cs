@@ -46,7 +46,7 @@ namespace LibTextPet.Msg {
 		/// Gets or sets this parameter's value encoding.
 		/// </summary>
 		public Encoding ValueEncoding { get; internal set; }
-		
+
 		/// <summary>
 		/// Gets the values for jump targets that continue the current script.
 		/// </summary>
@@ -116,11 +116,8 @@ namespace LibTextPet.Msg {
 		/// <param name="value">The value to parse.</param>
 		/// <returns>The parsed value.</returns>
 		public long ParseString(string value) {
-			long result;
-			bool parsed = false;
-
 			// Try parsing as number.
-			parsed = NumberParser.TryParseInt64(value, out result);
+			bool parsed = NumberParser.TryParseInt64(value, out long result);
 
 			// Try parsing using value encoding.
 			if (!parsed && this.ValueEncoding != null) {
@@ -190,16 +187,13 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// The fields of this instance that are used to check for equality.
 		/// </summary>
-		private object[] equalityFields {
-			get {
-				return new object[] {
-					this.Name,
-					this.Offset,
-					this.Shift,
-					this.Bits,
-				};
-			}
-		}
+		private object[] EqualityFields => new object[] {
+			this.Name,
+			this.Offset,
+			this.Shift,
+			this.Bits,
+			this.Add,
+		};
 
 		/// <summary>
 		/// Returns the hash code for this parameter definition's value.
@@ -209,7 +203,7 @@ namespace LibTextPet.Msg {
 			// Compute FNV-1a hash from the hash codes of all fields.
 			int hash = -2128831035;
 			unchecked {
-				foreach (object obj in this.equalityFields) {
+				foreach (object obj in this.EqualityFields) {
 					int h = obj.GetHashCode();
 					for (int i = 0; i < 4; i++) {
 						hash ^= h & 0xFF;
@@ -243,12 +237,12 @@ namespace LibTextPet.Msg {
 		/// <param name="definition">Another parameter definition to compare to.</param>
 		/// <returns>true if both parameter definitions are the same type and represent the same value; otherwise, false.</returns>
 		public bool Equals(ParameterDefinition definition) {
-			if (ReferenceEquals(definition, null))
+			if (definition is null)
 				return false;
 
-			for (int i = 0; i < this.equalityFields.Length; i++) {
+			for (int i = 0; i < this.EqualityFields.Length; i++) {
 				// Need to use Equals here as != is compares as type object, not int
-				if (!this.equalityFields[i].Equals(definition.equalityFields[i])) {
+				if (!this.EqualityFields[i].Equals(definition.EqualityFields[i])) {
 					return false;
 				}
 			}
@@ -258,8 +252,8 @@ namespace LibTextPet.Msg {
 		public static bool operator ==(ParameterDefinition definition1, ParameterDefinition definition2) {
 			if (ReferenceEquals(definition1, definition2)) {
 				return true;
-			} else if (ReferenceEquals(definition1, null)) {
-				return ReferenceEquals(definition2, null);
+			} else if (definition1 is null) {
+				return definition2 is null;
 			} else {
 				return definition1.Equals(definition2);
 			}
@@ -268,8 +262,8 @@ namespace LibTextPet.Msg {
 		public static bool operator !=(ParameterDefinition definition1, ParameterDefinition definition2) {
 			if (ReferenceEquals(definition1, definition2)) {
 				return false;
-			} else if (ReferenceEquals(definition1, null)) {
-				return !ReferenceEquals(definition2, null);
+			} else if (definition1 is null) {
+				return !(definition2 is null);
 			} else {
 				return !definition1.Equals(definition2);
 			}
@@ -280,15 +274,12 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <returns>A new parameter definition that is a deep clone of this instance.</returns>
 		public ParameterDefinition Clone() {
-			int[] dataGroupSizes = new int[this.DataGroupSizes.Count];
-			this.DataGroupSizes.CopyTo(dataGroupSizes, 0);
-
 			return new ParameterDefinition(
 				String.Copy(this.Name), String.Copy(this.Description),
 				this.Offset, this.Shift, this.Bits,
 				this.Add, this.IsJump,
 				String.Copy(this.ValueEncodingName),
-				dataGroupSizes
+				new List<int>(this.DataGroupSizes)
 			);
 		}
 

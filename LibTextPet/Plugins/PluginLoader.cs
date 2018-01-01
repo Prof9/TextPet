@@ -75,10 +75,9 @@ namespace LibTextPet.Plugins {
 			if (filePath == null)
 				throw new ArgumentNullException(nameof(filePath), "The file path cannot be null.");
 
-			IEnumerable<IPlugin> plugins;
 
 			// Check if plugins for this file have previously been loaded.
-			if (!reload && this.loadedPlugins.TryGetValue(filePath, out plugins)) {
+			if (!reload && this.loadedPlugins.TryGetValue(filePath, out IEnumerable<IPlugin> plugins)) {
 				return plugins;
 			}
 

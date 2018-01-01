@@ -71,12 +71,13 @@ namespace TextPet.Commands {
 				minSize = Math.Max(0, NumberParser.ParseInt32(minSizeArg));
 			}
 
-			FileTextArchiveReader reader = new FileTextArchiveReader(this.Core.LoadedFile, this.Core.Game, this.Core.FileIndex);
-			reader.CheckGoodTextArchive = !deep;
-			reader.MinimumSize = minSize;
+			FileTextArchiveReader reader = new FileTextArchiveReader(this.Core.LoadedFile, this.Core.Game, this.Core.FileIndex) {
+				CheckGoodTextArchive = !deep,
+				MinimumSize = minSize,
+				UpdateFileIndex = !noRecord
+			};
 			reader.TextArchiveReader.IgnorePointerSyncErrors = true;
 			reader.TextArchiveReader.AutoSortPointers = false;
-			reader.UpdateFileIndex = !noRecord;
 
 			int found = 0;
 			

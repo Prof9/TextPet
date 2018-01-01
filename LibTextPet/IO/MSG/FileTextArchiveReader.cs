@@ -110,11 +110,11 @@ namespace LibTextPet.IO.Msg {
 						}
 
 						ms.Position = offset;
-						BinaryTextArchiveReader tempReader = new BinaryTextArchiveReader(ms, this.Game);
-						tempReader.IgnorePointerSyncErrors = this.TextArchiveReader.IgnorePointerSyncErrors;
-						tempReader.AutoSortPointers = this.TextArchiveReader.AutoSortPointers;
+						BinaryTextArchiveReader tempReader = new BinaryTextArchiveReader(ms, this.Game) {
+							IgnorePointerSyncErrors = this.TextArchiveReader.IgnorePointerSyncErrors,
+							AutoSortPointers = this.TextArchiveReader.AutoSortPointers
+						};
 						tempReader.ScriptReader.AcceptMostCompatibleFallback = this.TextArchiveReader.ScriptReader.AcceptMostCompatibleFallback;
-						tempReader.AutoSortPointers = this.TextArchiveReader.AutoSortPointers;
 						ta = tempReader.Read(length);
 
 						if (entryExists && entry.Compressed && ta == null) {

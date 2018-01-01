@@ -229,8 +229,8 @@ namespace LibTextPet.Plugins {
 
 				IList<int> parDgrp = section.PropertyAsInt64List("dgrp")?.Select(x => (int)x).ToList();
 				if (parDgrp == null) {
-					parDgrp = new int[superPar.DataGroupSizes.Count];
-					superPar.DataGroupSizes.CopyTo((int[])parDgrp, 0);
+					parDgrp = new int[superPar?.DataGroupSizes.Count ?? 0];
+					superPar?.DataGroupSizes.CopyTo((int[])parDgrp, 0);
 				}
 
 				// Create the parameter.

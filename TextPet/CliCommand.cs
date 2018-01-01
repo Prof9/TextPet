@@ -342,10 +342,9 @@ namespace TextPet {
 		/// <param name="longName">The long name of the optional argument.</param>
 		/// <returns>The value of the specified optional argument, or null if the argument was not present.</returns>
 		protected IList<string> GetOptionalValues(string longName) {
-			IList<string> values;
-			if (this.OptionalValues.TryGetValue(longName, out values)) {
+			if (this.OptionalValues.TryGetValue(longName, out IList<string> vals)) {
 				this.UsedOptionalValues.Add(longName);
-				return values;
+				return vals;
 			} else {
 				return null;
 			}

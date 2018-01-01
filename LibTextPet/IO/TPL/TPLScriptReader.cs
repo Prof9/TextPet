@@ -69,67 +69,66 @@ namespace LibTextPet.IO.TPL {
 				throw new ArgumentNullException(nameof(obj), "The script cannot be null.");
 
 			switch (token.Class) {
-				case (int)TPLTokenType.Symbol:
-					if (token.Value == "}") {
-						// Read terminator.
-						return ProcessResult.Stop;
+			case (int)TPLTokenType.Symbol:
+				if (token.Value == "}") {
+					// Read terminator.
+					return ProcessResult.Stop;
+				}
+				throw new ArgumentException("Unexpected symbol token '" + token.Value + "'.", nameof(token));
+			case (int)TPLTokenType.String:
+				// Create a new text element.
+				obj.Add(new TextElement(
+					// Unescape \" and \\.
+					Regex.Replace(token.Value, @"\\([\\""])", "$1")
+				));
+				return ProcessResult.ConsumeAndContinue;
+			case (int)TPLTokenType.Heredoc:
+				// Create a new text element.
+				obj.Add(new TextElement(
+					// Escape line breaks to \n.
+					Regex.Replace(token.Value, @"\r?\n", @"\n")
+				));
+				return ProcessResult.ConsumeAndContinue;
+			case (int)TPLTokenType.HeredocStart:
+				// Read the padding.
+				string padding = token.Value.Substring(0, token.Value.IndexOf('"'));
+				// Read the actual heredoc.
+				string[] lines = Regex.Split(ReadString((int)TPLTokenType.Heredoc), @"\r?\n");
+				// Remove the padding from each line.
+				for (int i = 0; i < lines.Length; i++) {
+					if (!lines[i].StartsWith(padding, StringComparison.Ordinal)) {
+						throw new InvalidDataException("The indentation of the heredoc contents do not match the indentation of the heredoc start.");
 					}
-					throw new ArgumentException("Unexpected symbol token '" + token.Value + "'.", nameof(token));
-				case (int)TPLTokenType.String:
-					// Create a new text element.
-					obj.Add(new TextElement(
-						// Unescape \" and \\.
-						Regex.Replace(token.Value, @"\\([\\""])", "$1")
-					));
-					return ProcessResult.ConsumeAndContinue;
-				case (int)TPLTokenType.Heredoc:
-					// Create a new text element.
-					obj.Add(new TextElement(
-						// Escape line breaks to \n.
-						Regex.Replace(token.Value, @"\r?\n", @"\n")
-					));
-					return ProcessResult.ConsumeAndContinue;
-				case (int)TPLTokenType.HeredocStart:
-					// Read the padding.
-					string padding = token.Value.Substring(0, token.Value.IndexOf('"'));
-					// Read the actual heredoc.
-					string[] lines = Regex.Split(ReadString((int)TPLTokenType.Heredoc), @"\r?\n");
-					// Remove the padding from each line.
-					for (int i = 0; i < lines.Length; i++) {
-						if (!lines[i].StartsWith(padding, StringComparison.Ordinal)) {
-							throw new InvalidDataException("The indentation of the heredoc contents do not match the indentation of the heredoc start.");
-						}
-						lines[i] = lines[i].Substring(padding.Length);
+					lines[i] = lines[i].Substring(padding.Length);
+				}
+				// Create a new text element.
+				obj.Add(new TextElement(
+					// Join the heredoc lines with a \n.
+					String.Join(@"\n", lines)
+				));
+				// Read the end of the heredoc.
+				ReadToken((int)TPLTokenType.HeredocEnd);
+				return ProcessResult.ConsumeAndContinue;
+			case (int)TPLTokenType.Word:
+				if (token.Value.StartsWith("$")) {
+					// Read raw byte.
+					if (token.Value.Length <= 1 || token.Value.Length > 3) {
+						throw new ArgumentException("Invalid hexadecimal byte element '" + token.Value + "'.", nameof(token));
 					}
-					// Create a new text element.
-					obj.Add(new TextElement(
-						// Join the heredoc lines with a \n.
-						String.Join(@"\n", lines)
-					));
-					// Read the end of the heredoc.
-					ReadToken((int)TPLTokenType.HeredocEnd);
+					if (!Byte.TryParse(token.Value.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte byteVal)) {
+						throw new ArgumentException("Could not parse hexadecimal byte element '" + token.Value + "'.", nameof(token));
+					}
+					obj.Add(new ByteElement(byteVal));
 					return ProcessResult.ConsumeAndContinue;
-				case (int)TPLTokenType.Word:
-					if (token.Value.StartsWith("$")) {
-						// Read raw byte.
-						if (token.Value.Length <= 1 || token.Value.Length > 3) {
-							throw new ArgumentException("Invalid hexadecimal byte element '" + token.Value + "'.", nameof(token));
-						}
-						byte byteVal;
-						if (!Byte.TryParse(token.Value.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byteVal)) {
-							throw new ArgumentException("Could not parse hexadecimal byte element '" + token.Value + "'.", nameof(token));
-						}
-						obj.Add(new ByteElement(byteVal));
+				} else {
+					// Read a script command.
+					obj.Add(this.CommandReader.SubRead(this, db, false));
+					if (this.CommandReader.Consumed) {
 						return ProcessResult.ConsumeAndContinue;
 					} else {
-						// Read a script command.
-						obj.Add(this.CommandReader.SubRead(this, db, false));
-						if (this.CommandReader.Consumed) {
-							return ProcessResult.ConsumeAndContinue;
-						} else {
-							return ProcessResult.Continue;
-						}
+						return ProcessResult.Continue;
 					}
+				}
 			}
 			throw new ArgumentException("Unrecognized token.", nameof(token));
 		}

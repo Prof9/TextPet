@@ -104,8 +104,7 @@ namespace LibTextPet.Msg {
 
 			// Add the command to the name map.
 			string name = definition.Name.ToUpperInvariant();
-			List<CommandDefinition> defs;
-			if (!this.nameMap.TryGetValue(name, out defs)) {
+			if (!this.nameMap.TryGetValue(name, out List<CommandDefinition> defs)) {
 				defs = new List<CommandDefinition>();
 			}
 			defs.Add(definition);
@@ -129,8 +128,7 @@ namespace LibTextPet.Msg {
 			List<CommandDefinition> result;
 
 			// Find all command definitions with the given name.
-			List<CommandDefinition> defs;
-			if (this.nameMap.TryGetValue(name.ToUpperInvariant(), out defs)) {
+			if (this.nameMap.TryGetValue(name.ToUpperInvariant(), out List<CommandDefinition> defs)) {
 				result = new List<CommandDefinition>(defs.Count);
 				foreach (CommandDefinition def in defs) {
 					result.Add(def);

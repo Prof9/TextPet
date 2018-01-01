@@ -115,13 +115,12 @@ namespace LibTextPet.IO.TPL {
 		/// <summary>
 		/// Writes the given fallback element to the output stream.
 		/// </summary>
-		/// <param name="element">The fallback element to write.</param>
-		protected override void WriteFallback(IScriptElement element) {
-			if (element == null)
-				throw new ArgumentNullException(nameof(element), "The script element cannot be null.");
+		/// <param name="elem">The fallback element to write.</param>
+		protected override void WriteFallback(IScriptElement elem) {
+			if (elem == null)
+				throw new ArgumentNullException(nameof(elem), "The script element cannot be null.");
 
-			ByteElement byteElement = element as ByteElement;
-			if (byteElement != null) {
+			if (elem is ByteElement byteElem) {
 				if (this.ConsecutiveByteElements >= 8) {
 					this.ConsecutiveByteElements = 0;
 					this.TextWriter.WriteLine();
@@ -134,13 +133,13 @@ namespace LibTextPet.IO.TPL {
 				}
 
 				this.TextWriter.Write("$");
-				this.TextWriter.Write(byteElement.Byte.ToString("X2", CultureInfo.InvariantCulture));
+				this.TextWriter.Write(byteElem.Byte.ToString("X2", CultureInfo.InvariantCulture));
 
 				this.ConsecutiveByteElements++;
 				return;
 			}
 
-			base.WriteFallback(element);
+			base.WriteFallback(elem);
 		}
 
 		protected override void ProcessDirective(DirectiveElement directive) {

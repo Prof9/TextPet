@@ -72,8 +72,9 @@ namespace LibTextPet.Msg {
 				}
 			}
 			for (int i = 0; i < exists.Length; i++) {
-				if (!exists[i])
+				if (!exists[i]) {
 					throw new ArgumentException("Data entry is missing parameter \"" + this.Definition.DataParameterDefinitions[i].Name + "\".", paramName);
+				}
 			}
 
 			return entry;

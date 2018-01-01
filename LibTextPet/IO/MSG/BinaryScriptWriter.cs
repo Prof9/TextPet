@@ -25,8 +25,7 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <param name="element">The fallback element to write.</param>
 		protected override void WriteFallback(IScriptElement element) {
-			ByteElement byteElement = element as ByteElement;
-			if (byteElement != null) {
+			if (element is ByteElement byteElement) {
 				this.BaseStream.WriteByte(byteElement.Byte);
 				return;
 			}

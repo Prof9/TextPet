@@ -123,8 +123,7 @@ namespace LibTextPet.IO.Msg {
 					}
 
 					foreach (ParameterDefinition parDef in elemDef.DataParameterDefinitions) {
-						long value;
-						if (!this.ReadParameterValue(bytes, parDef, out value)) {
+						if (!this.ReadParameterValue(bytes, parDef, out long value)) {
 							// Failed to read parameter.
 							return null;
 						}

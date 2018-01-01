@@ -87,7 +87,7 @@ namespace LibTextPet.IO {
 					MergeNextTextBox(baseObj, splitSnippet, a);
 				} else {
 					// Remove the old text box from A.
-					boxA = RemoveTextBoxCommands(baseObj, a);
+					boxA = ExtractTextBoxCommands(baseObj, a);
 
 					// Process the directives in boxB.
 					IList<DirectiveElement> directives = ExtractDirectives(boxB);
@@ -115,21 +115,20 @@ namespace LibTextPet.IO {
 		/// <param name="script">The script to extract from.</param>
 		/// <param name="index">The index at which to begin extracting.</param>
 		/// <returns>The extracted script commands.</returns>
-		private static IList<Command> RemoveTextBoxCommands(Script script, int index) {
+		private static IList<Command> ExtractTextBoxCommands(Script script, int index) {
 			// Extract commands from next text box.
-			IList<Command> boxA = new List<Command>();
+			IList<Command> box = new List<Command>();
 			while (index < script.Count && !EndsTextBox(script[index])) {
 				// We only need to copy the commands, so discard the other elements.
-				Command cmdA = script[index] as Command;
-				if (cmdA != null) {
-					// Extract the command from A.
-					boxA.Add(cmdA);
+				if (script[index] is Command cmd) {
+					// Extract the command.
+					box.Add(cmd);
 				}
 				// Discard the printed element.
 				script.RemoveAt(index);
 			}
 
-			return boxA;
+			return box;
 		}
 
 		/// <summary>
@@ -241,8 +240,7 @@ namespace LibTextPet.IO {
 					break;
 				}
 
-				DirectiveElement directive = script[start] as DirectiveElement;
-				if (directive != null && directive.DirectiveType == DirectiveType.TextBoxSeparator) {
+				if (script[start] is DirectiveElement directive && directive.DirectiveType == DirectiveType.TextBoxSeparator) {
 					break;
 				}
 
@@ -278,8 +276,7 @@ namespace LibTextPet.IO {
 		/// <param name="splitSnippet">The text box split script snippet to use.</param>
 		private static void PatchTextBox(Script box, IList<Command> commands, Script splitSnippet) {
 			for (int b = 0; b < box.Count; b++) {
-				DirectiveElement dirB = box[b] as DirectiveElement;
-				if (dirB != null && dirB.DirectiveType == DirectiveType.TextBoxSplit) {
+				if (box[b] is DirectiveElement dirB && dirB.DirectiveType == DirectiveType.TextBoxSplit) {
 					box.RemoveAt(b);
 					foreach (Command splitCmd in splitSnippet) {
 						box.Insert(b++, splitCmd);
@@ -288,8 +285,7 @@ namespace LibTextPet.IO {
 					continue;
 				}
 
-				Command cmdB = box[b] as Command;
-				if (cmdB == null) {
+				if (!(box[b] is Command cmdB)) {
 					continue;
 				}
 
@@ -380,8 +376,7 @@ namespace LibTextPet.IO {
 			}
 
 			// Treat printable command as part of text box.
-			Command cmd = element as Command;
-			if (cmd != null && cmd.Definition.Prints) {
+			if (element is Command cmd && cmd.Definition.Prints) {
 				return true;
 			}
 
@@ -398,13 +393,11 @@ namespace LibTextPet.IO {
 			if (element == null)
 				throw new ArgumentNullException(nameof(element), "The script element cannot be null.");
 
-			Command cmd = element as Command;
-			if (cmd != null && !cmd.Definition.Prints) {
+			if (element is Command cmd && !cmd.Definition.Prints) {
 				return true;
 			}
 
-			DirectiveElement directive = element as DirectiveElement;
-			if (directive != null && (
+			if (element is DirectiveElement directive && (
 				directive.DirectiveType == DirectiveType.TextBoxSeparator ||
 				directive.DirectiveType == DirectiveType.Script ||
 				directive.DirectiveType == DirectiveType.TextArchive
@@ -424,8 +417,7 @@ namespace LibTextPet.IO {
 			if (element == null)
 				throw new ArgumentNullException(nameof(element), "The script element cannot be null.");
 
-			DirectiveElement directive = element as DirectiveElement;
-			if (directive != null && directive.DirectiveType == DirectiveType.TextBoxSplit) {
+			if (element is DirectiveElement directive && directive.DirectiveType == DirectiveType.TextBoxSplit) {
 				return true;
 			} else {
 				return false;

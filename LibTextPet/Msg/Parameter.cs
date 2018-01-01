@@ -300,7 +300,7 @@ namespace LibTextPet.Msg {
 		public static bool operator ==(Parameter parameter1, Parameter parameter2) {
 			if (ReferenceEquals(parameter1, parameter2)) {
 				return true;
-			} else if (ReferenceEquals(parameter1, null) || ReferenceEquals(parameter2, null)) {
+			} else if (parameter1 is null || parameter2 is null) {
 				return false;
 			} else {
 				return parameter1.Equals(parameter2);

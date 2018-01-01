@@ -105,8 +105,7 @@ namespace LibTextPet.General {
 					continue;
 				}
 
-				CustomFallbackEncoding pluginAsEncoding = plugin as CustomFallbackEncoding;
-				if (pluginAsEncoding != null) {
+				if (plugin is CustomFallbackEncoding pluginAsEncoding) {
 					if (plugin.Name.Equals(this.EncodingName, StringComparison.OrdinalIgnoreCase)) {
 						if (encoding != null)
 							throw new ArgumentException("Encoding name \"" + this.EncodingName + "\" is ambiguous.", nameof(plugins));

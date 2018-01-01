@@ -72,8 +72,7 @@ namespace LibTextPet.IO {
 					}
 
 					// Is this an imported script?
-					DirectiveElement dirElem = patchScript[0] as DirectiveElement;
-					if (dirElem != null && dirElem.DirectiveType == DirectiveType.ImportScript) {
+					if (patchScript[0] is DirectiveElement dirElem && dirElem.DirectiveType == DirectiveType.ImportScript) {
 						if (patchScript.Count != 1) {
 							throw new FormatException("Script import directive must be the only script element. (Script " + scriptNum + ", text archive " + patchObj.Identifier + ")");
 						}
