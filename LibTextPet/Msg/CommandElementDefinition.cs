@@ -49,6 +49,25 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		public bool HasMultipleDataEntries => this.LengthParameterDefinition != null;
 
+		/// <summary>
+		/// Enumerates the data groups in this command element.
+		/// </summary>
+		public IEnumerable<IEnumerable<ParameterDefinition>> DataGroups {
+			get {
+				int offset = 0;
+				if (this.HasMultipleDataEntries) {
+					foreach (int size in this.LengthParameterDefinition.DataGroupSizes) {
+						// Return the current data group.
+						int count = Math.Min(size, this.DataParameterDefinitions.Count - offset);
+						yield return this.DataParameterDefinitions.Skip(offset).Take(count);
+						offset += count;
+					}
+				}
+				// Return any remaining data parameters.
+				yield return this.DataParameterDefinitions.Skip(offset);
+			}
+		}
+
 		
 		/// <summary>
 		/// Creates a new multi parameter with the given parameter definitions.

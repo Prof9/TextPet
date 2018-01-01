@@ -116,19 +116,21 @@ namespace LibTextPet.IO.Msg {
 					return null;
 				}
 
-				// Read data entries.
-				for (int i = 0; i < length; i++) {
-					if (elemDef.HasMultipleDataEntries) {
-						elem.Add(elem.CreateDataEntry());
-					}
-
-					foreach (ParameterDefinition parDef in elemDef.DataParameterDefinitions) {
-						if (!this.ReadParameterValue(bytes, parDef, out long value)) {
-							// Failed to read parameter.
-							return null;
+				foreach (IEnumerable<ParameterDefinition> dataParGroup in elemDef.DataGroups) {
+					// Read data entries.
+					for (int i = 0; i < length; i++) {
+						if (elemDef.HasMultipleDataEntries) {
+							elem.Add(elem.CreateDataEntry());
 						}
 
-						elem[i][parDef.Name].SetInt64(value);
+						foreach (ParameterDefinition parDef in dataParGroup) {
+							if (!this.ReadParameterValue(bytes, parDef, out long value)) {
+								// Failed to read parameter.
+								return null;
+							}
+
+							elem[i][parDef.Name].SetInt64(value);
+						}
 					}
 				}
 			}

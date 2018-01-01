@@ -45,10 +45,12 @@ namespace LibTextPet.IO.Msg {
 					WriteParameterValueToBytes(elem.Count, bytes, elem.Definition.LengthParameterDefinition);
 				}
 
-				// Write the data parameters.
-				foreach (ReadOnlyNamedCollection<Parameter> entry in elem) {
-					foreach (Parameter par in entry) {
-						WriteParameterValueToBytes(par, bytes);
+				foreach (IEnumerable<ParameterDefinition> dataGroup in elem.Definition.DataGroups) {
+					// Write the data parameters.
+					foreach (ReadOnlyNamedCollection<Parameter> entry in elem) {
+						foreach (ParameterDefinition parDef in dataGroup) {
+							WriteParameterValueToBytes(entry[parDef.Name], bytes);
+						}
 					}
 				}
 			}
