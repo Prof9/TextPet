@@ -178,7 +178,9 @@ namespace LibTextPet.IO {
 				}
 
 				// Append character and advance stream.
-				builder.Append(nextChar);
+				foreach (char c in nextChar) {
+					builder.Append(c);
+				}
 			}
 
 			return builder.ToString();
