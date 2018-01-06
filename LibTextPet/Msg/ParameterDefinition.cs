@@ -12,36 +12,36 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the name of the command parameter.
 		/// </summary>
-		public string Name { get; private set; }
+		public string Name { get; }
 		/// <summary>
 		/// Gets a description of the command parameter.
 		/// </summary>
-		public string Description { get; private set; }
+		public string Description { get; }
 		/// <summary>
 		/// Gets the byte offset of the command parameter from the start of the command.
 		/// </summary>
-		public int Offset { get; private set; }
+		public int Offset { get; }
 		/// <summary>
 		/// Gets the bit sub-offset of the command parameter from the start of the parameter.
 		/// </summary>
-		public int Shift { get; private set; }
+		public int Shift { get; }
 		/// <summary>
 		/// Gets the size of the command parameter in bits.
 		/// </summary>
-		public int Bits { get; private set; }
+		public int Bits { get; }
 		/// <summary>
 		/// Gets the number that is added to the value of this command parameter.
 		/// </summary>
-		public long Add { get; private set; }
+		public long Add { get; }
 		/// <summary>
 		/// Gets a boolean that indicates whether the command parameter is a jump target.
 		/// </summary>
-		public bool IsJump { get; private set; }
+		public bool IsJump { get; }
 
 		/// <summary>
 		/// Gets the name of this parameter's value encoding.
 		/// </summary>
-		public string ValueEncodingName { get; private set; }
+		public string ValueEncodingName { get; }
 		/// <summary>
 		/// Gets or sets this parameter's value encoding.
 		/// </summary>
@@ -55,12 +55,16 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the data group sizes for this parameter's sub-parameters.
 		/// </summary>
-		public ReadOnlyCollection<int> DataGroupSizes { get; private set; }
+		public ReadOnlyCollection<int> DataGroupSizes { get; }
 
+		/// <summary>
+		/// Gets the sub-definition for an attached string, if any.
+		/// </summary>
+		public StringSubDefinition StringDefinition { get; }
 		/// <summary>
 		/// Gets a boolean that indicates whether this parameter is a string.
 		/// </summary>
-		public bool IsString => false;
+		public bool IsString => this.StringDefinition != null;
 
 		/// <summary>
 		/// Constructs a script command parameter definition with the given name, description, byte offset, bit sub-offset and amount of bits.
@@ -74,18 +78,14 @@ namespace LibTextPet.Msg {
 		/// <param name="isJump">A boolean that indicates whether the command parameter is a jump target.</param>
 		/// <param name="valueEncoding">The name of the encoding to use for this parameter's value.</param>
 		/// <param name="dataGroupSizes">The list of data group sizes for this parameter's sub-parameters, or null.</param>
-		public ParameterDefinition(string name, string description, int offset,
-			int shift, int bits, long add, bool isJump, string valueEncoding, IList<int> dataGroupSizes) {
+		public ParameterDefinition(string name, string description, int offset, int shift, int bits, long add,
+			bool isJump, string valueEncoding, IList<int> dataGroupSizes, StringSubDefinition stringDef) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (name.Length <= 0)
 				throw new ArgumentException("The name cannot be empty.", nameof(name));
-			if (offset < 0)
-				throw new ArgumentOutOfRangeException(nameof(offset), "The offset cannot be less than 0.");
 			if (shift < 0)
 				throw new ArgumentOutOfRangeException(nameof(shift), shift, "The bit sub-offset cannot be less than 0.");
-			if (bits < 1)
-				throw new ArgumentOutOfRangeException(nameof(bits), bits, "The bit count cannot be less than 1.");
 
 			this.Name = name;
 			this.Description = description ?? "";
@@ -97,6 +97,7 @@ namespace LibTextPet.Msg {
 			this.ValueEncodingName = valueEncoding;
 			this.ValueEncoding = null;
 			this.DataGroupSizes = new ReadOnlyCollection<int>(dataGroupSizes ?? new List<int>(0));
+			this.StringDefinition = stringDef;
 		}
 
 		/// <summary>
@@ -163,7 +164,7 @@ namespace LibTextPet.Msg {
 		}
 
 		/// <summary>
-		/// Gets the minimum number of bytes required to read this parameter's value.
+		/// Gets the minimum number of bytes required to fit this parameter's value.
 		/// </summary>
 		public int MinimumByteCount {
 			get {
@@ -275,7 +276,8 @@ namespace LibTextPet.Msg {
 				this.Offset, this.Shift, this.Bits,
 				this.Add, this.IsJump,
 				this.ValueEncodingName,
-				new List<int>(this.DataGroupSizes)
+				new List<int>(this.DataGroupSizes),
+				this.StringDefinition.Clone()
 			);
 		}
 

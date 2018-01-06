@@ -32,7 +32,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="encoding">The encoding to use.</param>
 		/// <param name="databases">The command databases to use, in order of preference.</param>
 		public BinaryScriptReader(Stream stream, CustomFallbackEncoding encoding, params CommandDatabase[] databases)
-			: base(stream, encoding, CreateCommandReaders(stream, databases)) { }
+			: base(stream, encoding, CreateCommandReaders(stream, encoding, databases)) { }
 
 		/// <summary>
 		/// Reads a script from the current input stream.
@@ -56,15 +56,17 @@ namespace LibTextPet.IO.Msg {
 		/// <summary>
 		/// Creates command readers with the specified command databases that read from the specified input stream.
 		/// </summary>
+		/// <param name="stream">The stream to read from.</param>
 		/// <param name="databases">The command databases to use.</param>
+		/// <param name="encoding">The encoding to use.</param>
 		/// <returns>The resulting command readers.</returns>
-		private static BinaryCommandReader[] CreateCommandReaders(Stream stream, params CommandDatabase[] databases) {
+		private static BinaryCommandReader[] CreateCommandReaders(Stream stream, CustomFallbackEncoding encoding, params CommandDatabase[] databases) {
 			if (databases == null)
 				throw new ArgumentNullException(nameof(databases), "The command databases cannot be null.");
 
 			BinaryCommandReader[] readers = new BinaryCommandReader[databases.Length];
 			for (int i = 0; i < databases.Length; i++) {
-				readers[i] = new BinaryCommandReader(stream, databases[i]);
+				readers[i] = new BinaryCommandReader(stream, databases[i], encoding);
 			}
 
 			return readers;

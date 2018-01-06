@@ -157,7 +157,6 @@ namespace LibTextPet.Plugins {
 		/// <param name="jumpContVals">The values for jump targets that lead to continuing the current script</param>
 		/// <param name="superCmdDef">The command definition for the base command, or null if this command is not an extension.</param>
 		/// <returns></returns>
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1309:UseOrdinalStringComparison", MessageId = "System.String.Equals(System.String,System.StringComparison)")]
 		private static List<CommandElementDefinition> LoadCommandElementDefinitions(IEnumerator<IniSection> enumerator, IList<long> jumpContVals, CommandDefinition superCmdDef) {
 			// List of command elements in insertion order.
 			List<string> elemList = new List<string>();
@@ -195,7 +194,7 @@ namespace LibTextPet.Plugins {
 				// Find the base parameter.
 				ParameterDefinition superPar = null;
 				if (parDict.ContainsKey(parName[0])) {
-					superPar = parDict[parName[0]].FirstOrDefault(pd => pd.Name.Equals(parNameMain, StringComparison.InvariantCultureIgnoreCase));
+					superPar = parDict[parName[0]].FirstOrDefault(pd => pd.Name.Equals(parNameMain, StringComparison.OrdinalIgnoreCase));
 				}
 				if (superCmdDef != null && superPar == null) {
 					throw new InvalidDataException("Base parameter \"" + parNameFull + "\" not found.");
@@ -222,11 +221,11 @@ namespace LibTextPet.Plugins {
 					shift = superPar.Shift;
 				}
 
-				int parBits = (int)section.PropertyAsInt64("bits", superPar?.Bits ?? 8);
+				int parBits = (int)section.PropertyAsInt64("bits", superPar?.Bits ?? 0);
 				string parDesc = section.PropertyAsString("desc", superPar?.Description);
 				string parType = section.PropertyAsString("type", "DEC").ToUpperInvariant(); // TODO
-				int parAddv = (int)section.PropertyAsInt64("addv", superPar?.Add ?? 0);
-				string parValn = section.PropertyAsString("valn", superPar?.ValueEncodingName);
+				int parAddV = (int)section.PropertyAsInt64("addv", superPar?.Add ?? 0);
+				string parValN = section.PropertyAsString("valn", superPar?.ValueEncodingName);
 
 				IList<int> parDgrp = section.PropertyAsInt64List("dgrp")?.Select(x => (int)x).ToList();
 				if (parDgrp == null) {
@@ -234,10 +233,21 @@ namespace LibTextPet.Plugins {
 					superPar?.DataGroupSizes.CopyTo((int[])parDgrp, 0);
 				}
 
+				// Get the string properties.
+				int parStrO = (int)section.PropertyAsInt64("stro", superPar?.StringDefinition?.Offset ?? 0);
+				string parStrU = section.PropertyAsString("stru", superPar?.StringDefinition?.Unit.ToString() ?? null);
+				int parStrL = (int)section.PropertyAsInt64("strl", superPar?.StringDefinition?.FixedLength ?? 0);
+
+				// Create the string sub-definition.
+				StringSubDefinition strDef = null;
+				if (parStrU != null) {
+					strDef = new StringSubDefinition(parStrO, ParseStringUnit(parStrU), parStrL);
+				}
+
 				// Create the parameter.
 				bool isJump = parType == "JUMP";
 				ParameterDefinition parDef = new ParameterDefinition(
-					parNameMain, parDesc, offset, shift, parBits, parAddv, isJump, parValn, parDgrp
+					parNameMain, parDesc, offset, shift, parBits, parAddV, isJump, parValN, parDgrp, strDef
 				);
 
 				// Set jump continue values.
@@ -287,9 +297,8 @@ namespace LibTextPet.Plugins {
 		/// <param name="superCmdDef"></param>
 		/// <param name="elemList"></param>
 		/// <returns></returns>
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1309:UseOrdinalStringComparison", MessageId = "System.Collections.Generic.Dictionary`2<System.String,System.Collections.Generic.IList`1<LibTextPet.Msg.ParameterDefinition>>.#ctor(System.Collections.Generic.IEqualityComparer`1<System.String>)")]
 		private static Dictionary<string, IList<ParameterDefinition>> CreateParameterDictionary(CommandDefinition superCmdDef, List<string> elemList) {
-			Dictionary<string, IList<ParameterDefinition>> parDict = new Dictionary<string, IList<ParameterDefinition>>(StringComparer.InvariantCultureIgnoreCase);
+			Dictionary<string, IList<ParameterDefinition>> parDict = new Dictionary<string, IList<ParameterDefinition>>(StringComparer.OrdinalIgnoreCase);
 
 			if (superCmdDef != null) {
 				// Add the super elements to the list and dictionary.
@@ -317,9 +326,8 @@ namespace LibTextPet.Plugins {
 		/// <param name="isExt">true if the base command is to be extended; otherwise, false.</param>
 		/// <param name="name">The name of the command to find.</param>
 		/// <returns>The base command, or null if there is no base command.</returns>
-		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1309:UseOrdinalStringComparison", MessageId = "System.String.Equals(System.String,System.StringComparison)")]
 		private static CommandDefinition FindPreviousCommand(IEnumerable<CommandDefinition> defs, bool isExt, string name) {
-			CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
+			CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 			if (isExt && super == null) {
 				throw new InvalidDataException("No command \"" + name + "\" found to extend.");
 			}
@@ -338,18 +346,31 @@ namespace LibTextPet.Plugins {
 		private static EndType ParseEndType(string value) {
 			EndType endType = EndType.Default;
 			switch (value.ToUpperInvariant()) {
-				case "ALWAYS":
-					endType = EndType.Always;
-					break;
-				case "NEVER":
-					endType = EndType.Never;
-					break;
-				case "DEFAULT":
-				default:
-					endType = EndType.Default;
-					break;
+			case "ALWAYS":
+				endType = EndType.Always;
+				break;
+			case "NEVER":
+				endType = EndType.Never;
+				break;
+			case "DEFAULT":
+			default:
+				endType = EndType.Default;
+				break;
 			}
 			return endType;
+		}
+
+		private static StringLengthUnit ParseStringUnit(string value) {
+			switch (value.ToUpperInvariant()) {
+			case "CHAR":
+			case "CHARS":
+				return StringLengthUnit.Char;
+			case "BYTE":
+			case "BYTES":
+				return StringLengthUnit.Byte;
+			default:
+				throw new InvalidDataException("\"" + value + "\" is not a valid string unit.");
+			}
 		}
 	}
 }

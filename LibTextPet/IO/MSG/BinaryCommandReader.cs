@@ -1,5 +1,6 @@
 ﻿using LibTextPet.General;
 using LibTextPet.Msg;
+using LibTextPet.Text;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,12 +13,20 @@ namespace LibTextPet.IO.Msg {
 	/// </summary>
 	public class BinaryCommandReader : SingleManager, IReader<Command> {
 		/// <summary>
+		/// Gets a text reader for the current input stream.
+		/// </summary>
+		protected ConservativeStreamReader TextReader { get; private set; }
+
+		/// <summary>
 		/// Creates a binary command reader that reads from the specified input stream.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="database">The command database to use.</param>
-		public BinaryCommandReader(Stream stream, CommandDatabase database) 
-			: base(stream, true, FileAccess.Read, database) { }
+		/// <param name="encoding">The encoding to use.</param>
+		public BinaryCommandReader(Stream stream, CommandDatabase database, CustomFallbackEncoding encoding) 
+			: base(stream, true, FileAccess.Read, database) {
+			this.TextReader = new ConservativeStreamReader(stream, encoding);
+		}
 
 		/// <summary>
 		/// Reads the next script command from the input stream.
@@ -124,12 +133,10 @@ namespace LibTextPet.IO.Msg {
 						}
 
 						foreach (ParameterDefinition parDef in dataParGroup) {
-							if (!this.ReadParameterValue(bytes, parDef, out long value)) {
+							if (!this.ReadParameter(bytes, elem[i][parDef.Name])) {
 								// Failed to read parameter.
 								return null;
 							}
-
-							elem[i][parDef.Name].NumberValue = value;
 						}
 					}
 				}
@@ -139,6 +146,98 @@ namespace LibTextPet.IO.Msg {
 			this.BaseStream.Position -= definition.RewindCount;
 
 			return cmd;
+		}
+
+		private bool ReadParameter(IList<byte> readBytes, Parameter par) {
+			if (!this.ReadParameterValue(readBytes, par.Definition, out long value)) {
+				// Failed to read parameter number.
+				return false;
+			}
+
+			if (par.IsNumber) {
+				par.NumberValue = value;
+				return true;
+			}
+
+			// Parameter is a string, need to load this next.
+			StringBuilder builder = new StringBuilder();
+			byte[] buffer;
+
+			// Use variable length if parameter has a number component.
+			long varLength = par.Definition.Bits > 0 ? value : Int64.MaxValue;
+			long fixLength = par.Definition.StringDefinition.FixedLength > 0 ? par.Definition.StringDefinition.FixedLength : Int64.MaxValue;
+
+			// Use minimum string length.
+			long strLen = Math.Min(varLength, fixLength);
+			if (strLen == Int64.MaxValue || strLen < 0) {
+				// No valid string length available.
+				return false;
+			}
+
+			// Fast-forward to string offset, if needed.
+			int strOffset = 0 + par.Definition.StringDefinition.Offset;
+			if (strOffset > readBytes.Count) {
+				buffer = new byte[strOffset - readBytes.Count];
+				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
+					// Could not read the required bytes.
+					return false;
+				}
+				foreach (byte b in buffer) {
+					readBytes.Add(b);
+				}
+			}
+
+			// Read the string.
+			long strPos = this.BaseStream.Position;
+			switch (par.Definition.StringDefinition.Unit) {
+			case StringLengthUnit.Char:
+				for (int i = 0; i < strLen; i++) {
+					// Read the next character.
+					IEnumerable<char> nextChar = this.TextReader.Read();
+					//if (!nextChar.Any()) {
+					//	// Could not read next character.
+					//	return false;
+					//}
+
+					foreach (char c in nextChar) {
+						builder.Append(c);
+					}
+				}
+
+				// Rewind and add read bytes to buffer.
+				buffer = new byte[this.BaseStream.Position - strPos];
+				this.BaseStream.Position = strPos;
+				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
+					// Could not read the required bytes the second time. Should never happen...
+					return false;
+				}
+				foreach (byte b in buffer) {
+					readBytes.Add(b);
+				}
+				break;
+			case StringLengthUnit.Byte:
+				// Read the bytes.
+				buffer = new byte[strLen];
+				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
+					// Could not read the required bytes.
+					return false;
+				}
+				foreach (byte b in buffer) {
+					readBytes.Add(b);
+				}
+
+				// Decode the string.
+				string s = this.TextReader.Encoding.GetString(buffer);
+				if (s.Contains('\uFFFD')) {
+					// Could not properly decode the string.
+					return false;
+				}
+				builder.Append(s);
+				break;
+			}
+
+			par.StringValue = builder.ToString();
+			return true;
 		}
 
 		/// <summary>

@@ -52,7 +52,9 @@ namespace LibTextPet.IO.TPL {
 						Parameter par = entry[j];
 						// Only write a comma after the last data parameter of the non-last entry.
 						bool writeComma = j == entry.Count - 1 && i != elem.Count - 1;
-						builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = {2}{3}{4}", indent, par.Name, par.ToString(), writeComma ? "," : "", newLine);
+
+						builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = {2}{3}{2}{4}{5}",
+							indent, par.Name, par.IsString ? "\"" : "", par.ToString(), writeComma ? "," : "", newLine);
 					}
 				}
 
