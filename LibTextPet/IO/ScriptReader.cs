@@ -45,11 +45,11 @@ namespace LibTextPet.IO {
 		protected ScriptReader(Stream stream, CustomFallbackEncoding encoding,
 			params T[] commandReaders)
 			: base(stream, true, FileAccess.Read, encoding,
-				  // Aggregate databases of all command readers.
-				  commandReaders
-				  .SelectMany<T, CommandDatabase>(a => a.Databases)
-				  .Distinct()
-				  .ToArray()) {
+				// Aggregate databases of all command readers.
+				commandReaders
+				.SelectMany<T, CommandDatabase>(a => a.Databases)
+				.Distinct()
+				.ToArray()) {
 
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
 
@@ -81,7 +81,7 @@ namespace LibTextPet.IO {
 				if (script != null) {
 					// Set the command database name for the script.
 					script.DatabaseName = commandReader.Database.Name;
-                    break;
+					break;
 				}
 			}
 
@@ -168,19 +168,17 @@ namespace LibTextPet.IO {
 		protected virtual string ReadText() {
 			StringBuilder builder = new StringBuilder();
 
-			// Determine lookahead.
-			char[] buffer = new char[this.Encoding.GetMaxCharCount(this.Encoding.GetMaxByteCount(1))];
 			while (HasNext()) {
 				// Read the next character from the input stream.
-				int read = this.TextReader.Read(buffer, 0, 1);
+				IEnumerable<char> nextChar = this.TextReader.Read();
 
 				// Check if next character is unrecognized or end of stream.
-				if (read == 0) {
+				if (!nextChar.Any()) {
 					break;
 				}
 
 				// Append character and advance stream.
-				builder.Append(buffer, 0, read);
+				builder.Append(nextChar);
 			}
 
 			return builder.ToString();

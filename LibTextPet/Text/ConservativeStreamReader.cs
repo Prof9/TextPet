@@ -9,6 +9,8 @@ namespace LibTextPet.Text {
 	/// A stream reader that reads text from a stream, without unnecessarily advancing the stream position.
 	/// </summary>
     public class ConservativeStreamReader {
+		private char[] charBuffer;
+
 		/// <summary>
 		/// Gets the base stream that is being read from.
 		/// </summary>
@@ -38,12 +40,13 @@ namespace LibTextPet.Text {
 			// This is probably not 100% safe...
 			this.Encoding = (CustomFallbackEncoding)encoding.Clone();
 			this.Encoding.DecoderFallback = new DecoderReplacementFallback("\uFFFD");
+
+			this.charBuffer = new char[this.Encoding.GetMaxCharCount(1)];
 		}
 
 		public IEnumerable<char> Read() {
-			char[] buffer = new char[this.Encoding.GetMaxCharCount(1)];
-			int read = this.Read(buffer, 0, 1);
-			return buffer.Take(read);
+			int read = this.Read(this.charBuffer, 0, 1);
+			return this.charBuffer.Take(read);
 		}
 
 		/// <summary>
