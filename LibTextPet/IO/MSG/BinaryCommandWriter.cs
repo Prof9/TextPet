@@ -72,7 +72,7 @@ namespace LibTextPet.IO.Msg {
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
 
-			WriteParameterValueToBytes(par.ToInt64(), bytes, par.Definition);
+			WriteParameterValueToBytes(par.NumberValue, bytes, par.Definition);
 		}
 
 		/// <summary>

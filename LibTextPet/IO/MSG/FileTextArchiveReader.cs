@@ -321,7 +321,7 @@ namespace LibTextPet.IO.Msg {
 		/// <returns>true if the command contains an out-of-range jump; otherwise, false.</returns>
 		private static bool CommandContainsOutOfRangeJump(Command cmd, int taSize) {
 			foreach (Parameter par in cmd.FlattenParameters()) {
-				if (par.IsJump && par.ToInt64() != 0xFF && par.ToInt64() >= taSize) {
+				if (par.IsJump && par.NumberValue != 0xFF && par.NumberValue >= taSize) {
 					return true;
 				}
 			}

@@ -273,7 +273,11 @@ namespace LibTextPet.Msg {
 
 					// Copy over the parameters.
 					foreach (Parameter par in elem[i]) {
-						dataEntry[par.Name].Bytes = par.Bytes;
+						if (par.IsString) {
+							dataEntry[par.Name].StringValue = par.StringValue;
+						} else {
+							dataEntry[par.Name].NumberValue = par.NumberValue;
+						}
 					}
 
 					newElem.Add(dataEntry);
@@ -331,7 +335,7 @@ namespace LibTextPet.Msg {
 						ParameterDefinition newParDef = newElemDef.DataParameterDefinitions[par.Name];
 
 						// Check if parameter is in range.
-						if (!newParDef.InRange(par.ToInt64())) {
+						if (!newParDef.IsString && !newParDef.InRange(par.NumberValue)) {
 							return false;
 						}
 					}

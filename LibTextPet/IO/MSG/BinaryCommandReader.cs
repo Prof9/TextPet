@@ -129,7 +129,7 @@ namespace LibTextPet.IO.Msg {
 								return null;
 							}
 
-							elem[i][parDef.Name].SetInt64(value);
+							elem[i][parDef.Name].NumberValue = value;
 						}
 					}
 				}

@@ -58,6 +58,11 @@ namespace LibTextPet.Msg {
 		public ReadOnlyCollection<int> DataGroupSizes { get; private set; }
 
 		/// <summary>
+		/// Gets a boolean that indicates whether this parameter is a string.
+		/// </summary>
+		public bool IsString => false;
+
+		/// <summary>
 		/// Constructs a script command parameter definition with the given name, description, byte offset, bit sub-offset and amount of bits.
 		/// </summary>
 		/// <param name="name">The name of the command parameter.</param>
@@ -217,12 +222,9 @@ namespace LibTextPet.Msg {
 		public override bool Equals(object obj) {
 			if (obj == null)
 				return false;
-			Parameter par = obj as Parameter;
-			if (par != null) {
-				return Equals(par);
-			} else {
-				return false;
-			}
+
+			return obj is Parameter par
+				&& this.Equals(par);
 		}
 
 		/// <summary>
@@ -269,10 +271,10 @@ namespace LibTextPet.Msg {
 		/// <returns>A new parameter definition that is a deep clone of this instance.</returns>
 		public ParameterDefinition Clone() {
 			return new ParameterDefinition(
-				String.Copy(this.Name), String.Copy(this.Description),
+				this.Name, this.Description,
 				this.Offset, this.Shift, this.Bits,
 				this.Add, this.IsJump,
-				String.Copy(this.ValueEncodingName),
+				this.ValueEncodingName,
 				new List<int>(this.DataGroupSizes)
 			);
 		}
