@@ -74,6 +74,7 @@ namespace LibTextPet.IO.TPL {
 			if (this.ConsecutiveByteElements > 0) {
 				this.ConsecutiveByteElements = 0;
 				this.TextWriter.WriteLine();
+				this.TextWriter.Flush();
 			}
 
 			// Determine whether to write heredoc or regular string.
@@ -107,6 +108,7 @@ namespace LibTextPet.IO.TPL {
 			if (this.ConsecutiveByteElements > 0) {
 				this.ConsecutiveByteElements = 0;
 				this.TextWriter.WriteLine();
+				this.TextWriter.Flush();
 			}
 
 			base.WriteCommand(command);
@@ -136,6 +138,7 @@ namespace LibTextPet.IO.TPL {
 				this.TextWriter.Write(byteElem.Byte.ToString("X2", CultureInfo.InvariantCulture));
 
 				this.ConsecutiveByteElements++;
+				this.TextWriter.Flush();
 				return;
 			}
 
