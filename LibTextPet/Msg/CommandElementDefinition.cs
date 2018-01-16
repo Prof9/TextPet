@@ -64,7 +64,9 @@ namespace LibTextPet.Msg {
 					}
 				}
 				// Return any remaining data parameters.
-				yield return this.DataParameterDefinitions.Skip(offset);
+				if (offset < this.DataParameterDefinitions.Count) {
+					yield return this.DataParameterDefinitions.Skip(offset);
+				}
 			}
 		}
 

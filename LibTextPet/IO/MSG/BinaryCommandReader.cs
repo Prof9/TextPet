@@ -128,7 +128,7 @@ namespace LibTextPet.IO.Msg {
 				foreach (IEnumerable<ParameterDefinition> dataParGroup in elemDef.DataGroups) {
 					// Read data entries.
 					for (int i = 0; i < length; i++) {
-						if (elemDef.HasMultipleDataEntries) {
+						while (elemDef.HasMultipleDataEntries && i >= elem.Count) {
 							elem.Add(elem.CreateDataEntry());
 						}
 
