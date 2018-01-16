@@ -91,13 +91,18 @@ namespace LibTextPet.IO.TPL {
 						elemDef = elemDefs[token.Value];
 					}
 
-					// Check that this is a valid parameter in the current command element.
-					ReadOnlyNamedCollection<ParameterDefinition> defs = elemDef.DataParameterDefinitions;
-					if (!defs.Contains(token.Value)) {
-						// Unrecognized parameter in the middle of a command element.
-						throw new InvalidDataException("Unrecognized parameter \"" + token.Value + "\" for element \"" + elemDef.Name + "\".");
+					ParameterDefinition parDef;
+					if (elemDef.HasMultipleDataEntries && this.currentDataBlockDefinition == null) {
+						parDef = elemDef.LengthParameterDefinition;
+					} else {
+						// Check that this is a valid parameter in the current command element.
+						ReadOnlyNamedCollection<ParameterDefinition> defs = elemDef.DataParameterDefinitions;
+						if (!defs.Contains(token.Value)) {
+							// Unrecognized parameter in the middle of a command element.
+							throw new InvalidDataException("Unrecognized parameter \"" + token.Value + "\" for element \"" + elemDef.Name + "\".");
+						}
+						parDef = defs[token.Value];
 					}
-					ParameterDefinition parDef = defs[token.Value];
 
 					// Read the '='.
 					if (ReadToken((int)TPLTokenType.Symbol).Value != "=") {
@@ -127,7 +132,13 @@ namespace LibTextPet.IO.TPL {
 						}
 
 						// Read the value.
-						string value = ReadString((int)TPLTokenType.Word);
+						string value;
+						if (parDef.IsString) {
+							value = ReadString((int)TPLTokenType.String);
+							value = value.Substring(1, value.Length - 2).Replace("\\\"", "\"");
+						} else {
+							value = ReadString((int)TPLTokenType.Word);
+						}
 
 						// Set the value.
 						elem[elem.Count - 1][parDef.Name].SetString(value);
