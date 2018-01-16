@@ -277,7 +277,7 @@ namespace LibTextPet.Msg {
 				this.Add, this.IsJump,
 				this.ValueEncodingName,
 				new List<int>(this.DataGroupSizes),
-				this.StringDefinition.Clone()
+				this.StringDefinition?.Clone() ?? null
 			);
 		}
 
