@@ -183,7 +183,7 @@ namespace LibTextPet.Plugins {
 				// Get parameter name.
 				string parNameFull = section.PropertyAsString("NAME");
 				string[] parName = parNameFull.Split('.');
-				if (parName.Length >= 2) {
+				if (parName.Length > 2) {
 					throw new InvalidDataException("Nested data parameters are not supported.");
 				}
 				if (parName.Length < 1) {
@@ -268,7 +268,8 @@ namespace LibTextPet.Plugins {
 					parDict[parName[0]].Add(parDef);
 				} else {
 					// Replace parameter.
-					int i = parDict[parName[0]].IndexOf(superPar);
+					//int i = parDict[parName[0]].IndexOf(superPar);
+					int i = parDict[parName[0]].TakeWhile(pd => !pd.Name.Equals(superPar.Name, StringComparison.OrdinalIgnoreCase)).Count();
 					parDict[parName[0]][i] = parDef;
 				}
 			}
