@@ -227,6 +227,23 @@ namespace LibTextPet.Plugins {
 				int parAddV = (int)section.PropertyAsInt64("addv", superPar?.Add ?? 0);
 				string parValN = section.PropertyAsString("valn", superPar?.ValueEncodingName);
 
+				OffsetType offsetType;
+				string parRela = section.PropertyAsString("rela", superPar?.RelativeLabel)?.Trim() ?? "^";
+				switch (parRela.ToUpperInvariant()) {
+				case null:
+				case "^":
+					offsetType = OffsetType.Start;
+					parRela = null;
+					break;
+				case "$":
+					offsetType = OffsetType.End;
+					parRela = null;
+					break;
+				default:
+					offsetType = OffsetType.Label;
+					break;
+				}
+
 				IList<int> parDgrp = section.PropertyAsInt64List("dgrp")?.Select(x => (int)x).ToList();
 				if (parDgrp == null) {
 					parDgrp = new int[superPar?.DataGroupSizes.Count ?? 0];
@@ -247,7 +264,7 @@ namespace LibTextPet.Plugins {
 				// Create the parameter.
 				bool isJump = parType == "JUMP";
 				ParameterDefinition parDef = new ParameterDefinition(
-					parNameMain, parDesc, offset, shift, parBits, parAddV, isJump, parValN, parDgrp, strDef
+					parNameMain, parDesc, offset, shift, parBits, parAddV, isJump, offsetType, parRela, parValN, parDgrp, strDef
 				);
 
 				// Set jump continue values.

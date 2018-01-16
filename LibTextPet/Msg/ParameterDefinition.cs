@@ -39,6 +39,15 @@ namespace LibTextPet.Msg {
 		public bool IsJump { get; }
 
 		/// <summary>
+		/// Gets the relative offset type for this command parameter's offset.
+		/// </summary>
+		public OffsetType OffsetType { get; }
+		/// <summary>
+		/// Gets the label that this command parameter's offset is relative to.
+		/// </summary>
+		public string RelativeLabel { get; }
+
+		/// <summary>
 		/// Gets the name of this parameter's value encoding.
 		/// </summary>
 		public string ValueEncodingName { get; }
@@ -78,23 +87,29 @@ namespace LibTextPet.Msg {
 		/// <param name="isJump">A boolean that indicates whether the command parameter is a jump target.</param>
 		/// <param name="valueEncoding">The name of the encoding to use for this parameter's value.</param>
 		/// <param name="dataGroupSizes">The list of data group sizes for this parameter's sub-parameters, or null.</param>
-		public ParameterDefinition(string name, string description, int offset, int shift, int bits, long add,
-			bool isJump, string valueEncoding, IList<int> dataGroupSizes, StringSubDefinition stringDef) {
+		public ParameterDefinition(string name, string description, int offset, int shift, int bits, long add, bool isJump,
+			OffsetType offsetType, string label, string valueEncoding, IList<int> dataGroupSizes, StringSubDefinition stringDef) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (name.Length <= 0)
 				throw new ArgumentException("The name cannot be empty.", nameof(name));
 			if (shift < 0)
 				throw new ArgumentOutOfRangeException(nameof(shift), shift, "The bit sub-offset cannot be less than 0.");
+			if (offsetType != OffsetType.Label && label != null)
+				throw new ArgumentException("The label cannot be non-null unless offset type is set to label.", nameof(label));
+			if (offsetType == OffsetType.Label && label == null)
+				throw new ArgumentNullException(nameof(label), "The label cannot be null if offset type is set to label.");
 
-			this.Name = name;
-			this.Description = description ?? "";
+			this.Name = name.Trim();
+			this.Description = description?.Trim() ?? "";
 			this.Offset = offset;
 			this.Shift = shift;
 			this.Bits = bits;
 			this.Add = add;
 			this.IsJump = isJump;
-			this.ValueEncodingName = valueEncoding;
+			this.OffsetType = offsetType;
+			this.RelativeLabel = label?.Trim();
+			this.ValueEncodingName = valueEncoding?.Trim();
 			this.ValueEncoding = null;
 			this.DataGroupSizes = new ReadOnlyCollection<int>(dataGroupSizes ?? new List<int>(0));
 			this.StringDefinition = stringDef;
@@ -193,6 +208,9 @@ namespace LibTextPet.Msg {
 			this.Shift,
 			this.Bits,
 			this.Add,
+			this.OffsetType,
+			this.RelativeLabel,
+			this.StringDefinition,
 		};
 
 		/// <summary>
@@ -239,7 +257,16 @@ namespace LibTextPet.Msg {
 
 			for (int i = 0; i < this.EqualityFields.Length; i++) {
 				// Need to use Equals here as != is compares as type object, not int
-				if (!this.EqualityFields[i].Equals(definition.EqualityFields[i])) {
+				object a = this.EqualityFields[i];
+				object b = definition.EqualityFields[i];
+
+				if (a == null && b == null) {
+					continue;
+				}
+				if (a == null && b != null) {
+					return false;
+				}
+				if (!a.Equals(b)) {
 					return false;
 				}
 			}
@@ -275,6 +302,7 @@ namespace LibTextPet.Msg {
 				this.Name, this.Description,
 				this.Offset, this.Shift, this.Bits,
 				this.Add, this.IsJump,
+				this.OffsetType, this.RelativeLabel,
 				this.ValueEncodingName,
 				new List<int>(this.DataGroupSizes),
 				this.StringDefinition?.Clone() ?? null

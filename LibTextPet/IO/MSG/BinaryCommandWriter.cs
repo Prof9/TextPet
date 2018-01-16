@@ -27,6 +27,8 @@ namespace LibTextPet.IO.Msg {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The script command cannot be null.");
 
+			IDictionary<string, int> labelDict = new Dictionary<string, int>();
+
 			// Write the base.
 			IList<byte> bytes = new List<byte>();
 			foreach (byte b in obj.Definition.Base) {
@@ -42,14 +44,14 @@ namespace LibTextPet.IO.Msg {
 			foreach (CommandElement elem in obj.Elements) {
 				// Write the length length.
 				if (elem.Definition.HasMultipleDataEntries) {
-					WriteParameterValueToBytes(elem.Count, bytes, elem.Definition.LengthParameterDefinition);
+					WriteParameterValueToBytes(elem.Count, bytes, labelDict, elem.Definition.LengthParameterDefinition);
 				}
 
 				foreach (IEnumerable<ParameterDefinition> dataGroup in elem.Definition.DataGroups) {
 					// Write the data parameters.
 					foreach (ReadOnlyNamedCollection<Parameter> entry in elem) {
 						foreach (ParameterDefinition parDef in dataGroup) {
-							WriteParameterValueToBytes(entry[parDef.Name], bytes);
+							WriteParameterValueToBytes(labelDict, entry[parDef.Name], bytes);
 						}
 					}
 				}
@@ -64,15 +66,16 @@ namespace LibTextPet.IO.Msg {
 		/// <summary>
 		/// Writes the value of the specified parameter to the specified byte sequence.
 		/// </summary>
+		/// <param name="labelDict">A dictionary containing the offset labels for the current command.</param>
 		/// <param name="par">The parameter to write.</param>
 		/// <param name="bytes">The byte sequence to write to.</param>
-		protected static void WriteParameterValueToBytes(Parameter par, IList<byte> bytes) {
+		protected static void WriteParameterValueToBytes(IDictionary<string, int> labelDict, Parameter par, IList<byte> bytes) {
 			if (par == null)
 				throw new ArgumentNullException(nameof(par), "The parameter cannot be null.");
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
 
-			WriteParameterValueToBytes(par.NumberValue, bytes, par.Definition);
+			WriteParameterValueToBytes(par.NumberValue, bytes, labelDict, par.Definition);
 		}
 
 		/// <summary>
@@ -80,8 +83,9 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <param name="value">The value to write.</param>
 		/// <param name="bytes">The byte sequence to write to.</param>
+		/// <param name="labelDict">A dictionary containing the offset labels for the current command.</param>
 		/// <param name="parDef">The parameter definition to use.</param></param>
-		protected static void WriteParameterValueToBytes(long value, IList<byte> bytes, ParameterDefinition parDef) {
+		protected static void WriteParameterValueToBytes(long value, IList<byte> bytes, IDictionary<string, int> labelDict, ParameterDefinition parDef) {
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
 			if (parDef == null)
@@ -89,9 +93,27 @@ namespace LibTextPet.IO.Msg {
 			if (value < parDef.Minimum || value > parDef.Maximum)
 				throw new ArgumentOutOfRangeException(nameof(value), value, "The value falls outside the allowed range.");
 
-			// TODO: Add relative offset.
-			int offset = 0;
+			// Add relative offset.
+			int offset;
+			switch (parDef.OffsetType) {
+			case OffsetType.Start:
+				offset = 0;
+				break;
+			case OffsetType.End:
+				offset = bytes.Count;
+				break;
+			case OffsetType.Label:
+				if (!labelDict.TryGetValue(parDef.RelativeLabel, out offset)) {
+					throw new InvalidDataException("Unknown label \"" + parDef.RelativeLabel + "\".");
+				}
+				break;
+			default:
+				throw new InvalidDataException("Unrecognized offset type.");
+			}
 			int bytesNeeded = offset + parDef.Offset + parDef.MinimumByteCount;
+
+			// Add offset to labels.
+			labelDict[parDef.Name] = offset + parDef.Offset;
 
 			// Add extra bytes if needed.
 			while (bytes.Count < bytesNeeded) {

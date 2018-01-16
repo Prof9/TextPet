@@ -91,6 +91,8 @@ namespace LibTextPet.IO.Msg {
 
 			Command cmd = new Command(definition);
 
+			Dictionary<string, int> labelDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
 			// Read base bytes.
 			byte[] buffer = new byte[Math.Max(definition.Base.Count, definition.Mask.Count)];
 			if (this.BaseStream.Read(buffer, 0, buffer.Length) < buffer.Length) {
@@ -114,7 +116,7 @@ namespace LibTextPet.IO.Msg {
 				// Get the number of entries in the element.
 				long length = 1;
 				if (elemDef.HasMultipleDataEntries) {
-					if (!this.ReadParameterValue(bytes, elemDef.LengthParameterDefinition, out length)) {
+					if (!this.ReadParameterValue(bytes, labelDict, elemDef.LengthParameterDefinition, out length)) {
 						// Failed to read parameter.
 						return null;
 					}
@@ -133,7 +135,7 @@ namespace LibTextPet.IO.Msg {
 						}
 
 						foreach (ParameterDefinition parDef in dataParGroup) {
-							if (!this.ReadParameter(bytes, elem[i][parDef.Name])) {
+							if (!this.ReadParameter(bytes, labelDict, elem[i][parDef.Name])) {
 								// Failed to read parameter.
 								return null;
 							}
@@ -148,8 +150,8 @@ namespace LibTextPet.IO.Msg {
 			return cmd;
 		}
 
-		private bool ReadParameter(IList<byte> readBytes, Parameter par) {
-			if (!this.ReadParameterValue(readBytes, par.Definition, out long value)) {
+		private bool ReadParameter(IList<byte> readBytes, IDictionary<string, int> labelDict, Parameter par) {
+			if (!this.ReadParameterValue(readBytes, labelDict, par.Definition, out long value)) {
 				// Failed to read parameter number.
 				return false;
 			}
@@ -244,25 +246,45 @@ namespace LibTextPet.IO.Msg {
 		/// Reads the value of a parameter with the specified definition from the current stream, reading extra bytes if needed.
 		/// </summary>
 		/// <param name="readBytes">The sequence of bytes that have already been read.</param>
+		/// <param name="labelDict">A dictionary containing the offset labels for the current command.</param>
 		/// <param name="parDef">The parameter definition to use.</param>
 		/// <param name="result">When this method returns, contains the value of the parameter that was read.</param>
 		/// <returns>true if the parameter value was read successfully; otherwise, false.</returns>
-		private bool ReadParameterValue(IList<byte> readBytes, ParameterDefinition parDef, out long result) {
+		private bool ReadParameterValue(IList<byte> readBytes, IDictionary<string, int> labelDict, ParameterDefinition parDef, out long result) {
 			if (readBytes == null)
 				throw new ArgumentNullException(nameof(readBytes), "The byte sequence cannot be null.");
 			if (parDef == null)
 				throw new ArgumentNullException(nameof(parDef), "The parameter definition cannot be null.");
 
-			// TODO: Add relative offset.
-			int offset = 0;
+			result = 0;
+
+			// Add relative offset.
+			int offset;
+			switch (parDef.OffsetType) {
+			case OffsetType.Start:
+				offset = 0;
+				break;
+			case OffsetType.End:
+				offset = readBytes.Count;
+				break;
+			case OffsetType.Label:
+				if (!labelDict.TryGetValue(parDef.RelativeLabel, out offset)) {
+					return false;
+				}
+				break;
+			default:
+				throw new InvalidDataException("Unrecognized offset type.");
+			}
 			int bytesNeeded = offset + parDef.Offset + parDef.MinimumByteCount;
-			
+
+			// Add offset to labels.
+			labelDict[parDef.Name] = offset + parDef.Offset;
+
 			// Read extra bytes if needed.
 			if (readBytes.Count < bytesNeeded) {
 				byte[] buffer = new byte[bytesNeeded - readBytes.Count];
 				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
 					// Cannot read enough bytes.
-					result = 0;
 					return false;
 				}
 				foreach (byte b in buffer) {
