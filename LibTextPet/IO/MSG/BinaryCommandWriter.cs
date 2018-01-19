@@ -1,5 +1,6 @@
 ﻿using LibTextPet.General;
 using LibTextPet.Msg;
+using LibTextPet.Text;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,8 +17,8 @@ namespace LibTextPet.IO.Msg {
 		/// Creates a binary command writer that writes to the specified output stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
-		public BinaryCommandWriter(Stream stream)
-			: base(stream, true, FileAccess.Write) { }
+		public BinaryCommandWriter(Stream stream, Encoding encoding)
+			: base(stream, true, FileAccess.Write, encoding) { }
 
 		/// <summary>
 		/// Writes the specified script command to the output stream.
@@ -69,13 +70,20 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="labelDict">A dictionary containing the offset labels for the current command.</param>
 		/// <param name="par">The parameter to write.</param>
 		/// <param name="bytes">The byte sequence to write to.</param>
-		protected static void WriteParameterValueToBytes(IDictionary<string, int> labelDict, Parameter par, IList<byte> bytes) {
+		protected void WriteParameterValueToBytes(IDictionary<string, int> labelDict, Parameter par, IList<byte> bytes) {
 			if (par == null)
 				throw new ArgumentNullException(nameof(par), "The parameter cannot be null.");
 			if (bytes == null)
 				throw new ArgumentNullException(nameof(bytes), "The byte sequence cannot be null.");
 
-			WriteParameterValueToBytes(par.NumberValue, bytes, labelDict, par.Definition);
+			if (par.IsNumber) {
+				WriteParameterValueToBytes(par.NumberValue, bytes, labelDict, par.Definition);
+				return;
+			}
+
+			// Parameter is a string, need to write this first.
+			// TODO
+			//throw new NotImplementedException();
 		}
 
 		/// <summary>

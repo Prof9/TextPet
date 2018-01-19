@@ -18,7 +18,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="encoding">The encoding to use.</param>
 		/// <param name="databases">The command databases to use.</param>
 		public BinaryScriptWriter(Stream stream, Encoding encoding)
-			: base(stream, true, true, encoding, new BinaryCommandWriter(stream)) { }
+			: base(stream, true, true, encoding, new BinaryCommandWriter(stream, encoding)) { }
 
 		/// <summary>
 		/// Writes a fallback element to the output stream.
