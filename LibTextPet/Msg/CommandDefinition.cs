@@ -69,6 +69,17 @@ namespace LibTextPet.Msg {
 		public ReadOnlyNamedCollection<CommandElementDefinition> Elements { get; }
 
 		/// <summary>
+		/// Gets the parent command definition of this command definition, if this command definition is an alternative to it.
+		/// </summary>
+		public CommandDefinition Parent { get; private set; }
+
+		private List<CommandDefinition> alternatives;
+		/// <summary>
+		/// Gets a list of alternative command definitions for this command definition, which includes this command definition.
+		/// </summary>
+		public ReadOnlyCollection<CommandDefinition> Alternatives => new ReadOnlyCollection<CommandDefinition>(alternatives);
+
+		/// <summary>
 		/// Gets a one-dimensional list of all (sub-)parameter definitions in this script command definition.
 		/// </summary>
 		/// <returns>The list of parameter definitions.</returns>
@@ -105,7 +116,7 @@ namespace LibTextPet.Msg {
 			long priorityLength, long rewind, IEnumerable<CommandElementDefinition> elems) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
-			if (name.Length <= 0)
+			if (String.IsNullOrWhiteSpace(name))
 				throw new ArgumentException("The name cannot be empty.", nameof(name));
 			if (baseSequence == null)
 				throw new ArgumentNullException(nameof(baseSequence), "The base cannot be null.");
@@ -118,8 +129,8 @@ namespace LibTextPet.Msg {
 			if (priorityLength < 0)
 				throw new ArgumentOutOfRangeException(nameof(priorityLength), priorityLength, "The priority length cannot be negative.");
 
-			this.Name = name;
-			this.Description = description ?? "";
+			this.Name = name.Trim();
+			this.Description = description?.Trim() ?? "";
 			this.Base = new ReadOnlyCollection<byte>(baseSequence);
 			this.Mask = new ReadOnlyCollection<byte>(mask);
 			this.EndType = endType;
@@ -127,6 +138,11 @@ namespace LibTextPet.Msg {
 			this.RewindCount = rewind;
 			this.PriorityLength = priorityLength;
 			this.Elements = new ReadOnlyNamedCollection<CommandElementDefinition>(elems ?? new CommandElementDefinition[0]);
+
+			this.Parent = null;
+			this.alternatives = new List<CommandDefinition> {
+				this
+			};
 
 			// Set the mugshot parameter name.
 			SetMugshotName(mugshotName);
@@ -163,6 +179,24 @@ namespace LibTextPet.Msg {
 		}
 
 		/// <summary>
+		/// Adds the specified command definition as an alternative to this command definition.
+		/// </summary>
+		/// <param name="altDef">The alternative command definition.</param>
+		public void AddAlternative(CommandDefinition altDef) {
+			if (altDef == null)
+				throw new ArgumentNullException(nameof(altDef), "The alternative command definition cannot be null.");
+			if (!altDef.Name.Equals(this.Name, StringComparison.OrdinalIgnoreCase))
+				throw new ArgumentException("The alternative command must have the same name as this command.", nameof(altDef));
+			if (this.Parent != null)
+				throw new InvalidOperationException("Nested alternative command definitions are not allowed.");
+			if (altDef.Parent != null)
+				throw new ArgumentException("The alternative command is already assigned to a different parent command.", nameof(altDef));
+
+			this.alternatives.Add(altDef);
+			altDef.Parent = this;
+		}
+
+		/// <summary>
 		/// Creates a new script command definition that is a copy of the current instance.
 		/// </summary>
 		/// <returns>A new script command definition that is a copy of this instance.</returns>
@@ -183,7 +217,9 @@ namespace LibTextPet.Msg {
 				this.EndType, this.Prints, String.Copy(this.MugshotParameterName),
 				this.PriorityLength, this.RewindCount,
 				this.Elements.Select(elemDef => elemDef.Clone())
-			);
+			) {
+				alternatives = this.alternatives,
+			};
 		}
 
 		/// <summary>

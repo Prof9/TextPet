@@ -53,17 +53,17 @@ namespace LibTextPet.Plugins {
 			while (AdvanceEnumerator(enumerator, skip, stop)) {
 				skip = false;
 				switch (enumerator.Current.Name.ToUpperInvariant()) {
-					case "COMMAND":
-						db.Add(LoadCommandDefinition(enumerator, db, jumpContVals, false));
-						skip = true;
-						break;
-					case "EXTENSION":
-						db.Add(LoadCommandDefinition(enumerator, db, jumpContVals, true));
-						skip = true;
-						break;
-					default:
-						stop = true;
-						break;
+				case "COMMAND":
+					db.Add(LoadCommandDefinition(enumerator, db, jumpContVals, false));
+					skip = true;
+					break;
+				case "EXTENSION":
+					db.Add(LoadCommandDefinition(enumerator, db, jumpContVals, true));
+					skip = true;
+					break;
+				default:
+					stop = true;
+					break;
 				}
 			}
 
@@ -147,7 +147,15 @@ namespace LibTextPet.Plugins {
 			// Load parameters.
 			List<CommandElementDefinition> elemDefs = LoadCommandElementDefinitions(enumerator, jumpContVals, superCmdDef);
 
-			return new CommandDefinition(name, desc, baseSeq, maskSeq, ends, prnt, mugs, plen, rwnd, elemDefs);
+			// Create the command definition.
+			CommandDefinition cmdDef = new CommandDefinition(name, desc, baseSeq, maskSeq, ends, prnt, mugs, plen, rwnd, elemDefs);
+
+			// Set as alternative of parent command.
+			if (isExt) {
+				superCmdDef.AddAlternative(cmdDef);
+			}
+
+			return cmdDef;
 		}
 
 		/// <summary>

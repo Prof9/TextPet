@@ -109,7 +109,6 @@ namespace LibTextPet.Msg {
 		}
 
 
-
 		public override int GetHashCode() {
 			int hash = this.Definition.GetHashCode();
 
