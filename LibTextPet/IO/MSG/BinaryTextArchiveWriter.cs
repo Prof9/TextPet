@@ -1,4 +1,5 @@
 ﻿using LibTextPet.Msg;
+using LibTextPet.Text;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,7 +22,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="stream">The stream to write to.</param>
 		/// <param name="encoding">The encoding to use.</param>
 		/// <param name="databases">The command databases to use.</param>
-		public BinaryTextArchiveWriter(Stream stream, Encoding encoding)
+		public BinaryTextArchiveWriter(Stream stream, IgnoreFallbackEncoding encoding)
 			: base(stream, true, FileAccess.Write, encoding) {
 			this.ScriptWriter = new BinaryScriptWriter(stream, encoding);
 		}

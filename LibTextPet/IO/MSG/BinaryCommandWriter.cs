@@ -13,12 +13,16 @@ namespace LibTextPet.IO.Msg {
 	/// A binary command writer that writes script commands to an output stream.
 	/// </summary>
 	public class BinaryCommandWriter : Manager, IWriter<Command> {
+		protected CharacterCodeEncoder CharCodeEncoder { get; }
+
 		/// <summary>
 		/// Creates a binary command writer that writes to the specified output stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
-		public BinaryCommandWriter(Stream stream, Encoding encoding)
-			: base(stream, true, FileAccess.Write, encoding) { }
+		public BinaryCommandWriter(Stream stream, IgnoreFallbackEncoding encoding)
+			: base(stream, true, FileAccess.Write, encoding) {
+			this.CharCodeEncoder = new CharacterCodeEncoder(encoding);
+		}
 
 		/// <summary>
 		/// Writes the specified script command to the output stream.
@@ -82,8 +86,60 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			// Parameter is a string, need to write this first.
-			// TODO
-			//throw new NotImplementedException();
+			IList<byte> stringBytes = new List<byte>();
+			int charCodeCount = 0;
+			int charsEncoded = 0;
+			while (charsEncoded < par.StringValue.Length) {
+				// Encode the next character code.
+				int curCharCodeLength = this.CharCodeEncoder.WriteSingle(par.StringValue, charsEncoded, stringBytes, stringBytes.Count);
+				if (curCharCodeLength == 0) {
+					throw new InvalidDataException("Could not encode string value \"" + par.StringValue + "\" of parameter \"" + par.Name + "\".");
+				}
+
+				charsEncoded += curCharCodeLength;
+				charCodeCount += 1;
+			}
+
+			// Check the length of the string.
+			if (par.Definition.StringDefinition.FixedLength != 0) {
+				// Verify that the string matches fixed length.
+				switch (par.Definition.StringDefinition.Unit) {
+				case StringLengthUnit.Byte:
+					if (stringBytes.Count != par.Definition.StringDefinition.FixedLength) {
+						throw new InvalidDataException("String value \"" + par.StringValue + "\" of parameter \"" + par.Name + "\" does not match the expected length of " + par.Definition.StringDefinition.FixedLength + " bytes.");
+					}
+					break;
+				case StringLengthUnit.Char:
+					if (charCodeCount != par.Definition.StringDefinition.FixedLength) {
+						throw new InvalidDataException("String value \"" + par.StringValue + "\" of parameter \"" + par.Name + "\" does not match the expected length of " + par.Definition.StringDefinition.FixedLength + " characters.");
+					}
+					break;
+				}
+			} else {
+				// Write the variable length of the string.
+				switch (par.Definition.StringDefinition.Unit) {
+				case StringLengthUnit.Byte:
+					WriteParameterValueToBytes(stringBytes.Count, bytes, labelDict, par.Definition);
+					break;
+				case StringLengthUnit.Char:
+					WriteParameterValueToBytes(charCodeCount, bytes, labelDict, par.Definition);
+					break;
+				}
+			}
+
+			// Write the string itself.
+			for (int i = 0; i < stringBytes.Count; i++) {
+				int pos = par.Definition.StringDefinition.Offset + i;
+
+				while (pos > bytes.Count) {
+					bytes.Add(0);
+				}
+				if (pos == bytes.Count) {
+					bytes.Add(stringBytes[i]);
+				} else {
+					bytes[pos] = stringBytes[i];
+				}
+			}
 		}
 
 		/// <summary>

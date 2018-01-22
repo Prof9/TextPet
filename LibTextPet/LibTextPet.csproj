@@ -113,6 +113,7 @@
     <Compile Include="Msg\StringLengthUnit.cs" />
     <Compile Include="Plugins\GameLoader.cs" />
     <Compile Include="IO\ScriptTextBoxPatcher.cs" />
+    <Compile Include="Text\CharacterCodeEncoder.cs" />
     <Compile Include="Text\ConservativeStreamReader.cs" />
     <Compile Include="IO\Msg\BinaryCommandReader.cs" />
     <Compile Include="IO\Msg\BinaryCommandWriter.cs" />
