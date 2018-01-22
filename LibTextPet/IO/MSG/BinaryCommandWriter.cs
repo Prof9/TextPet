@@ -101,6 +101,8 @@ namespace LibTextPet.IO.Msg {
 			if (value < parDef.Minimum || value > parDef.Maximum)
 				throw new ArgumentOutOfRangeException(nameof(value), value, "The value falls outside the allowed range.");
 
+			value -= parDef.Add;
+
 			// Add relative offset.
 			int offset;
 			switch (parDef.OffsetType) {
