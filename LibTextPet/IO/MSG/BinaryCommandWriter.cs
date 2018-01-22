@@ -110,7 +110,7 @@ namespace LibTextPet.IO.Msg {
 					}
 					break;
 				case StringLengthUnit.Char:
-					if (charCodeCount != par.Definition.StringDefinition.FixedLength) {
+					if (charCodeCount > par.Definition.StringDefinition.FixedLength) {
 						throw new InvalidDataException("String value \"" + par.StringValue + "\" of parameter \"" + par.Name + "\" does not match the expected length of " + par.Definition.StringDefinition.FixedLength + " characters.");
 					}
 					break;

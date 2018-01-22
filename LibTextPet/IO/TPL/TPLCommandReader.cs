@@ -137,7 +137,7 @@ namespace LibTextPet.IO.TPL {
 						if (parDef.IsString) {
 							value = ReadString((int)TPLTokenType.String);
 							// Unescape \" and \\.
-							value = Regex.Replace(value, @"\\([\\""])", "$1")
+							value = Regex.Replace(value, @"\\([\\""])", "$1");
 						} else {
 							value = ReadString((int)TPLTokenType.Word);
 						}
