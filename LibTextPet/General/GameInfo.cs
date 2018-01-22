@@ -12,7 +12,7 @@ namespace LibTextPet.General {
 	/// An info object that describes the settings, command databases and table files for a specific game.
 	/// </summary>
 	public class GameInfo : INameable, IPlugin {
-		public string PluginType => "game info";
+		public string PluginType => "Game Info";
 
 		/// <summary>
 		/// The command databases used for this game, in order of preference.

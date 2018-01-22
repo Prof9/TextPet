@@ -12,7 +12,7 @@ namespace LibTextPet.Msg {
 	/// </summary>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix")]
 	public class CommandDatabase : IPlugin, IEnumerable<CommandDefinition>, INameable {
-		public string PluginType => "command database";
+		public string PluginType => "Command Database";
 
 		/// <summary>
 		/// The commands in this database.

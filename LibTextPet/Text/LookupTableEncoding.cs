@@ -352,7 +352,6 @@ namespace LibTextPet.Text {
 				}
 			}
 
-			// Convert builder to string and return.
 			return builder.ToString();
 		}
 
