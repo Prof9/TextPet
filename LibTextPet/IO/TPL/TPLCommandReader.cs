@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LibTextPet.IO.TPL {
 	/// <summary>
@@ -135,7 +136,8 @@ namespace LibTextPet.IO.TPL {
 						string value;
 						if (parDef.IsString) {
 							value = ReadString((int)TPLTokenType.String);
-							value = value.Substring(1, value.Length - 2).Replace("\\\"", "\"");
+							// Unescape \" and \\.
+							value = Regex.Replace(value, @"\\([\\""])", "$1")
 						} else {
 							value = ReadString((int)TPLTokenType.Word);
 						}
