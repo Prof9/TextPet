@@ -145,10 +145,9 @@ namespace LibTextPet.Text {
 					bool found = false;
 					for (int l = seek; l > 0; l--) {
 						string nextKey = s.Substring(pos, l);
-						byte[] nextValue;
 
 						// Is the key in the lookup table?
-						if (stringToByteDictionary.TryGetValue(nextKey, out nextValue)) {
+						if (stringToByteDictionary.TryGetValue(nextKey, out byte[] nextValue)) {
 							// Write it to the stream and advance.
 							stream.Write(nextValue, 0, nextValue.Length);
 							pos += l;
@@ -170,10 +169,9 @@ namespace LibTextPet.Text {
 							// Append all fallback characters.
 							while (fallbackBuffer.Remaining > 0) {
 								string nextKey = new string(new char[] { fallbackBuffer.GetNextChar() });
-								byte[] nextValue;
 
 								// Is the fallback char in the lookup table?
-								if (stringToByteDictionary.TryGetValue(nextKey, out nextValue)) {
+								if (stringToByteDictionary.TryGetValue(nextKey, out byte[] nextValue)) {
 									stream.Write(nextValue, 0, nextValue.Length);
 									pos++;
 									found = true;
@@ -319,10 +317,9 @@ namespace LibTextPet.Text {
 				for (int l = seek; l > 0; l--) {
 					byte[] nextKey = new byte[l];
 					Buffer.BlockCopy(bytes, pos, nextKey, 0, l);
-					string nextValue;
 
 					// Is the key in the lookup table?
-					if (byteToStringDictionary.TryGetValue(nextKey, out nextValue)) {
+					if (byteToStringDictionary.TryGetValue(nextKey, out string nextValue)) {
 						// Append it to the builder and advance.
 						builder.Append(nextValue);
 						pos += l;

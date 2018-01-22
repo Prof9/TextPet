@@ -46,7 +46,9 @@ namespace LibTextPet.IO {
 		public static bool operator ==(Token token1, Token token2) {
 			if (ReferenceEquals(token1, token2)) {
 				return true;
+#pragma warning disable IDE0041 // Use 'is null' check
 			} else if (ReferenceEquals(token1, null) || ReferenceEquals(token2, null)) {
+#pragma warning restore IDE0041 // Use 'is null' check
 				return false;
 			} else {
 				return token1.Equals(token2);

@@ -107,7 +107,9 @@ namespace LibTextPet.IO {
 			public static bool operator ==(ProcessResult result1, ProcessResult result2) {
 				if (ReferenceEquals(result1, result2)) {
 					return true;
+#pragma warning disable IDE0041 // Use 'is null' check
 				} else if (ReferenceEquals(result1, null) || ReferenceEquals(result2, null)) {
+#pragma warning restore IDE0041 // Use 'is null' check
 					return false;
 				} else {
 					return result1.Equals(result2);
