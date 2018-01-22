@@ -23,7 +23,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="database">The command database to use.</param>
 		/// <param name="encoding">The encoding to use.</param>
-		public BinaryCommandReader(Stream stream, CommandDatabase database, CustomFallbackEncoding encoding) 
+		public BinaryCommandReader(Stream stream, CommandDatabase database, IgnoreFallbackEncoding encoding) 
 			: base(stream, true, FileAccess.Read, database) {
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
 		}
@@ -195,7 +195,7 @@ namespace LibTextPet.IO.Msg {
 			case StringLengthUnit.Char:
 				for (int i = 0; i < strLen; i++) {
 					// Read the next character.
-					IEnumerable<char> nextChar = this.TextReader.Read();
+					IEnumerable<char> nextChar = this.TextReader.ReadSingle();
 					//if (!nextChar.Any()) {
 					//	// Could not read next character.
 					//	return false;
@@ -229,8 +229,10 @@ namespace LibTextPet.IO.Msg {
 				}
 
 				// Decode the string.
+				this.TextReader.Encoding.ResetFallbackCount();
 				string s = this.TextReader.Encoding.GetString(buffer);
-				if (s.Contains('\uFFFD')) {
+
+				if (this.TextReader.Encoding.FallbackCount != 0) {
 					// Could not properly decode the string.
 					return false;
 				}

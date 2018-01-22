@@ -3,6 +3,7 @@ using LibTextPet.General;
 using System.Text;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using LibTextPet.Text;
 
 namespace LibTextPet.Msg {
 	/// <summary>
@@ -54,7 +55,7 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets or sets this parameter's value encoding.
 		/// </summary>
-		public Encoding ValueEncoding { get; internal set; }
+		public IgnoreFallbackEncoding ValueEncoding { get; internal set; }
 
 		/// <summary>
 		/// Gets the values for jump targets that continue the current script.

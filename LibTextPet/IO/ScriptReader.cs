@@ -42,7 +42,7 @@ namespace LibTextPet.IO {
 		/// <param name="database">The command database to use.</param>
 		/// <param name="encoding">The encoding to use.</param>
 		/// <param name="commandReader">The command reader to use.</param>
-		protected ScriptReader(Stream stream, CustomFallbackEncoding encoding,
+		protected ScriptReader(Stream stream, IgnoreFallbackEncoding encoding,
 			params T[] commandReaders)
 			: base(stream, true, FileAccess.Read, encoding,
 				// Aggregate databases of all command readers.
@@ -170,7 +170,7 @@ namespace LibTextPet.IO {
 
 			while (HasNext()) {
 				// Read the next character from the input stream.
-				IEnumerable<char> nextChar = this.TextReader.Read();
+				IEnumerable<char> nextChar = this.TextReader.ReadSingle();
 
 				// Check if next character is unrecognized or end of stream.
 				if (!nextChar.Any()) {

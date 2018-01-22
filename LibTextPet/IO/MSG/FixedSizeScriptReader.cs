@@ -42,7 +42,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="encoding">The encoding to use.</param>
 		/// <param name="databases">The command databases to use, in order of preference.</param>
-		public FixedSizeScriptReader(Stream stream, CustomFallbackEncoding encoding, params CommandDatabase[] databases)
+		public FixedSizeScriptReader(Stream stream, IgnoreFallbackEncoding encoding, params CommandDatabase[] databases)
 			: base(stream, encoding, databases) {
 			this.fixedLength = int.MaxValue;
 			this.UseFixedLength = false;

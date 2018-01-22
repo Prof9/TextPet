@@ -21,11 +21,11 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// The encoding used for this game.
 		/// </summary>
-		private CustomFallbackEncoding loadedTextEncoding;
+		private IgnoreFallbackEncoding loadedTextEncoding;
 		/// <summary>
 		/// The sets of value names used for this game.
 		/// </summary>
-		private ReadOnlyCollection<CustomFallbackEncoding> loadedValueEncodings;
+		private ReadOnlyCollection<IgnoreFallbackEncoding> loadedValueEncodings;
 
 		/// <summary>
 		/// Creates a new game info object with the specified abbreviated game name, encoding name and command database names, in order of preference.
@@ -95,9 +95,9 @@ namespace LibTextPet.General {
 			}
 
 			CommandDatabase[] databases = new CommandDatabase[this.DatabaseNames.Count];
-			CustomFallbackEncoding encoding = null;
-			IDictionary<string, CustomFallbackEncoding> valueEncodings
-				= new Dictionary<string, CustomFallbackEncoding>(StringComparer.OrdinalIgnoreCase);
+			IgnoreFallbackEncoding encoding = null;
+			IDictionary<string, IgnoreFallbackEncoding> valueEncodings
+				= new Dictionary<string, IgnoreFallbackEncoding>(StringComparer.OrdinalIgnoreCase);
 
 			// Loop through every plugin.
 			foreach (IPlugin plugin in plugins) {
@@ -105,7 +105,7 @@ namespace LibTextPet.General {
 					continue;
 				}
 
-				if (plugin is CustomFallbackEncoding pluginAsEncoding) {
+				if (plugin is IgnoreFallbackEncoding pluginAsEncoding) {
 					if (plugin.Name.Equals(this.EncodingName, StringComparison.OrdinalIgnoreCase)) {
 						if (encoding != null)
 							throw new ArgumentException("Encoding name \"" + this.EncodingName + "\" is ambiguous.", nameof(plugins));
@@ -172,7 +172,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="db">The command database.</param>
 		/// <param name="valueEncodings">The value encodings.</param>
-		private static void LoadValueEncodings(CommandDatabase db, IDictionary<string, CustomFallbackEncoding> valueEncodings) {
+		private static void LoadValueEncodings(CommandDatabase db, IDictionary<string, IgnoreFallbackEncoding> valueEncodings) {
 			// Iterate through all commands in the database.
 			foreach (CommandDefinition cmd in db) {
 				// Iterate through all parameters.
@@ -239,7 +239,7 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// Gets the encoding used for the game.
 		/// </summary>
-		public CustomFallbackEncoding Encoding {
+		public IgnoreFallbackEncoding Encoding {
 			get {
 				if (this.loadedTextEncoding == null) {
 					throw new InvalidOperationException("The encoding for this game info object has not yet been loaded.");
@@ -258,7 +258,7 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// Gets the value encodings used for the game.
 		/// </summary>
-		public ICollection<CustomFallbackEncoding> ValueEncodings {
+		public ICollection<IgnoreFallbackEncoding> ValueEncodings {
 			get {
 				if (this.loadedValueEncodings == null) {
 					throw new InvalidOperationException("The encoding for this game info object has not yet been loaded.");
@@ -270,7 +270,7 @@ namespace LibTextPet.General {
 				if (value == null)
 					throw new ArgumentNullException(nameof(value), "The value encodings cannot be null.");
 
-				this.loadedValueEncodings = new ReadOnlyCollection<CustomFallbackEncoding>(value.ToList());
+				this.loadedValueEncodings = new ReadOnlyCollection<IgnoreFallbackEncoding>(value.ToList());
 			}
 		}
 

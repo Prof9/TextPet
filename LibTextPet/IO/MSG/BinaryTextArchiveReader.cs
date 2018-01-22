@@ -68,7 +68,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="encoding">The encoding to use.</param>
 		/// <param name="databases">The command databases to use, in order of preference.</param>
-		public BinaryTextArchiveReader(Stream stream, CustomFallbackEncoding encoding, params CommandDatabase[] databases)
+		public BinaryTextArchiveReader(Stream stream, IgnoreFallbackEncoding encoding, params CommandDatabase[] databases)
 			: base(stream, true, FileAccess.Read, encoding, databases) {
 			this.ScriptReader = new FixedSizeScriptReader(stream, encoding, databases);
 			this.IgnorePointerSyncErrors = false;

@@ -10,13 +10,9 @@ using LibTextPet.Plugins;
 namespace LibTextPet.Text {
 	/// <summary>
 	/// An encoding that encodes and decodes text based on a predefined lookup table.
-	/// If an unknown byte sequence is encountered while decoding, a Unicode replacement character (\uFFFD) is output instead by default.
-	/// If an unknown character sequence is encountered while encoding, an exception is thrown by default.
 	/// <para>Level 1 table file standard compliance.</para>
 	/// </summary>
-	public class LookupTableEncoding : CustomFallbackEncoding, IPlugin {
-		public string PluginType => "table encoding";
-
+	public class LookupTableEncoding : Encoding {
 		// Two Dictionaries for 2-way lookup.
 		private Dictionary<byte[], string> byteToStringDictionary;
 		private Dictionary<string, byte[]> stringToByteDictionary;
@@ -25,8 +21,7 @@ namespace LibTextPet.Text {
 		private readonly int maxByteCount;
 		private readonly int maxCharCount;
 
-		public string Name { get; }
-		public override string EncodingName => this.Name;
+		public override string EncodingName { get; }
 
 		/// <summary>
 		/// Constructs a new lookup table encoding with the given name based on the given lookup table dictionary.
@@ -39,7 +34,7 @@ namespace LibTextPet.Text {
 			if (dictionary == null)
 				throw new ArgumentNullException(nameof(dictionary), "The dictionary cannot be null.");
 
-			this.Name = name;
+			this.EncodingName = name;
 
 			// Initialize variables.
 			this.byteToStringDictionary = new Dictionary<byte[], string>(dictionary.Count,
@@ -71,10 +66,6 @@ namespace LibTextPet.Text {
 				this.byteToStringDictionary.Add(pair.Key, pair.Value);
 				this.stringToByteDictionary.Add(pair.Value, pair.Key);
 			}
-
-			// Set decoder and encoder fallbacks.
-			this.DecoderFallback = new DecoderReplacementFallback("\uFFFD");
-			this.EncoderFallback = new EncoderExceptionFallback();
 
 			this.maxByteCount = maxByteCount;
 			this.maxCharCount = maxCharCount;
@@ -279,8 +270,8 @@ namespace LibTextPet.Text {
 				throw new ArgumentOutOfRangeException(nameof(byteIndex), "Byte index is out of range.");
 			if (byteCount < 0 || byteIndex + byteCount > bytes.Length)
 				throw new ArgumentOutOfRangeException(nameof(byteCount), "Byte count is out of range.");
-			if (charIndex < 0 || charIndex >= chars.Length)
-				throw new ArgumentOutOfRangeException(nameof(charIndex), "Character index is out of range.");
+			if (charIndex < 0)
+				throw new ArgumentOutOfRangeException(nameof(charIndex), "Character index cannot be negative..");
 
 			// Use GetString(byte[]).
 			byte[] subBytes = new byte[byteCount];

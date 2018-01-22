@@ -1,4 +1,5 @@
 ﻿using LibTextPet.General;
+using LibTextPet.Text;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -114,10 +115,12 @@ namespace LibTextPet.Msg {
 			// Try encoding using value encoding.
 			if (this.Definition.ValueEncoding != null) {
 				byte[] bytes = BitConverter.GetBytes(this.NumberValue);
+				
+				this.Definition.ValueEncoding.ResetFallbackCount();
 				result = this.Definition.ValueEncoding.GetString(bytes, 0, (this.Definition.Bits + 7) / 8);
 
 				// Did we encode it correctly?
-				if (result.Contains('\uFFFD')) {
+				if (this.Definition.ValueEncoding.FallbackCount != 0) {
 					result = null;
 				}
 			}

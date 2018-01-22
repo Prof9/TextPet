@@ -114,7 +114,6 @@
     <Compile Include="Plugins\GameLoader.cs" />
     <Compile Include="IO\ScriptTextBoxPatcher.cs" />
     <Compile Include="Text\ConservativeStreamReader.cs" />
-    <Compile Include="Text\CustomFallbackEncoding.cs" />
     <Compile Include="IO\Msg\BinaryCommandReader.cs" />
     <Compile Include="IO\Msg\BinaryCommandWriter.cs" />
     <Compile Include="IO\Msg\BinaryScriptReader.cs" />
@@ -146,8 +145,10 @@
     <Compile Include="Plugins\IniLoader.cs" />
     <Compile Include="Plugins\PluginLoader.cs" />
     <Compile Include="Msg\TextElement.cs" />
+    <Compile Include="Text\DecoderIgnoreFallback.cs" />
+    <Compile Include="Text\EncoderIgnoreFallback.cs" />
+    <Compile Include="Text\IgnoreFallbackEncoding.cs" />
     <Compile Include="Text\LookupTableEncoding.cs" />
-    <Compile Include="Text\LookupTableEncodingBuilder.cs" />
     <Compile Include="Msg\Parameter.cs" />
     <Compile Include="Msg\ParameterDefinition.cs" />
     <Compile Include="Msg\IScriptElement.cs" />

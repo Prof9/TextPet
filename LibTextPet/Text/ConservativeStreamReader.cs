@@ -19,14 +19,14 @@ namespace LibTextPet.Text {
 		/// <summary>
 		/// Gets the encoding that is being used.
 		/// </summary>
-		public CustomFallbackEncoding Encoding { get; private set; }
+		public IgnoreFallbackEncoding Encoding { get; private set; }
 
 		/// <summary>
 		/// Creates a new conservative text reader that reads from the specified stream using the specified encoding.
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="encoding">The encoding to use.</param>
-		public ConservativeStreamReader(Stream stream, CustomFallbackEncoding encoding) {
+		public ConservativeStreamReader(Stream stream, IgnoreFallbackEncoding encoding) {
 			if (stream == null)
 				throw new ArgumentNullException(nameof(stream), "The input stream cannot be null.");
 			if (!stream.CanRead)
@@ -37,20 +37,19 @@ namespace LibTextPet.Text {
 				throw new ArgumentNullException(nameof(encoding), "The encoding cannot be null.");
 
 			this.BaseStream = stream;
-			// This is probably not 100% safe...
-			this.Encoding = (CustomFallbackEncoding)encoding.Clone();
-			this.Encoding.DecoderFallback = new DecoderReplacementFallback("\uFFFD");
+
+			this.Encoding = encoding;
 
 			this.charBuffer = new char[this.Encoding.GetMaxCharCount(1)];
 		}
 
-		public IEnumerable<char> Read() {
+		public IEnumerable<char> ReadSingle() {
 			int read = this.Read(this.charBuffer, 0, 1);
 			return this.charBuffer.Take(read);
 		}
 
 		/// <summary>
-		/// Reads a specified maximum number of characters from the current reader and writes the data to a buffer, beginning at the specified index.
+		/// Reads a specified maximum number of byte sequences from the current reader and writes the data to a buffer, beginning at the specified index.
 		/// </summary>
 		/// <param name="buffer">When this method returns, contains the specified character array with the values between index and (index + count - 1) replaced by the characters read from the current source.</param>
 		/// <param name="index">The position in buffer at which to begin writing.</param>
@@ -89,18 +88,11 @@ namespace LibTextPet.Text {
 			bool success = false;
 			for (bytesRead = 1; bytesRead <= maxByteCount; bytesRead++) {
 				// Read characters.
+				this.Encoding.ResetFallbackCount();
 				charsRead = this.Encoding.GetChars(bytes, 0, bytesRead, charBuffer, 0);
 
-				// Are all characters valid?
-				bool invalidCharacters = false;
-				for (int i = 0; i < charsRead; i++) {
-					if (charBuffer[i] == '\uFFFD') {
-						invalidCharacters = true;
-						break;
-					}
-				}
-				// If there are no invalid characters, stop here.
-				if (!invalidCharacters) {
+				// If no errors occurred, decoding was successful..
+				if (this.Encoding.FallbackCount == 0) {
 					success = true;
 					break;
 				}
