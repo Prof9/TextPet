@@ -342,7 +342,7 @@ namespace TextPet {
 
 				Console.Write("Loaded ");
 				Console.ForegroundColor = ConsoleColor.Cyan;
-				Console.Write(plugin.GetType().Name);
+				Console.Write(plugin.PluginType);
 				Console.ResetColor();
 				Console.Write(" plugin ");
 				Console.ForegroundColor = ConsoleColor.Yellow;
