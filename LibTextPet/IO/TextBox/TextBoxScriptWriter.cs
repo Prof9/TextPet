@@ -61,7 +61,7 @@ namespace LibTextPet.IO.TextBox {
 
 			// Change the active mugshot.
 			if (command.Definition.MugshotParameterName != null) {
-				activeMugshot = command.Elements[command.Definition.MugshotParameterName].ToString();
+				activeMugshot = command.Elements[command.Definition.MugshotParameterName][0][0].ToString();
 			}
 			// Hide the active mugshot.
 			if (command.Definition.HidesMugshot) {
