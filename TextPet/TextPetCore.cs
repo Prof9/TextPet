@@ -66,9 +66,8 @@ namespace TextPet {
 		/// Retrieves the game with the specified name and initializes it, if needed.
 		/// </summary>
 		/// <param name="name">The game name, case insensitive.</param>
-		/// <param name="ignoreUnknownChars">If true, unrecognized characters will be skipped; otherwise, an error will be thrown if one is encountered.</param>
 		/// <returns>true if the active game was changed; false if the specified game name was not recognized.</returns>
-		public bool SetActiveGame(string name, bool ignoreUnknownChars) {
+		public bool SetActiveGame(string name) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The game name cannot be null.");
 
@@ -89,7 +88,6 @@ namespace TextPet {
 
 				GameInitialized?.Invoke(this, new GameInfoEventArgs(game));
 			}
-			game.Encoding.IgnoreUnknownChars = ignoreUnknownChars;
 
 			this.Game = game;
 			return true;
