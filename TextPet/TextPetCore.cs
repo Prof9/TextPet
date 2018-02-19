@@ -395,30 +395,40 @@ namespace TextPet {
 
 			List<TextArchive> writtenTAs = new List<TextArchive>(this.TextArchives.Count);
 			int succeeded = 0;
-			for (int i = 0; i < this.TextArchives.Count; i++) {
-				TextArchive ta = this.TextArchives[i];
-				string file = files[i];
+			using (MemoryStream ms = new MemoryStream()) {
+				for (int i = 0; i < this.TextArchives.Count; i++) {
+					TextArchive ta = this.TextArchives[i];
+					string file = files[i];
 
-				// Begin writing the text archive.
-				WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, ta));
+					// Begin writing the text archive.
+					WritingTextArchive?.Invoke(this, new TextArchivesEventArgs(file, ta));
 
-				// Append if this is a single file write and we're past the first file, otherwise create separate files for every text archive.
-				bool append = !toFolder && i > 0;
+					// Clear the stream if not writing to single file.
+					if (!single) {
+						ms.SetLength(0);
+					}
 
-				// Write the text archive using the write delegate, then copy it to the file.
-				using (MemoryStream ms = new MemoryStream()) {
+					// Write the text archive using the write delegate.
 					writeDelegate(ms, ta);
 
-					using (FileStream fs = new FileStream(file, append ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.None)) {
-						fs.Position = fs.Length;
+					if (!single) {
+						using (FileStream fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.None)) {
+							ms.WriteTo(fs);
+						}
+					}
+
+					// Finish writing the text archive.
+					writtenTAs.Add(ta);
+					WroteTextArchive?.Invoke(this, new TextArchivesEventArgs(path, ta));
+					succeeded++;
+				}
+
+				// Write the final stream if this is a single file write.
+				if (single) {
+					using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)) {
 						ms.WriteTo(fs);
 					}
 				}
-
-				// Finish writing the text archive.
-				writtenTAs.Add(ta);
-				WroteTextArchive?.Invoke(this, new TextArchivesEventArgs(path, ta));
-				succeeded++;
 			}
 			FinishedWritingTextArchives?.Invoke(this, new TextArchivesEventArgs(path, writtenTAs));
 		}
