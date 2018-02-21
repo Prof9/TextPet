@@ -4,6 +4,8 @@
     <Recognized>
       <Word>Def</Word>
       <Word>Defs</Word>
+      <Word>Dest</Word>
+      <Word>Dict</Word>
       <Word>Elem</Word>
       <Word>Elems</Word>
       <Word>Heredoc</Word>

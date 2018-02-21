@@ -73,6 +73,9 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <param name="command">The script command to write.</param>
 		protected virtual void WriteCommand(Command command) {
+			if (command == null)
+				throw new ArgumentNullException(nameof(command));
+
 			Command valid = command.MakeValidCommand();
 			if (valid == null) {
 				throw new InvalidDataException("Instance of command \"" + command.Name + "\" is not valid.");

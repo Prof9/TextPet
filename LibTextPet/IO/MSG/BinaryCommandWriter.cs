@@ -169,7 +169,7 @@ namespace LibTextPet.IO.Msg {
 				offset = bytes.Count;
 				break;
 			case OffsetType.Label:
-				if (!labelDict.TryGetValue(parDef.RelativeLabel, out offset)) {
+				if (labelDict is null || !labelDict.TryGetValue(parDef.RelativeLabel, out offset)) {
 					throw new InvalidDataException("Unknown label \"" + parDef.RelativeLabel + "\".");
 				}
 				break;

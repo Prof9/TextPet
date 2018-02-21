@@ -11,8 +11,8 @@ namespace LibTextPet.Text {
 	public class IgnoreFallbackEncoding : Encoding, IPlugin {
 		public string PluginType => "Encoding";
 
-		private new EncoderIgnoreFallback EncoderFallback { get; }
-		private new DecoderIgnoreFallback DecoderFallback { get; }
+		public new EncoderIgnoreFallback EncoderFallback { get; }
+		public new DecoderIgnoreFallback DecoderFallback { get; }
 
 		private Encoding BaseEncoding { get; }
 
@@ -34,6 +34,9 @@ namespace LibTextPet.Text {
 		/// </summary>
 		/// <param name="baseEncoding">The base encoding.</param>
 		public IgnoreFallbackEncoding(Encoding baseEncoding) {
+			if (baseEncoding == null)
+				throw new ArgumentNullException(nameof(baseEncoding), "The base encoding cannot be null.");
+
 			this.EncoderFallback = new EncoderIgnoreFallback();
 			this.DecoderFallback = new DecoderIgnoreFallback();
 

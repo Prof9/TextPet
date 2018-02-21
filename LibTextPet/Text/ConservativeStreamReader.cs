@@ -80,7 +80,7 @@ namespace LibTextPet.Text {
 
 			// Keep a character buffer, too.
 			int maxCharCount = this.Encoding.GetMaxCharCount(count) * maxByteCount;
-			char[] charBuffer = new char[maxCharCount];
+			char[] tempCharBuffer = new char[maxCharCount];
 
 			// Decode the characters from the buffer.
 			int bytesRead;
@@ -89,7 +89,7 @@ namespace LibTextPet.Text {
 			for (bytesRead = 1; bytesRead <= maxByteCount; bytesRead++) {
 				// Read characters.
 				this.Encoding.ResetFallbackCount();
-				charsRead = this.Encoding.GetChars(bytes, 0, bytesRead, charBuffer, 0);
+				charsRead = this.Encoding.GetChars(bytes, 0, bytesRead, tempCharBuffer, 0);
 
 				// If no errors occurred, decoding was successful..
 				if (this.Encoding.FallbackCount == 0) {
@@ -108,7 +108,7 @@ namespace LibTextPet.Text {
 			this.BaseStream.Position = start + bytesRead;
 
 			// Copy the characters to the output buffer.
-			Array.Copy(charBuffer, buffer, charsRead);
+			Array.Copy(tempCharBuffer, buffer, charsRead);
 
 			return charsRead;
 		}
