@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using LibTextPet.General;
@@ -13,9 +14,9 @@ namespace LibTextPet.Text {
 	/// <para>Level 1 table file standard compliance.</para>
 	/// </summary>
 	public class LookupTableEncoding : Encoding {
-		// Two Dictionaries for 2-way lookup.
-		private Dictionary<byte[], string> byteToStringDictionary;
-		private Dictionary<string, byte[]> stringToByteDictionary;
+		// Two lookups for 2-way lookup.
+		private ILookupMap<byte, string> byteToStringLookup;
+		private ILookupMap<char, byte[]> stringtoByteLookup;
 
 		// Maximum byte/char count, needed for conversion.
 		private readonly int maxByteCount;
@@ -37,9 +38,8 @@ namespace LibTextPet.Text {
 			this.EncodingName = name;
 
 			// Initialize variables.
-			this.byteToStringDictionary = new Dictionary<byte[], string>(dictionary.Count,
-				ByteSequenceEqualityComparer.Instance);
-			this.stringToByteDictionary = new Dictionary<string, byte[]>(dictionary.Count);
+			this.byteToStringLookup = new TreeLookupMap<byte, string>();
+			this.stringtoByteLookup = new TreeLookupMap<char, byte[]>();
 			int maxByteCount = 0;
 			int maxCharCount = 0;
 
@@ -53,18 +53,14 @@ namespace LibTextPet.Text {
 					throw new ArgumentException("Key cannot be empty.", nameof(dictionary));
 				if (pair.Value.Length <= 0)
 					throw new ArgumentException("Value cannot be empty.", nameof(dictionary));
-				if (this.byteToStringDictionary.ContainsKey(pair.Key))
-					throw new ArgumentException("Duplicate key " + BitConverter.ToString(pair.Key) + ".", nameof(dictionary));
-				if (this.stringToByteDictionary.ContainsKey(pair.Value))
-					throw new ArgumentException("Duplicate value " + pair.Value + ".", nameof(dictionary));
 
 				// Adjust recorded maximum counts.
 				if (pair.Key.Length > maxByteCount) maxByteCount = pair.Key.Length;
 				if (pair.Value.Length > maxCharCount) maxCharCount = pair.Value.Length;
 
 				// Add to internal dictionaries.
-				this.byteToStringDictionary.Add(pair.Key, pair.Value);
-				this.stringToByteDictionary.Add(pair.Value, pair.Key);
+				this.byteToStringLookup.Add(pair.Key, pair.Value);
+				this.stringtoByteLookup.Add(pair.Value.ToCharArray(), pair.Key);	// TODO: reduce unnecessary array copying
 			}
 
 			this.maxByteCount = maxByteCount;
@@ -119,79 +115,57 @@ namespace LibTextPet.Text {
 			// Initialize fallback buffer.
 			EncoderFallbackBuffer fallbackBuffer = null;
 
-			// Make a stream for easy writing.
-			using (MemoryStream stream = new MemoryStream(GetMaxByteCount(s.Length))) {
-				// String position.
-				int pos = 0;
-				// The maximum amount of characters to seek.
-				int seek = this.maxCharCount;
+			List<byte> bytes = new List<byte>();
 
-				// Go through the whole string.
-				while (pos < s.Length) {
-					// Adjust seek count to remaining character count.
-					if (s.Length - pos < seek) {
-						seek = s.Length - pos;
-					}
+			int pos = 0;
 
-					// Match raw byte.
-					if (Regex.IsMatch(s.Substring(pos), @"^\[\$[0-9A-Fa-f]{2}\]")) {
-						byte b = Byte.Parse(s.Substring(pos + 2, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
-						stream.WriteByte(b);
-						pos += 5;
-						continue;
-					}
+			while (pos < s.Length) {
+				// Match raw byte, e.g. [$00]
+				if (Regex.IsMatch(s.Substring(pos), @"^\[\$[0-9A-Fa-f]{2}\]")) {
+					byte b = Byte.Parse(s.Substring(pos + 2, 2), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+					bytes.Add(b);
+					pos += 5;
+					continue;
+				}
 
-					// Start searching.
-					bool found = false;
-					for (int l = seek; l > 0; l--) {
-						string nextKey = s.Substring(pos, l);
+				// Find longest prefix match.
+				IEnumerator<char> charEnumerator = s.Substring(pos).GetEnumerator();
+				if (this.stringtoByteLookup.TryMatchLast(charEnumerator, out byte[] charBytes)) {
+					bytes.AddRange(charBytes);
+					pos += this.stringtoByteLookup.ElementsRead;
+					continue;
+				}
 
-						// Is the key in the lookup table?
-						if (stringToByteDictionary.TryGetValue(nextKey, out byte[] nextValue)) {
-							// Write it to the stream and advance.
-							stream.Write(nextValue, 0, nextValue.Length);
-							pos += l;
-							found = true;
-							break;
-						}
-					}
+				// If character could not be encoded, use fallback.
+				// Create fallback buffer if it has not been created yet.
+				if (fallbackBuffer == null) {
+					fallbackBuffer = this.EncoderFallback.CreateFallbackBuffer();
+				}
 
-					// If character could not be encoded, use fallback.
-					if (!found) {
-						// Create fallback buffer if it has not been created yet.
-						if (fallbackBuffer == null) {
-							fallbackBuffer = this.EncoderFallback.CreateFallbackBuffer();
-						}
+				// Fallback on unknown byte.
+				char fallbackChar = s[pos];
+				if (fallbackBuffer.Fallback(fallbackChar, pos)) {
+					// Append all fallback characters.
+					while (fallbackBuffer.Remaining > 0) {
+						string nextKey = new string(new char[] { fallbackBuffer.GetNextChar() });
 
-						// Fallback on unknown byte.
-						char fallbackChar = s[pos];
-						if (fallbackBuffer.Fallback(fallbackChar, pos)) {
-							// Append all fallback characters.
-							while (fallbackBuffer.Remaining > 0) {
-								string nextKey = new string(new char[] { fallbackBuffer.GetNextChar() });
-
-								// Is the fallback char in the lookup table?
-								if (stringToByteDictionary.TryGetValue(nextKey, out byte[] nextValue)) {
-									stream.Write(nextValue, 0, nextValue.Length);
-									pos++;
-									found = true;
-								} else {
-									throw new EncoderFallbackException("Could not encode " + fallbackChar + ".");
-								}
-							}
+						// Is the fallback char in the lookup table?
+						if (stringtoByteLookup.TryMatchLast(nextKey.GetEnumerator(), out byte[] nextValue)) {
+							bytes.AddRange(nextValue);
+							pos++;
 						} else {
 							throw new EncoderFallbackException("Could not encode " + fallbackChar + ".");
 						}
 					}
-
-					// If the string is not in the lookup table, throw exception.
-					if (!found)
-						throw new EncoderFallbackException("Could not encode " + s[0] + ".");
+				} else {
+					throw new EncoderFallbackException("Could not encode " + fallbackChar + ".");
 				}
 
-				// Convert stream to array and return.
-				return stream.ToArray();
+				// If the string is not in the lookup table, throw exception.
+				throw new EncoderFallbackException("Could not encode " + s[pos] + ".");
 			}
+
+			return bytes.ToArray();
 		}
 
 		/// <summary>
@@ -302,50 +276,34 @@ namespace LibTextPet.Text {
 
 			// Byte array position.
 			int pos = 0;
-			// The maximum amount of bytes to seek.
-			int seek = this.maxByteCount;
 
-			// Go through the whole byte array.
+			List<byte> bytesList = new List<byte>(bytes);
+
 			while (pos < bytes.Length) {
-				// Adjust seek count to remaining byte count.
-				if (bytes.Length - pos < seek) {
-					seek = bytes.Length - pos;
-				}
-
-				// Start searching.
-				bool found = false;
-				for (int l = seek; l > 0; l--) {
-					byte[] nextKey = new byte[l];
-					Buffer.BlockCopy(bytes, pos, nextKey, 0, l);
-
-					// Is the key in the lookup table?
-					if (byteToStringDictionary.TryGetValue(nextKey, out string nextValue)) {
-						// Append it to the builder and advance.
-						builder.Append(nextValue);
-						pos += l;
-						found = true;
-						break;
-					}
+				// Is the key in the lookup table?
+				IEnumerator<byte> byteEnumerator = bytesList.Skip(pos).GetEnumerator();
+				if (this.byteToStringLookup.TryMatchLast(byteEnumerator, out string nextValue)) {
+					builder.Append(nextValue);
+					pos += this.byteToStringLookup.ElementsRead;
+					continue;
 				}
 
 				// If byte could not be decoded, use fallback.
-				if (!found) {
-					// Create fallback buffer if it has not been created yet.
-					if (fallbackBuffer == null) {
-						fallbackBuffer = this.DecoderFallback.CreateFallbackBuffer();
-					}
+				// Create fallback buffer if it has not been created yet.
+				if (fallbackBuffer == null) {
+					fallbackBuffer = this.DecoderFallback.CreateFallbackBuffer();
+				}
 
-					// Fallback on unknown byte.
-					byte[] fallbackBytes = new byte[] { bytes[pos] };
-					pos += 1;
-					if (fallbackBuffer.Fallback(fallbackBytes, pos)) {
-						// Append all fallback characters.
-						while (fallbackBuffer.Remaining > 0) {
-							builder.Append(fallbackBuffer.GetNextChar());
-						}
-					} else {
-						throw new DecoderFallbackException("Could not decode " + BitConverter.ToString(fallbackBytes) + ".", fallbackBytes, 0);
+				// Fallback on unknown byte.
+				byte[] fallbackBytes = new byte[] { bytes[pos] };
+				pos += 1;
+				if (fallbackBuffer.Fallback(fallbackBytes, pos)) {
+					// Append all fallback characters.
+					while (fallbackBuffer.Remaining > 0) {
+						builder.Append(fallbackBuffer.GetNextChar());
 					}
+				} else {
+					throw new DecoderFallbackException("Could not decode " + BitConverter.ToString(fallbackBytes) + ".", fallbackBytes, 0);
 				}
 			}
 

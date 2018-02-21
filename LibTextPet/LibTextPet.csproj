@@ -72,7 +72,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="General\GameInfo.cs" />
+    <Compile Include="General\ILookupMap.cs" />
+    <Compile Include="General\LookupMap.cs" />
     <Compile Include="General\NamedCollection.cs" />
+    <Compile Include="General\TreeLookupMap.cs" />
     <Compile Include="IO\IPatcher.cs" />
     <Compile Include="IO\Msg\FileManager.cs" />
     <Compile Include="IO\Msg\FileTextArchiveReader.cs" />
