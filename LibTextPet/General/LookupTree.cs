@@ -6,118 +6,19 @@ using System.Text;
 namespace LibTextPet.General {
 	public class LookupTree<TKeyElement, TValue> where TKeyElement : IEquatable<TKeyElement> {
 		/// <summary>
-		/// Represents a node in the tree with any number of children, optionally containing a value.
-		/// </summary>
-		protected class TreeNode {
-			private TValue _value;
-
-			/// <summary>
-			/// Gets the children of this tree node.
-			/// </summary>
-			private IDictionary<TKeyElement, TreeNode> Children { get; set; }
-
-			/// <summary>
-			/// Gets a boolean that indicates whether this tree node has any children.
-			/// </summary>
-			public bool HasChildren
-				=> this.Children?.Any() ?? false;
-
-			/// <summary>
-			/// Gets a boolean that indicates whether this tree node has a child with the specified key element.
-			/// </summary>
-			/// <param name="keyElement">The key element.</param>
-			/// <returns>true if there is a child; otherwise, false.</returns>
-			public bool HasChild(TKeyElement keyElement)
-				=> this.Children?.ContainsKey(keyElement) ?? false;
-
-			/// <summary>
-			/// Gets the child of this tree node with the specified key element.
-			/// </summary>
-			/// <param name="keyElement">The key element.</param>
-			/// <returns>The child.</returns>
-			public TreeNode GetChild(TKeyElement keyElement)
-				=> this.Children[keyElement];
-
-			/// <summary>
-			/// Gets the child of this tree node with the specified key element.
-			/// </summary>
-			/// <param name="keyElement">The key element.</param>
-			/// <param name="child">When this method returns, the child, if it exists; otherwise, null.</param>
-			/// <returns>true if there is a child; otherwise, false.</returns>
-			public bool TryGetChild(TKeyElement keyElement, out TreeNode child) {
-				if (this.Children == null || !this.Children.TryGetValue(keyElement, out child)) {
-					child = null;
-					return false;
-				} else {
-					return true;
-				}
-			}
-
-			/// <summary>
-			/// Gets or sets the value for this tree node.
-			/// </summary>
-			public TValue Value {
-				get {
-					return this._value;
-				}
-				set {
-					this._value = value;
-					this.HasValue = true;
-				}
-			}
-
-			/// <summary>
-			/// Gets a boolean that indicates whether this tree node has a value.
-			/// </summary>
-			public bool HasValue { get; private set; }
-
-			/// <summary>
-			/// Creates a new tree node with the specified value.
-			/// </summary>
-			/// <param name="value">The value of this tree node.</param>
-			public TreeNode(TValue value) {
-				this.Value = value;
-				this.HasValue = true;
-			}
-
-			/// <summary>
-			/// Creates a new tree node with no value.
-			/// </summary>
-			public TreeNode() {
-				this.Value = default(TValue);
-				this.HasValue = false;
-			}
-
-			/// <summary>
-			/// Adds a child to this tree node.
-			/// </summary>
-			/// <param name="keyElement">The key element of the child.</param>
-			/// <param name="child">The child node.</param>
-			public void AddChild(TKeyElement keyElement, TreeNode child) {
-				if (this.HasChild(keyElement))
-					throw new ArgumentException("A child with this key element already exists.", nameof(keyElement));
-
-				// Create child dictionary if it does not exist.
-				if (this.Children == null) {
-					this.Children = new Dictionary<TKeyElement, TreeNode>();
-				}
-				// Add the child to the dictionary.
-				this.Children.Add(keyElement, child);
-			}
-		}
-
-		/// <summary>
 		/// Gets the root node of the tree.
 		/// </summary>
-		protected TreeNode RootNode { get; }
+		internal LookupTreeNode<TKeyElement, TValue> RootNode { get; }
+
+		internal LookupTreePath<TKeyElement, TValue> Path { get; }
 
 		/// <summary>
 		/// Creates an empty lookup tree.
 		/// </summary>
 		public LookupTree()
 			: base() {
-			this.RootNode = new TreeNode();
-			this.Reset();
+			this.RootNode = new LookupTreeNode<TKeyElement, TValue>();
+			this.Path = new LookupTreePath<TKeyElement, TValue>(this);
 			this.Height = 0;
 		}
 
@@ -127,80 +28,11 @@ namespace LibTextPet.General {
 		public int Height { get; private set; }
 
 		/// <summary>
-		/// Gets the current depth of the tree path.
+		/// Begins a new path through the current tree.
 		/// </summary>
-		public int CurrentDepth { get; private set; }
-		/// <summary>
-		/// Gets the current tree node in the tree path.
-		/// </summary>
-		protected TreeNode CurrentNode { get; private set; }
-		/// <summary>
-		/// Gets a boolean that indicates whether the current tree node has a value.
-		/// </summary>
-		public bool AtValue => this.CurrentNode.HasValue;
-		/// <summary>
-		/// Gets the value of the current tree node, or the default value of the value type if it has none.
-		/// </summary>
-		public TValue CurrentValue => this.CurrentNode.Value;
-		/// <summary>
-		/// Gets or sets a boolean that indicates whether the current tree path has hit a dead end.
-		/// </summary>
-		public bool AtEnd => this.CurrentNode.HasChildren;
-
-		/// <summary>
-		/// Begins a path through the current tree.
-		/// </summary>
-		public void Reset() {
-			this.CurrentDepth = 0;
-			this.CurrentNode = this.RootNode;
-		}
-
-		/// <summary>
-		/// Steps through the tree on the specified key element.
-		/// </summary>
-		/// <param name="keyElement">The key element.</param>
-		/// <returns>true if the step moved to a new node; otherwise, false.</returns>
-		public bool Step(TKeyElement keyElement) {
-			if (this.CurrentNode.TryGetChild(keyElement, out TreeNode child)) {
-				this.CurrentNode = child;
-				this.CurrentDepth += 1;
-				return true;
-			} else {
-				return false;
-			}
-		}
-
-		/// <summary>
-		/// Steps through the tree to the next value.
-		/// </summary>
-		/// <param name="keyElementEnumerator">The enumerator for key elements.</param>
-		/// <param name="value">When this method returns, the next value, if one was found; otherwise, the default value of the value type.</param>
-		/// <returns>true if a value was found; otherwise, false.</returns>
-		protected bool TryStepToValue(IEnumerator<TKeyElement> keyElementEnumerator, out TValue value) {
-			if (keyElementEnumerator == null)
-				throw new ArgumentNullException(nameof(keyElementEnumerator));
-
-			// Root node is empty and should not have a value.
-			while (keyElementEnumerator.MoveNext() && this.Step(keyElementEnumerator.Current)) {
-				if (this.CurrentNode.HasValue) {
-					value = this.CurrentNode.Value;
-					return true;
-				}
-			}
-
-			// End reached.
-			value = default(TValue);
-			return false;
-		}
-
-		/// <summary>
-		/// Step through the tree until a dead end is reached.
-		/// </summary>
-		/// <param name="keyElementEnumerator">The enumerator for key elements.</param>
-		/// <returns>true if a value was found; otherwise, false.</returns>
-		protected void StepToEnd(IEnumerator<TKeyElement> keyElementEnumerator) {
-			// Step to next value until end reached.
-			while (this.TryStepToValue(keyElementEnumerator, out _)) { }
+		/// <returns>The path.</returns>
+		public LookupTreePath<TKeyElement, TValue> BeginPath() {
+			return new LookupTreePath<TKeyElement, TValue>(this);
 		}
 
 		/// <summary>
@@ -214,24 +46,24 @@ namespace LibTextPet.General {
 			if (!key.Any())
 				throw new ArgumentException("The key cannot be empty.", nameof(key));
 
-			this.Reset();
-			this.StepToEnd(key.GetEnumerator());
+			this.Path.Reset();
+			this.Path.StepToEnd(key.GetEnumerator());
 
 			// Add nodes until desired depth reached.
-			while (this.CurrentDepth < key.Count) {
-				TreeNode node = new TreeNode();
-				this.CurrentNode.AddChild(key[this.CurrentDepth++], node);
-				this.CurrentNode = node;
+			while (this.Path.Depth < key.Count) {
+				LookupTreeNode<TKeyElement, TValue> node = new LookupTreeNode<TKeyElement, TValue>();
+				this.Path.CurrentNode.AddChild(key[this.Path.Depth++], node);
+				this.Path.CurrentNode = node;
 			}
 
 			// Set value for the node.
-			if (this.CurrentNode.HasValue) {
+			if (this.Path.CurrentNode.HasValue) {
 				throw new ArgumentException("An item with this key already exists in the tree.", nameof(key));
 			}
-			CurrentNode.Value = value;
+			this.Path.CurrentNode.Value = value;
 
-			if (this.CurrentDepth > this.Height) {
-				this.Height = this.CurrentDepth;
+			if (this.Path.Depth > this.Height) {
+				this.Height = this.Path.Depth;
 			}
 		}
 
@@ -244,8 +76,8 @@ namespace LibTextPet.General {
 			if (keyElementEnumerator == null)
 				throw new ArgumentNullException(nameof(keyElementEnumerator));
 
-			this.Reset();
-			while (this.TryStepToValue(keyElementEnumerator, out TValue value)) {
+			this.Path.Reset();
+			while (this.Path.TryStepToValue(keyElementEnumerator, out TValue value)) {
 				yield return value;
 			}
 		}

@@ -277,8 +277,8 @@ namespace LibTextPet.Msg {
 		public static bool operator ==(ParameterDefinition definition1, ParameterDefinition definition2) {
 			if (ReferenceEquals(definition1, definition2)) {
 				return true;
-			} else if (definition1 == null) {
-				return definition2 == null;
+			} else if (definition1 is null) {
+				return definition2 is null;
 			} else {
 				return definition1.Equals(definition2);
 			}
@@ -287,8 +287,8 @@ namespace LibTextPet.Msg {
 		public static bool operator !=(ParameterDefinition definition1, ParameterDefinition definition2) {
 			if (ReferenceEquals(definition1, definition2)) {
 				return false;
-			} else if (definition1 == null) {
-				return !(definition2 == null);
+			} else if (definition1 is null) {
+				return !(definition2 is null);
 			} else {
 				return !definition1.Equals(definition2);
 			}

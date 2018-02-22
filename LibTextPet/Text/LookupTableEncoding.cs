@@ -132,7 +132,7 @@ namespace LibTextPet.Text {
 				IEnumerator<char> charEnumerator = s.Substring(pos).GetEnumerator();
 				if (this.stringtoByteLookup.TryMatchLast(charEnumerator, out byte[] charBytes)) {
 					bytes.AddRange(charBytes);
-					pos += this.stringtoByteLookup.CurrentDepth;
+					pos += this.stringtoByteLookup.Path.Depth;
 					continue;
 				}
 
@@ -284,7 +284,7 @@ namespace LibTextPet.Text {
 				IEnumerator<byte> byteEnumerator = bytesList.Skip(pos).GetEnumerator();
 				if (this.byteToStringLookup.TryMatchLast(byteEnumerator, out string nextValue)) {
 					builder.Append(nextValue);
-					pos += this.byteToStringLookup.CurrentDepth;
+					pos += this.byteToStringLookup.Path.Depth;
 					continue;
 				}
 
