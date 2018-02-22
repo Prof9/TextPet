@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 
 namespace LibTextPet.General {
-	public class TreeLookupMap<TKeyElement, TValue> : LookupMap<TKeyElement, TValue> where TKeyElement : IEquatable<TKeyElement> {
+	public class LookupTree<TKeyElement, TValue> where TKeyElement : IEquatable<TKeyElement> {
 		/// <summary>
 		/// Represents a node in the tree with any number of children, optionally containing a value.
 		/// </summary>
-		protected class TreeNode {
+		public class TreeNode {
 			private TValue _value;
 
 			/// <summary>
@@ -112,28 +112,28 @@ namespace LibTextPet.General {
 		protected TreeNode RootNode { get; }
 
 		/// <summary>
-		/// Creates a new empty tree dictionary.
+		/// Creates an empty lookup tree.
 		/// </summary>
-		public TreeLookupMap()
+		public LookupTree()
 			: base() {
 			this.RootNode = new TreeNode();
 			this.BeginTraversal();
+			this.Height = 0;
 		}
 
 		/// <summary>
-		/// Gets the amount of elements that have been read.
+		/// Gets the current height of the tree.
 		/// </summary>
-		public override int ElementsRead
-			=> this.CurrentDepth;
+		public int Height { get; private set; }
 
 		/// <summary>
 		/// Gets the current depth of the traversal.
 		/// </summary>
-		protected int CurrentDepth { get; private set; }
+		public int CurrentDepth { get; private set; }
 		/// <summary>
 		/// Gets the current tree node in the traversal.
 		/// </summary>
-		protected TreeNode CurrentNode { get; private set; }
+		public TreeNode CurrentNode { get; private set; }
 		/// <summary>
 		/// Gets a boolean that indicates whether the current traversal has reached a dead end.
 		/// </summary>
@@ -142,7 +142,7 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// Begins a traversal of the current tree.
 		/// </summary>
-		protected void BeginTraversal() {
+		public void BeginTraversal() {
 			this.CurrentDepth = 0;
 			this.CurrentNode = this.RootNode;
 			this.AtEnd = false;
@@ -153,7 +153,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="keyElement">The key element.</param>
 		/// <returns>true if the traversal moved to a new node; otherwise, false.</returns>
-		protected bool Traverse(TKeyElement keyElement) {
+		public bool Traverse(TKeyElement keyElement) {
 			if (this.CurrentNode.TryGetChild(keyElement, out TreeNode child)) {
 				this.CurrentNode = child;
 				this.CurrentDepth += 1;
@@ -202,7 +202,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="key">The key of the item to add.</param>
 		/// <param name="value">The value of the item to add.</param>
-		public override void Add(IList<TKeyElement> key, TValue value) {
+		public void Add(IList<TKeyElement> key, TValue value) {
 			if (key == null)
 				throw new ArgumentNullException(nameof(key));
 			if (!key.Any())
@@ -223,6 +223,10 @@ namespace LibTextPet.General {
 				throw new ArgumentException("An item with this key already exists in the tree.", nameof(key));
 			}
 			CurrentNode.Value = value;
+
+			if (this.CurrentDepth > this.Height) {
+				this.Height = this.CurrentDepth;
+			}
 		}
 
 		/// <summary>
@@ -230,7 +234,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="keyElementEnumerator">The key element enumerator to read from.</param>
 		/// <returns>The values that matched, ordered by ascending key length.</returns>
-		public override IEnumerable<TValue> Match(IEnumerator<TKeyElement> keyElementEnumerator) {
+		public IEnumerable<TValue> Match(IEnumerator<TKeyElement> keyElementEnumerator) {
 			if (keyElementEnumerator is null)
 				throw new ArgumentNullException(nameof(keyElementEnumerator));
 
@@ -238,6 +242,37 @@ namespace LibTextPet.General {
 			while (this.TryTraverseToValue(keyElementEnumerator, out TValue value)) {
 				yield return value;
 			}
+		}
+
+		/// <summary>
+		/// Finds the first match for the value associated with the key read from the specified key element enumerator.
+		/// </summary>
+		/// <param name="keyElementEnumerator">The key element enumerator to read from.</param>
+		/// <param name="value">When this method returns, the first value that matched, if one did; otherwise, the default value for the value type.</param>
+		/// <returns>true if a match was found; otherwise, false.</returns>
+		public bool TryMatchFirst(IEnumerator<TKeyElement> keyElementEnumerator, out TValue value) {
+			foreach (TValue match in this.Match(keyElementEnumerator)) {
+				value = match;
+				return true;
+			}
+			value = default(TValue);
+			return false;
+		}
+
+		/// <summary>
+		/// Finds the last match for the value associated with the key read from the specified key element enumerator.
+		/// </summary>
+		/// <param name="keyElementEnumerator">The key element enumerator to read from.</param>
+		/// <param name="value">When this method returns, the last value that matched, if one did; otherwise, the default value for the value type.</param>
+		/// <returns>true if a match was found; otherwise, false.</returns>
+		public bool TryMatchLast(IEnumerator<TKeyElement> keyElementEnumerator, out TValue value) {
+			bool found = false;
+			value = default(TValue);
+			foreach (TValue match in this.Match(keyElementEnumerator)) {
+				value = match;
+				found = true;
+			}
+			return found;
 		}
 	}
 }

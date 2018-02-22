@@ -72,10 +72,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="General\GameInfo.cs" />
-    <Compile Include="General\ILookupMap.cs" />
-    <Compile Include="General\LookupMap.cs" />
+    <Compile Include="General\LookupTree.cs" />
     <Compile Include="General\NamedCollection.cs" />
-    <Compile Include="General\TreeLookupMap.cs" />
     <Compile Include="IO\IPatcher.cs" />
     <Compile Include="IO\Msg\FileManager.cs" />
     <Compile Include="IO\Msg\FileTextArchiveReader.cs" />
@@ -116,6 +114,7 @@
     <Compile Include="Msg\StringLengthUnit.cs" />
     <Compile Include="Plugins\GameLoader.cs" />
     <Compile Include="IO\ScriptTextBoxPatcher.cs" />
+    <Compile Include="Text2\LookupTableEncoding2.cs" />
     <Compile Include="Text\CharacterCodeEncoder.cs" />
     <Compile Include="Text\ConservativeStreamReader.cs" />
     <Compile Include="IO\Msg\BinaryCommandReader.cs" />

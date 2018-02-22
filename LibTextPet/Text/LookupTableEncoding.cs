@@ -15,8 +15,8 @@ namespace LibTextPet.Text {
 	/// </summary>
 	public class LookupTableEncoding : Encoding {
 		// Two lookups for 2-way lookup.
-		private ILookupMap<byte, string> byteToStringLookup;
-		private ILookupMap<char, byte[]> stringtoByteLookup;
+		private LookupTree<byte, string> byteToStringLookup;
+		private LookupTree<char, byte[]> stringtoByteLookup;
 
 		// Maximum byte/char count, needed for conversion.
 		private readonly int maxByteCount;
@@ -38,8 +38,8 @@ namespace LibTextPet.Text {
 			this.EncodingName = name;
 
 			// Initialize variables.
-			this.byteToStringLookup = new TreeLookupMap<byte, string>();
-			this.stringtoByteLookup = new TreeLookupMap<char, byte[]>();
+			this.byteToStringLookup = new LookupTree<byte, string>();
+			this.stringtoByteLookup = new LookupTree<char, byte[]>();
 			int maxByteCount = 0;
 			int maxCharCount = 0;
 
@@ -132,7 +132,7 @@ namespace LibTextPet.Text {
 				IEnumerator<char> charEnumerator = s.Substring(pos).GetEnumerator();
 				if (this.stringtoByteLookup.TryMatchLast(charEnumerator, out byte[] charBytes)) {
 					bytes.AddRange(charBytes);
-					pos += this.stringtoByteLookup.ElementsRead;
+					pos += this.stringtoByteLookup.CurrentDepth;
 					continue;
 				}
 
@@ -284,7 +284,7 @@ namespace LibTextPet.Text {
 				IEnumerator<byte> byteEnumerator = bytesList.Skip(pos).GetEnumerator();
 				if (this.byteToStringLookup.TryMatchLast(byteEnumerator, out string nextValue)) {
 					builder.Append(nextValue);
-					pos += this.byteToStringLookup.ElementsRead;
+					pos += this.byteToStringLookup.CurrentDepth;
 					continue;
 				}
 
