@@ -253,7 +253,7 @@ namespace LibTextPet.Msg {
 		/// <param name="definition">Another parameter definition to compare to.</param>
 		/// <returns>true if both parameter definitions are the same type and represent the same value; otherwise, false.</returns>
 		public bool Equals(ParameterDefinition definition) {
-			if (definition is null)
+			if (definition == null)
 				return false;
 
 			for (int i = 0; i < this.EqualityFields.Length; i++) {
@@ -277,8 +277,8 @@ namespace LibTextPet.Msg {
 		public static bool operator ==(ParameterDefinition definition1, ParameterDefinition definition2) {
 			if (ReferenceEquals(definition1, definition2)) {
 				return true;
-			} else if (definition1 is null) {
-				return definition2 is null;
+			} else if (definition1 == null) {
+				return definition2 == null;
 			} else {
 				return definition1.Equals(definition2);
 			}
@@ -287,8 +287,8 @@ namespace LibTextPet.Msg {
 		public static bool operator !=(ParameterDefinition definition1, ParameterDefinition definition2) {
 			if (ReferenceEquals(definition1, definition2)) {
 				return false;
-			} else if (definition1 is null) {
-				return !(definition2 is null);
+			} else if (definition1 == null) {
+				return !(definition2 == null);
 			} else {
 				return !definition1.Equals(definition2);
 			}

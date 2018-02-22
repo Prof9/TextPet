@@ -156,6 +156,8 @@ namespace LibTextPet.IO.Msg {
 				throw new ArgumentNullException(nameof(parDef), "The parameter definition cannot be null.");
 			if (value < parDef.Minimum || value > parDef.Maximum)
 				throw new ArgumentOutOfRangeException(nameof(value), value, "The value falls outside the allowed range.");
+			if (labelDict == null)
+				throw new ArgumentNullException(nameof(labelDict), "The label dictionary cannot be null.");
 
 			value -= parDef.Add;
 
@@ -169,7 +171,7 @@ namespace LibTextPet.IO.Msg {
 				offset = bytes.Count;
 				break;
 			case OffsetType.Label:
-				if (labelDict is null || !labelDict.TryGetValue(parDef.RelativeLabel, out offset)) {
+				if (!labelDict.TryGetValue(parDef.RelativeLabel, out offset)) {
 					throw new InvalidDataException("Unknown label \"" + parDef.RelativeLabel + "\".");
 				}
 				break;

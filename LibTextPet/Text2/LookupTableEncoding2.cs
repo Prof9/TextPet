@@ -91,6 +91,13 @@ namespace LibTextPet.Text2 {
 			}
 			
 			public override int GetCharCount(byte[] bytes, int index, int count, bool flush) {
+				if (bytes == null)
+					throw new ArgumentNullException(nameof(bytes), "The byte array cannot be null.");
+				if (index < 0 || index >= bytes.Length)
+					throw new ArgumentOutOfRangeException(nameof(index), index, "Index is out of range.");
+				if (count < 0 || index + count > bytes.Length)
+					throw new ArgumentOutOfRangeException(nameof(count), count, "Count is out of range.");
+
 				// Process every byte in the byte array.
 				for (int i = 0; i < count; i++) {
 					this.Queue.Add(bytes[index + i]);
@@ -103,6 +110,17 @@ namespace LibTextPet.Text2 {
 			}
 
 			public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex, bool flush) {
+				if (bytes == null)
+					throw new ArgumentNullException(nameof(bytes), "The byte array cannot be null.");
+				if (chars == null)
+					throw new ArgumentNullException(nameof(chars), "The character array cannot be null.");
+				if (byteIndex < 0 || byteIndex >= bytes.Length)
+					throw new ArgumentOutOfRangeException(nameof(byteIndex), byteIndex, "Byte index is out of range.");
+				if (byteCount < 0 || byteIndex + byteCount > bytes.Length)
+					throw new ArgumentOutOfRangeException(nameof(byteCount), byteCount, "Byte count is out of range.");
+				if (charIndex < 0)
+					throw new ArgumentOutOfRangeException(nameof(charIndex), charIndex, "Character index cannot be negative.");
+
 				StringBuilder builder = new StringBuilder();
 
 				// Process every byte in the byte array.
@@ -141,12 +159,12 @@ namespace LibTextPet.Text2 {
 				while (flush && this.Queue.Count > 0) {
 					// Process new bytes in the current queue.
 					for (int i = this.QueueIndex; i < this.Queue.Count; i++) {
-						// Traverse on next byte in queue.
-						if (this.BytesToStringLookup.Traverse(this.Queue[i])) {
+						// Step on next byte in queue.
+						if (this.BytesToStringLookup.Step(this.Queue[i])) {
 							// Check if we reached a value.
-							if (this.BytesToStringLookup.CurrentNode.HasValue) {
+							if (this.BytesToStringLookup.AtValue) {
 								// Append the code point.
-								string codePoint = this.BytesToStringLookup.CurrentNode.Value;
+								string codePoint = this.BytesToStringLookup.CurrentValue;
 								if (builder != null) {
 									builder.Append(codePoint);
 								}
@@ -163,7 +181,7 @@ namespace LibTextPet.Text2 {
 						}
 
 						// Start next code point.
-						this.BytesToStringLookup.BeginTraversal();
+						this.BytesToStringLookup.Reset();
 						// Reset to start of queue.
 						i = -1;
 					}
@@ -209,7 +227,7 @@ namespace LibTextPet.Text2 {
 					// Remove byte from queue.
 					this.Queue.RemoveAt(0);
 					// Start next code point.
-					this.BytesToStringLookup.BeginTraversal();
+					this.BytesToStringLookup.Reset();
 				}
 			}
 		}

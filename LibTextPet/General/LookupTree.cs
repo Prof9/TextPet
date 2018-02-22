@@ -8,7 +8,7 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// Represents a node in the tree with any number of children, optionally containing a value.
 		/// </summary>
-		public class TreeNode {
+		protected class TreeNode {
 			private TValue _value;
 
 			/// <summary>
@@ -45,7 +45,7 @@ namespace LibTextPet.General {
 			/// <param name="child">When this method returns, the child, if it exists; otherwise, null.</param>
 			/// <returns>true if there is a child; otherwise, false.</returns>
 			public bool TryGetChild(TKeyElement keyElement, out TreeNode child) {
-				if (this.Children is null || !this.Children.TryGetValue(keyElement, out child)) {
+				if (this.Children == null || !this.Children.TryGetValue(keyElement, out child)) {
 					child = null;
 					return false;
 				} else {
@@ -98,7 +98,7 @@ namespace LibTextPet.General {
 					throw new ArgumentException("A child with this key element already exists.", nameof(keyElement));
 
 				// Create child dictionary if it does not exist.
-				if (this.Children is null) {
+				if (this.Children == null) {
 					this.Children = new Dictionary<TKeyElement, TreeNode>();
 				}
 				// Add the child to the dictionary.
@@ -117,7 +117,7 @@ namespace LibTextPet.General {
 		public LookupTree()
 			: base() {
 			this.RootNode = new TreeNode();
-			this.BeginTraversal();
+			this.Reset();
 			this.Height = 0;
 		}
 
@@ -127,55 +127,57 @@ namespace LibTextPet.General {
 		public int Height { get; private set; }
 
 		/// <summary>
-		/// Gets the current depth of the traversal.
+		/// Gets the current depth of the tree path.
 		/// </summary>
 		public int CurrentDepth { get; private set; }
 		/// <summary>
-		/// Gets the current tree node in the traversal.
+		/// Gets the current tree node in the tree path.
 		/// </summary>
-		public TreeNode CurrentNode { get; private set; }
+		protected TreeNode CurrentNode { get; private set; }
 		/// <summary>
-		/// Gets a boolean that indicates whether the current traversal has reached a dead end.
+		/// Gets a boolean that indicates whether the current tree node has a value.
 		/// </summary>
-		protected bool AtEnd { get; private set; }
+		public bool AtValue => this.CurrentNode.HasValue;
+		/// <summary>
+		/// Gets the value of the current tree node, or the default value of the value type if it has none.
+		/// </summary>
+		public TValue CurrentValue => this.CurrentNode.Value;
 
 		/// <summary>
-		/// Begins a traversal of the current tree.
+		/// Begins a path through the current tree.
 		/// </summary>
-		public void BeginTraversal() {
+		public void Reset() {
 			this.CurrentDepth = 0;
 			this.CurrentNode = this.RootNode;
-			this.AtEnd = false;
 		}
 
 		/// <summary>
-		/// Traverses the tree on the specified key element.
+		/// Steps through the tree on the specified key element.
 		/// </summary>
 		/// <param name="keyElement">The key element.</param>
-		/// <returns>true if the traversal moved to a new node; otherwise, false.</returns>
-		public bool Traverse(TKeyElement keyElement) {
+		/// <returns>true if the step moved to a new node; otherwise, false.</returns>
+		public bool Step(TKeyElement keyElement) {
 			if (this.CurrentNode.TryGetChild(keyElement, out TreeNode child)) {
 				this.CurrentNode = child;
 				this.CurrentDepth += 1;
 				return true;
 			} else {
-				this.AtEnd = true;
 				return false;
 			}
 		}
 
 		/// <summary>
-		/// Traverses the tree to the next value.
+		/// Steps through the tree to the next value.
 		/// </summary>
 		/// <param name="keyElementEnumerator">The enumerator for key elements.</param>
 		/// <param name="value">When this method returns, the next value, if one was found; otherwise, the default value of the value type.</param>
 		/// <returns>true if a value was found; otherwise, false.</returns>
-		protected bool TryTraverseToValue(IEnumerator<TKeyElement> keyElementEnumerator, out TValue value) {
-			if (keyElementEnumerator is null)
+		protected bool TryStepToValue(IEnumerator<TKeyElement> keyElementEnumerator, out TValue value) {
+			if (keyElementEnumerator == null)
 				throw new ArgumentNullException(nameof(keyElementEnumerator));
 
 			// Root node is empty and should not have a value.
-			while (keyElementEnumerator.MoveNext() && this.Traverse(keyElementEnumerator.Current)) {
+			while (keyElementEnumerator.MoveNext() && this.Step(keyElementEnumerator.Current)) {
 				if (this.CurrentNode.HasValue) {
 					value = this.CurrentNode.Value;
 					return true;
@@ -188,13 +190,13 @@ namespace LibTextPet.General {
 		}
 
 		/// <summary>
-		/// Traverses the tree until a dead end is reached.
+		/// Step through the tree until a dead end is reached.
 		/// </summary>
 		/// <param name="keyElementEnumerator">The enumerator for key elements.</param>
 		/// <returns>true if a value was found; otherwise, false.</returns>
-		protected void TraverseToEnd(IEnumerator<TKeyElement> keyElementEnumerator) {
-			// Traverse to next value until end reached.
-			while (this.TryTraverseToValue(keyElementEnumerator, out _)) { }
+		protected void StepToEnd(IEnumerator<TKeyElement> keyElementEnumerator) {
+			// Step to next value until end reached.
+			while (this.TryStepToValue(keyElementEnumerator, out _)) { }
 		}
 
 		/// <summary>
@@ -208,8 +210,8 @@ namespace LibTextPet.General {
 			if (!key.Any())
 				throw new ArgumentException("The key cannot be empty.", nameof(key));
 
-			this.BeginTraversal();
-			this.TraverseToEnd(key.GetEnumerator());
+			this.Reset();
+			this.StepToEnd(key.GetEnumerator());
 
 			// Add nodes until desired depth reached.
 			while (this.CurrentDepth < key.Count) {
@@ -235,11 +237,11 @@ namespace LibTextPet.General {
 		/// <param name="keyElementEnumerator">The key element enumerator to read from.</param>
 		/// <returns>The values that matched, ordered by ascending key length.</returns>
 		public IEnumerable<TValue> Match(IEnumerator<TKeyElement> keyElementEnumerator) {
-			if (keyElementEnumerator is null)
+			if (keyElementEnumerator == null)
 				throw new ArgumentNullException(nameof(keyElementEnumerator));
 
-			this.BeginTraversal();
-			while (this.TryTraverseToValue(keyElementEnumerator, out TValue value)) {
+			this.Reset();
+			while (this.TryStepToValue(keyElementEnumerator, out TValue value)) {
 				yield return value;
 			}
 		}
