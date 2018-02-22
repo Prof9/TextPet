@@ -77,6 +77,10 @@ namespace LibTextPet.Text2 {
 
 			private List<byte> Queue { get; }
 			private int QueueIndex { get; set; }
+			private int CodePointLength { get; set; }
+			private string CodePointString { get; set; }
+
+			public bool Greedy { get; set; }
 
 			public LookupTableDecoder(LookupTree<byte, string> bytesToStringLookup) {
 				this.BytesToStringLookup = bytesToStringLookup;
@@ -84,6 +88,10 @@ namespace LibTextPet.Text2 {
 				// Initialize the queue.
 				this.Queue = new List<byte>(bytesToStringLookup.Height);
 				this.QueueIndex = 0;
+				this.CodePointLength = 0;
+				this.CodePointString = "";
+
+				this.Greedy = false;
 			}
 			
 			public override int GetCharCount(byte[] bytes, int index, int count) {
@@ -150,38 +158,49 @@ namespace LibTextPet.Text2 {
 				// Save the state of the decoder.
 				byte[] prevQueue = null;
 				int prevQueueIndex = this.QueueIndex;
+				int prevCodeLen = this.CodePointLength;
+				string prevCodeStr = null;
 				if (!update) {
 					prevQueue = new byte[this.Queue.Count];
 					this.Queue.CopyTo(prevQueue);
+					prevCodeStr = this.CodePointString;
 				}
 
 				// If flushing, keep going until the queue is empty.
 				while (flush && this.Queue.Count > 0) {
 					// Process new bytes in the current queue.
 					for (int i = this.QueueIndex; i < this.Queue.Count; i++) {
+						// If this is the first byte, clear the current code point.
+						if (i == 0) {
+							this.CodePointLength = 0;
+						}
+
 						// Step on next byte in queue.
 						if (this.BytesToStringLookup.Step(this.Queue[i])) {
 							// Check if we reached a value.
 							if (this.BytesToStringLookup.AtValue) {
-								// Append the code point.
-								string codePoint = this.BytesToStringLookup.CurrentValue;
-								if (builder != null) {
-									builder.Append(codePoint);
+								// Get the code point.
+								this.CodePointString = this.BytesToStringLookup.CurrentValue;
+								this.CodePointLength = i;
+								if (this.Greedy || this.BytesToStringLookup.AtEnd) {
+									// If greedy or dead end, use the first code point found.
+									doCodePoint();
+								} else {
+									// Otherwise, keep looking.
+									continue;
 								}
-								charCount += codePoint.Length;
-								// Remove bytes from queue.
-								this.Queue.RemoveRange(0, i);
 							} else {
 								// Did not reach value, but queue is still valid.
 								continue;
 							}
+						} else if (this.CodePointLength > 0) {
+							// Could not step on this byte. Use the last read code point.
+							doCodePoint();
 						} else {
-							// Invalid code point.
+							// Could not step on this byte and no valid code point read.
 							doFallback();
 						}
-
-						// Start next code point.
-						this.BytesToStringLookup.Reset();
+						
 						// Reset to start of queue.
 						i = -1;
 					}
@@ -205,10 +224,22 @@ namespace LibTextPet.Text2 {
 					this.Queue.Clear();
 					this.Queue.AddRange(prevQueue);
 					this.QueueIndex = prevQueueIndex;
+					this.CodePointLength = prevCodeLen;
+					this.CodePointString = prevCodeStr;
 				}
 
 				return charCount;
 
+				void doCodePoint() {
+					if (builder != null) {
+						builder.Append(this.CodePointString);
+					}
+					charCount += this.CodePointString.Length;
+					// Remove bytes from queue.
+					this.Queue.RemoveRange(0, this.CodePointLength);
+					// Start next code point.
+					this.BytesToStringLookup.Reset();
+				}
 				void doFallback() {
 					byte[] fallbackBytes = new byte[] { this.Queue[0] };
 					if (this.FallbackBuffer.Fallback(fallbackBytes, 0)) {

@@ -142,6 +142,10 @@ namespace LibTextPet.General {
 		/// Gets the value of the current tree node, or the default value of the value type if it has none.
 		/// </summary>
 		public TValue CurrentValue => this.CurrentNode.Value;
+		/// <summary>
+		/// Gets or sets a boolean that indicates whether the current tree path has hit a dead end.
+		/// </summary>
+		public bool AtEnd => this.CurrentNode.HasChildren;
 
 		/// <summary>
 		/// Begins a path through the current tree.
