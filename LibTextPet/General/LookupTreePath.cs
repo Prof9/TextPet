@@ -29,10 +29,11 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// Gets or sets a boolean that indicates whether the tree path has hit a dead end.
 		/// </summary>
-		public bool AtEnd => this.CurrentNode.HasChildren;
+		public bool AtEnd => !this.CurrentNode.HasChildren;
 
 		internal LookupTreePath(LookupTree<TKeyElement, TValue> tree) {
 			this.Tree = tree;
+			this.Reset();
 		}
 
 		/// <summary>

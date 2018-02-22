@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace LibTextPet.Text2 {
+namespace LibTextPet.Text {
 	internal class LookupTableEncoder : Encoder {
 		private class Path : ICloneable {
 			public List<byte> Bytes;
@@ -119,6 +119,10 @@ namespace LibTextPet.Text2 {
 			return byteCount;
 		}
 
+		public override void Reset() {
+			this.Paths.Clear();
+		}
+
 		private void AddToQueue(char c) {
 			foreach (Path path in this.Paths) {
 				path.Queue.Add(c);
@@ -213,7 +217,7 @@ namespace LibTextPet.Text2 {
 
 		private bool ProcessQueue(Path path, bool flush) {
 			// If flushing, keep going until the queue is empty.
-			while (flush && path.Queue.Count > 0) {
+			do {
 				// Process new chars in the current queue.
 				for (int i = path.QueueIndex; i < path.Queue.Count; i++) {
 					// If this is the first char, clear the current code point.
@@ -239,7 +243,7 @@ namespace LibTextPet.Text2 {
 							}
 							// Get the code point.
 							path.CodePointBytes = path.LookupPath.CurrentValue;
-							path.CodePointLength = i;
+							path.CodePointLength = i + 1;
 							if (!this.OptimalPath) {
 								// Apply the code point immediately if using branching paths.
 								doCodePoint();
@@ -278,7 +282,7 @@ namespace LibTextPet.Text2 {
 					doFallback();
 					path.QueueIndex = 0;
 				}
-			}
+			} while (flush && path.Queue.Count > 0);
 
 			return true;
 

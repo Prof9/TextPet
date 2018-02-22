@@ -11,6 +11,8 @@ namespace LibTextPet.Text {
     public class ConservativeStreamReader {
 		private char[] charBuffer;
 
+		private Decoder Decoder { get; }
+
 		/// <summary>
 		/// Gets the base stream that is being read from.
 		/// </summary>
@@ -39,6 +41,7 @@ namespace LibTextPet.Text {
 			this.BaseStream = stream;
 
 			this.Encoding = encoding;
+			this.Decoder = encoding.GetDecoder();
 
 			this.charBuffer = new char[this.Encoding.GetMaxCharCount(1)];
 		}
@@ -82,20 +85,30 @@ namespace LibTextPet.Text {
 			int maxCharCount = this.Encoding.GetMaxCharCount(count) * maxByteCount;
 			char[] tempCharBuffer = new char[maxCharCount];
 
+			this.Decoder.Reset();
+			this.Encoding.ResetFallbackCount();
+
 			// Decode the characters from the buffer.
-			int bytesRead;
+			int bytesRead = 0;
 			int charsRead = 0;
 			bool success = false;
-			for (bytesRead = 1; bytesRead <= maxByteCount; bytesRead++) {
+			for (int i = 0; i < maxByteCount; i++) {
 				// Read characters.
-				this.Encoding.ResetFallbackCount();
-				charsRead = this.Encoding.GetChars(bytes, 0, bytesRead, tempCharBuffer, 0);
+				charsRead = this.Decoder.GetChars(bytes, i, 1, tempCharBuffer, 0, false);
 
-				// If no errors occurred, decoding was successful..
-				if (this.Encoding.FallbackCount == 0) {
+				// If errors occurred, decoding was not successful.
+				if (this.Encoding.FallbackCount > 0) {
+					success = false;
+					break;
+				}
+
+				// If chars read, decoding was successful.
+				if (charsRead > 0) {
+					bytesRead = i + 1;
 					success = true;
 					break;
 				}
+				;
 			}
 
 			// Did we read any characters?

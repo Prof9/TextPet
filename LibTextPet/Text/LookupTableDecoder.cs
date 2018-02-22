@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace LibTextPet.Text2 {
+namespace LibTextPet.Text {
 	internal class LookupTableDecoder : Decoder {
 		private List<byte> Queue { get; }
 		private int QueueIndex { get; set; }
@@ -18,10 +18,8 @@ namespace LibTextPet.Text2 {
 		public LookupTableDecoder(LookupTree<byte, string> bytesToStringLookup) {
 			// Initialize the queue.
 			this.Queue = new List<byte>(bytesToStringLookup.Height);
-			this.QueueIndex = 0;
-			this.CodePointLength = 0;
-			this.CodePointString = "";
 			this.LookupPath = bytesToStringLookup.BeginPath();
+			this.Reset();
 
 			this.Greedy = false;
 		}
@@ -37,10 +35,6 @@ namespace LibTextPet.Text2 {
 				throw new ArgumentOutOfRangeException(nameof(index), index, "Index is out of range.");
 			if (count < 0 || index + count > bytes.Length)
 				throw new ArgumentOutOfRangeException(nameof(count), count, "Count is out of range.");
-
-			if (count == 0) {
-				return 0;
-			}
 
 			// Process every byte in the byte array.
 			for (int i = 0; i < count; i++) {
@@ -65,10 +59,6 @@ namespace LibTextPet.Text2 {
 			if (charIndex < 0)
 				throw new ArgumentOutOfRangeException(nameof(charIndex), charIndex, "Character index cannot be negative.");
 
-			if (byteCount == 0) {
-				return 0;
-			}
-
 			StringBuilder builder = new StringBuilder();
 
 			// Process every byte in the byte array.
@@ -84,6 +74,14 @@ namespace LibTextPet.Text2 {
 			}
 
 			return charCount;
+		}
+
+		public override void Reset() {
+			this.Queue.Clear();
+			this.QueueIndex = 0;
+			this.CodePointLength = 0;
+			this.CodePointString = null;
+			this.LookupPath.Reset();
 		}
 
 		/// <summary>
@@ -108,7 +106,7 @@ namespace LibTextPet.Text2 {
 			}
 
 			// If flushing, keep going until the queue is empty.
-			while (flush && this.Queue.Count > 0) {
+			do {
 				// Process new bytes in the current queue.
 				for (int i = this.QueueIndex; i < this.Queue.Count; i++) {
 					// If this is the first byte, clear the current code point.
@@ -122,7 +120,7 @@ namespace LibTextPet.Text2 {
 						if (this.LookupPath.AtValue) {
 							// Get the code point.
 							this.CodePointString = this.LookupPath.CurrentValue;
-							this.CodePointLength = i;
+							this.CodePointLength = i + 1;
 							if (this.Greedy || this.LookupPath.AtEnd) {
 								// If greedy or dead end, use the first code point found.
 								doCodePoint();
@@ -153,12 +151,12 @@ namespace LibTextPet.Text2 {
 
 				// Trailing bytes that we cannot match.
 				// If flushing, have to fallback on the first byte to get rid of it.
-				if (flush) {
+				if (flush && this.Queue.Count > 0) {
 					// Fallback on first byte.
 					doFallback();
 					this.QueueIndex = 0;
 				}
-			}
+			} while (flush && this.Queue.Count > 0);
 
 			// Restore decoder state.
 			if (!update) {

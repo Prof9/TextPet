@@ -22,6 +22,11 @@ namespace LibTextPet.Text {
 		public override string EncodingName
 			=> this.BaseEncoding.EncodingName;
 
+		public override Decoder GetDecoder()
+			=> this.BaseEncoding.GetDecoder();
+		public override Encoder GetEncoder()
+			=> this.BaseEncoding.GetEncoder();
+
 		/// <summary>
 		/// Gets the amount of fallbacks that have occurred.
 		/// </summary>

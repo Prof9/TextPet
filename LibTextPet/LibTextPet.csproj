@@ -116,9 +116,9 @@
     <Compile Include="Msg\StringLengthUnit.cs" />
     <Compile Include="Plugins\GameLoader.cs" />
     <Compile Include="IO\ScriptTextBoxPatcher.cs" />
-    <Compile Include="Text2\LookupTableDecoder.cs" />
-    <Compile Include="Text2\LookupTableEncoder.cs" />
-    <Compile Include="Text2\LookupTableEncoding.cs" />
+    <Compile Include="Text\LookupTableDecoder.cs" />
+    <Compile Include="Text\LookupTableEncoder.cs" />
+    <Compile Include="Text\LookupTableEncoding.cs" />
     <Compile Include="Text\CharacterCodeEncoder.cs" />
     <Compile Include="Text\ConservativeStreamReader.cs" />
     <Compile Include="IO\Msg\BinaryCommandReader.cs" />
@@ -155,7 +155,6 @@
     <Compile Include="Text\DecoderIgnoreFallback.cs" />
     <Compile Include="Text\EncoderIgnoreFallback.cs" />
     <Compile Include="Text\IgnoreFallbackEncoding.cs" />
-    <Compile Include="Text\LookupTableEncoding.cs" />
     <Compile Include="Msg\Parameter.cs" />
     <Compile Include="Msg\ParameterDefinition.cs" />
     <Compile Include="Msg\IScriptElement.cs" />
@@ -170,6 +169,7 @@
   <ItemGroup>
     <CodeAnalysisDictionary Include="CustomDictionary.xml" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
