@@ -6,6 +6,9 @@ using System.Text;
 
 namespace LibTextPet.Text {
 	internal class LookupTableDecoder : Decoder {
+		private byte[] fallbackBytes;
+		private byte[] prevQueue;
+
 		private List<byte> Queue { get; }
 		private int QueueIndex { get; set; }
 		private int CodePointLength { get; set; }
@@ -16,12 +19,15 @@ namespace LibTextPet.Text {
 		public bool Greedy { get; set; }
 
 		public LookupTableDecoder(LookupTree<byte, string> bytesToStringLookup) {
+			this.fallbackBytes = new byte[1];
+			this.prevQueue = new byte[bytesToStringLookup.Height];
+
 			// Initialize the queue.
 			this.Queue = new List<byte>(bytesToStringLookup.Height);
 			this.LookupPath = bytesToStringLookup.BeginPath();
 			this.Reset();
 
-			this.Greedy = false;
+			this.Greedy = true;
 		}
 
 		public override int GetCharCount(byte[] bytes, int index, int count) {
@@ -40,7 +46,7 @@ namespace LibTextPet.Text {
 			for (int i = 0; i < count; i++) {
 				this.Queue.Add(bytes[index + i]);
 			}
-			return this.ProcessQueue(flush, false, null);
+			return this.ProcessQueue(flush, false, null, 0);
 		}
 
 		public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) {
@@ -59,21 +65,12 @@ namespace LibTextPet.Text {
 			if (charIndex < 0)
 				throw new ArgumentOutOfRangeException(nameof(charIndex), charIndex, "Character index cannot be negative.");
 
-			StringBuilder builder = new StringBuilder();
-
 			// Process every byte in the byte array.
 			for (int i = 0; i < byteCount; i++) {
 				this.Queue.Add(bytes[byteIndex + i]);
 			}
 
-			int charCount = this.ProcessQueue(flush, true, builder);
-			string str = builder.ToString();
-
-			for (int i = 0; i < charCount; i++) {
-				chars[charIndex + i] = str[i];
-			}
-
-			return charCount;
+			return this.ProcessQueue(flush, true, chars, charIndex);
 		}
 
 		public override void Reset() {
@@ -91,17 +88,16 @@ namespace LibTextPet.Text {
 		/// <param name="update">If true, updates the state of the decoder.</param>
 		/// <param name="builder">If set, the StringBuilder to append the (partially) decoded string to; if null, not used.</param>
 		/// <returns>The amount of characters (partially) decoded from the string.</returns>
-		private int ProcessQueue(bool flush, bool update, StringBuilder builder) {
+		private int ProcessQueue(bool flush, bool update, char[] chars, int charIndex) {
 			int charCount = 0;
 
 			// Save the state of the decoder.
-			byte[] prevQueue = null;
 			int prevQueueIndex = this.QueueIndex;
 			int prevCodeLen = this.CodePointLength;
+			int prevQueueSize = this.Queue.Count;
 			string prevCodeStr = null;
 			if (!update) {
-				prevQueue = new byte[this.Queue.Count];
-				this.Queue.CopyTo(prevQueue);
+				this.Queue.CopyTo(this.prevQueue);
 				prevCodeStr = this.CodePointString;
 			}
 
@@ -161,7 +157,9 @@ namespace LibTextPet.Text {
 			// Restore decoder state.
 			if (!update) {
 				this.Queue.Clear();
-				this.Queue.AddRange(prevQueue);
+				for (int i = 0; i < prevQueueSize; i++) {
+					this.Queue.Add(this.prevQueue[i]);
+				}
 				this.QueueIndex = prevQueueIndex;
 				this.CodePointLength = prevCodeLen;
 				this.CodePointString = prevCodeStr;
@@ -170,24 +168,26 @@ namespace LibTextPet.Text {
 			return charCount;
 
 			void doCodePoint() {
-				if (builder != null) {
-					builder.Append(this.CodePointString);
+				foreach (char c in this.CodePointString) {
+					if (chars != null) {
+						chars[charIndex + charCount] = c;
+					}
+					charCount++;
 				}
-				charCount += this.CodePointString.Length;
 				// Remove bytes from queue.
 				this.Queue.RemoveRange(0, this.CodePointLength);
 				// Start next code point.
 				this.LookupPath.Reset();
 			}
 			void doFallback() {
-				byte[] fallbackBytes = new byte[] { this.Queue[0] };
-				if (this.FallbackBuffer.Fallback(fallbackBytes, 0)) {
+				this.fallbackBytes[0] = this.Queue[0];
+				if (this.FallbackBuffer.Fallback(this.fallbackBytes, 0)) {
 					// Append all fallback characters.
 					while (this.FallbackBuffer.Remaining > 0) {
-						if (builder != null) {
-							builder.Append(this.FallbackBuffer.GetNextChar());
+						if (chars != null) {
+							chars[charIndex + charCount] = this.FallbackBuffer.GetNextChar();
 						}
-						charCount += 1;
+						charCount++;
 					}
 				} else {
 					byte[] queueArr = this.Queue.ToArray();

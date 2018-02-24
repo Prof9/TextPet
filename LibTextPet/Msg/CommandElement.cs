@@ -10,6 +10,8 @@ namespace LibTextPet.Msg {
 	/// A script command element, being a collection of command data entries containing command parameters.
 	/// </summary>
 	public class CommandElement : Collection<ReadOnlyNamedCollection<Parameter>>, IDefined<CommandElementDefinition>, INameable, IEquatable<CommandElement> {
+		private bool[] parExistsFlags;
+
 		/// <summary>
 		/// Gets the name of this command element.
 		/// </summary>
@@ -29,6 +31,8 @@ namespace LibTextPet.Msg {
 		public CommandElement(CommandElementDefinition definition) {
 			if (definition == null)
 				throw new ArgumentNullException(nameof(definition), "The command element definition cannot be null.");
+
+			this.parExistsFlags = new bool[definition.DataEntrySize];
 
 			this.Definition = definition;
 
@@ -63,16 +67,19 @@ namespace LibTextPet.Msg {
 				throw new ArgumentException("The data entry does not have the expected number of data parameters.", paramName);
 
 			// Check if all data parameters exist in the data entry.
-			bool[] exists = new bool[this.Definition.DataEntrySize];
+			for (int i = 0; i < this.Definition.DataEntrySize; i++) {
+				this.parExistsFlags[i] = false;
+			}
 			foreach (Parameter par in entry) {
 				for (int i = 0; i < this.Definition.DataEntrySize; i++) {
 					if (par.Definition.Equals(this.Definition.DataParameterDefinitions[i])) {
-						exists[i] = true;
+						this.parExistsFlags[i] = true;
+						break;
 					}
 				}
 			}
-			for (int i = 0; i < exists.Length; i++) {
-				if (!exists[i]) {
+			for (int i = 0; i < parExistsFlags.Length; i++) {
+				if (!this.parExistsFlags[i]) {
 					throw new ArgumentException("Data entry is missing parameter \"" + this.Definition.DataParameterDefinitions[i].Name + "\".", paramName);
 				}
 			}

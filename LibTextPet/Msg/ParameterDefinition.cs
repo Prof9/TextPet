@@ -203,16 +203,18 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// The fields of this instance that are used to check for equality.
 		/// </summary>
-		private object[] EqualityFields => new object[] {
-			this.Name,
-			this.Offset,
-			this.Shift,
-			this.Bits,
-			this.Add,
-			this.OffsetType,
-			this.RelativeLabel,
-			this.StringDefinition,
-		};
+		private IEnumerable<object> EqualityFields {
+			get {
+				yield return this.Name;
+				yield return this.Offset;
+				yield return this.Shift;
+				yield return this.Bits;
+				yield return this.Add;
+				yield return this.OffsetType;
+				yield return this.RelativeLabel;
+				yield return this.StringDefinition;
+			}
+		}
 
 		/// <summary>
 		/// Returns the hash code for this parameter definition's value.
@@ -256,10 +258,14 @@ namespace LibTextPet.Msg {
 			if (definition == null)
 				return false;
 
-			for (int i = 0; i < this.EqualityFields.Length; i++) {
+			IEnumerator<object> thisEnum = this.EqualityFields.GetEnumerator();
+			IEnumerator<object> thatEnum = definition.EqualityFields.GetEnumerator();
+
+			// Should be the same length
+			while (thisEnum.MoveNext() && thatEnum.MoveNext()) {
 				// Need to use Equals here as != is compares as type object, not int
-				object a = this.EqualityFields[i];
-				object b = definition.EqualityFields[i];
+				object a = thisEnum.Current;
+				object b = thatEnum.Current;
 
 				if (a == null && b == null) {
 					continue;

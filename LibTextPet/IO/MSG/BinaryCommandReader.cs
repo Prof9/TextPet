@@ -12,6 +12,10 @@ namespace LibTextPet.IO.Msg {
 	/// A binary command reader that reads script commands from an input stream.
 	/// </summary>
 	public class BinaryCommandReader : SingleManager, IReader<Command> {
+		private List<byte> byteSequence;
+		private StringBuilder stringBuilder;
+		private char[] charBuffer;
+
 		/// <summary>
 		/// Gets a text reader for the current input stream.
 		/// </summary>
@@ -25,6 +29,9 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="encoding">The encoding to use.</param>
 		public BinaryCommandReader(Stream stream, CommandDatabase database, IgnoreFallbackEncoding encoding) 
 			: base(stream, true, FileAccess.Read, database) {
+			this.byteSequence = new List<byte>();
+			this.stringBuilder = new StringBuilder();
+
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
 		}
 
@@ -33,51 +40,51 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <returns>The next script command read from the input stream, or null if no script command was read.</returns>
 		public Command Read() {
-			List<byte> sequence = new List<byte>();
-			Command cmd = null;
+			this.byteSequence.Clear();
 			IList<CommandDefinition> defs;
 			long start = this.BaseStream.Position;
-			
+
 
 			// Filter command database to find matching element.
+			CommandDefinition matchDef = null;
 			do {
 				// Cancel if end of stream reached.
 				int b = this.BaseStream.ReadByte();
 				if (b == -1) {
-					break;
+					return null;
 				}
-				sequence.Add((byte)b);
+				this.byteSequence.Add((byte)b);
 
 				// Match current sequence.
-				defs = this.Databases[this.Databases.Count - 1].Match(sequence);
+				defs = this.Databases[this.Databases.Count - 1].Match(this.byteSequence);
+				if (defs.Count == 0) {
+					// Cancel if no more matches.
+					return null;
+				}
 
 				// Is there a command that takes priority at at least this length?
-				CommandDefinition priorityDef = null;
 				foreach (CommandDefinition def in defs) {
-					if (def.PriorityLength > 0 && sequence.Count >= def.PriorityLength) {
+					if (def.PriorityLength > 0 && this.byteSequence.Count >= def.PriorityLength) {
 						// Do we already have a priority command?
-						if (priorityDef == null) {
-							priorityDef = def;
+						if (matchDef == null) {
+							matchDef = def;
 						} else {
 							// We can't have multiple commands taking priority, so abort.
-							priorityDef = null;
+							matchDef = null;
 							break;
 						}
 					}
 				}
-				// Did we find a priority match?
-				if (priorityDef != null) {
-					defs = new CommandDefinition[] { priorityDef };
-				}
 
-				// If match found, read it.
-				if (defs.Count == 1) {
-					this.BaseStream.Position = start;
-					cmd = Read(defs[0]);
+				// Did we find a non-priority match?
+				if (matchDef == null && defs.Count == 1) {
+					matchDef = defs[0];
 				}
-			} while (defs.Count > 1);
+			} while (matchDef == null);
 
-			return cmd;
+			// If match found, read it.
+			this.BaseStream.Position = start;
+			return Read(matchDef);
 		}
 
 		/// <summary>
@@ -93,17 +100,21 @@ namespace LibTextPet.IO.Msg {
 
 			Dictionary<string, int> labelDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-			// Read base bytes.
-			byte[] buffer = new byte[Math.Max(definition.Base.Count, definition.Mask.Count)];
-			if (this.BaseStream.Read(buffer, 0, buffer.Length) < buffer.Length) {
-				// Cannot read enough bytes.
-				return null;
+			this.byteSequence.Clear();
+
+			int byteCount = Math.Max(definition.Base.Count, definition.Mask.Count);
+			for (int i = 0; i < byteCount; i++) {
+				int b = this.BaseStream.ReadByte();
+				if (b == -1) {
+					// Cannot read enough bytes.
+					return null;
+				}
+				this.byteSequence.Add((byte)b);
 			}
-			IList<byte> bytes = new List<byte>(buffer);
 
 			// Verify base bytes.
 			for (int i = 0; i < Math.Min(definition.Base.Count, definition.Mask.Count); i++) {
-				if ((bytes[i] & definition.Mask[i]) != definition.Base[i]) {
+				if ((this.byteSequence[i] & definition.Mask[i]) != definition.Base[i]) {
 					// Base mismatch; return null.
 					return null;
 				}
@@ -116,7 +127,7 @@ namespace LibTextPet.IO.Msg {
 				// Get the number of entries in the element.
 				long length = 1;
 				if (elemDef.HasMultipleDataEntries) {
-					if (!this.ReadParameterValue(bytes, labelDict, elemDef.LengthParameterDefinition, out length)) {
+					if (!this.ReadParameterValue(this.byteSequence, labelDict, elemDef.LengthParameterDefinition, out length)) {
 						// Failed to read parameter.
 						return null;
 					}
@@ -135,7 +146,7 @@ namespace LibTextPet.IO.Msg {
 						}
 
 						foreach (ParameterDefinition parDef in dataParGroup) {
-							if (!this.ReadParameter(bytes, labelDict, elem[i][parDef.Name])) {
+							if (!this.ReadParameter(this.byteSequence, labelDict, elem[i][parDef.Name])) {
 								// Failed to read parameter.
 								return null;
 							}
@@ -162,16 +173,15 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			// Parameter is a string, need to load this next.
-			StringBuilder builder = new StringBuilder();
-			byte[] buffer;
+			this.stringBuilder.Clear();
 
 			// Use variable length if parameter has a number component.
-			long varLength = par.Definition.Bits > 0 ? value : Int64.MaxValue;
-			long fixLength = par.Definition.StringDefinition.FixedLength > 0 ? par.Definition.StringDefinition.FixedLength : Int64.MaxValue;
+			int varLength = par.Definition.Bits > 0 ? (int)Math.Min(value, Int32.MaxValue) : Int32.MaxValue;
+			int fixLength = par.Definition.StringDefinition.FixedLength > 0 ? par.Definition.StringDefinition.FixedLength : Int32.MaxValue;
 
 			// Use minimum string length.
-			long strLen = Math.Min(varLength, fixLength);
-			if (strLen == Int64.MaxValue || strLen < 0) {
+			int strLen = Math.Min(varLength, fixLength);
+			if (strLen == Int32.MaxValue || strLen < 0) {
 				// No valid string length available.
 				return false;
 			}
@@ -179,13 +189,14 @@ namespace LibTextPet.IO.Msg {
 			// Fast-forward to string offset, if needed.
 			int strOffset = 0 + par.Definition.StringDefinition.Offset;
 			if (strOffset > readBytes.Count) {
-				buffer = new byte[strOffset - readBytes.Count];
-				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
-					// Could not read the required bytes.
-					return false;
-				}
-				foreach (byte b in buffer) {
-					readBytes.Add(b);
+				int byteCount = strOffset - readBytes.Count;
+				for (int i = 0; i < byteCount; i++) {
+					int b = this.BaseStream.ReadByte();
+					if (b == -1) {
+						// Could not read the required bytes.
+						return false;
+					}
+					readBytes.Add((byte)b);
 				}
 			}
 
@@ -202,24 +213,25 @@ namespace LibTextPet.IO.Msg {
 					//}
 
 					foreach (char c in nextChar) {
-						builder.Append(c);
+						this.stringBuilder.Append(c);
 					}
 				}
 
 				// Rewind and add read bytes to buffer.
-				buffer = new byte[this.BaseStream.Position - strPos];
+				int byteCount = (int)(this.BaseStream.Position - strPos);
 				this.BaseStream.Position = strPos;
-				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
-					// Could not read the required bytes the second time. Should never happen...
-					return false;
-				}
-				foreach (byte b in buffer) {
-					readBytes.Add(b);
+				for (int i = 0; i < byteCount; i++) {
+					int b = this.BaseStream.ReadByte();
+					if (b == -1) {
+						// Could not read the required bytes the second time. Should never happen...
+						return false;
+					}
+					readBytes.Add((byte)b);
 				}
 				break;
 			case StringLengthUnit.Byte:
 				// Read the bytes.
-				buffer = new byte[strLen];
+				byte[] buffer = new byte[strLen];
 				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
 					// Could not read the required bytes.
 					return false;
@@ -228,19 +240,25 @@ namespace LibTextPet.IO.Msg {
 					readBytes.Add(b);
 				}
 
+				// Expand char buffer if necessary.
+				int maxCharCount = this.TextReader.Encoding.GetMaxCharCount(strLen);
+				if (this.charBuffer == null || this.charBuffer.Length < maxCharCount) {
+					this.charBuffer = new char[maxCharCount];
+				}
+
 				// Decode the string.
 				this.TextReader.Encoding.ResetFallbackCount();
-				string s = this.TextReader.Encoding.GetString(buffer);
+				int charCount = this.TextReader.Encoding.GetChars(buffer, 0, strLen, this.charBuffer, 0);
 
 				if (this.TextReader.Encoding.FallbackCount != 0) {
 					// Could not properly decode the string.
 					return false;
 				}
-				builder.Append(s);
+				this.stringBuilder.Append(this.charBuffer, 0, charCount);
 				break;
 			}
 
-			par.StringValue = builder.ToString();
+			par.StringValue = this.stringBuilder.ToString();
 			return true;
 		}
 

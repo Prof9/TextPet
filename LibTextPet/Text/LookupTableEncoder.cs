@@ -53,6 +53,9 @@ namespace LibTextPet.Text {
 			}
 		}
 
+		private List<Path> prevPaths;
+		private char[] byteParseBuffer;
+
 		private LookupTree<char, byte[]> StringToBytesLookup { get; set; }
 
 		private List<Path> Paths { get; set; }
@@ -60,6 +63,9 @@ namespace LibTextPet.Text {
 		public bool OptimalPath { get; set; }
 
 		public LookupTableEncoder(LookupTree<char, byte[]> stringToBytesLookup) {
+			this.prevPaths = new List<Path>();
+			this.byteParseBuffer = new char[2];
+
 			this.StringToBytesLookup = stringToBytesLookup;
 
 			// Initialize the paths.
@@ -84,7 +90,7 @@ namespace LibTextPet.Text {
 			for (int i = 0; i < count; i++) {
 				this.AddToQueue(chars[index + i]);
 			}
-			return this.ProcessPaths(flush, false, null);
+			return this.ProcessPaths(flush, false, null, 0);
 		}
 
 		public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, bool flush) {
@@ -103,20 +109,12 @@ namespace LibTextPet.Text {
 				return 0;
 			}
 
-			List<byte> byteList = new List<byte>();
-
 			// Process every char in the char array.
 			for (int i = 0; i < charCount; i++) {
 				this.AddToQueue(chars[charIndex + i]);
 			}
 
-			int byteCount = ProcessPaths(flush, true, byteList);
-
-			for (int i = 0; i < byteCount; i++) {
-				bytes[byteIndex + i] = byteList[i];
-			}
-
-			return byteCount;
+			return this.ProcessPaths(flush, true, bytes, byteIndex);
 		}
 
 		public override void Reset() {
@@ -129,13 +127,12 @@ namespace LibTextPet.Text {
 			}
 		}
 
-		private int ProcessPaths(bool flush, bool update, List<byte> bytes) {
+		private int ProcessPaths(bool flush, bool update, byte[] bytes, int byteIndex) {
 			int byteCount = 0;
 
 			// Save encoder state.
-			List<Path> prevPaths = null;
 			if (!update) {
-				prevPaths = new List<Path>();
+				this.prevPaths.Clear();
 				foreach (Path path in this.Paths) {
 					// Clone every path.
 					prevPaths.Add(path.Clone());
@@ -168,10 +165,12 @@ namespace LibTextPet.Text {
 					}
 				}
 				// Return this path.
-				if (bytes != null) {
-					bytes.AddRange(shortestPath.Bytes);
+				foreach (byte b in shortestPath.Bytes) {
+					if (bytes != null) {
+						bytes[byteIndex + byteCount] = b;
+					}
+					byteCount++;
 				}
-				byteCount = shortestPath.Bytes.Count;
 			} else {
 				// Return longest common prefix.
 				while (this.Paths[0].Bytes.Count > 0) {
@@ -192,9 +191,9 @@ namespace LibTextPet.Text {
 
 					// Return this prefix byte and remove it from all paths.
 					if (bytes != null) {
-						bytes.Add(b);
+						bytes[byteIndex + byteCount] = b;
+						byteCount++;
 					}
-					byteCount += 1;
 
 					foreach (Path path in this.Paths) {
 						path.Bytes.RemoveAt(0);
@@ -209,7 +208,8 @@ namespace LibTextPet.Text {
 				}
 			} else {
 				// Restore encoder state.
-				this.Paths = prevPaths;
+				this.Paths.Clear();
+				this.Paths.AddRange(this.prevPaths);
 			}
 
 			return byteCount;
@@ -326,8 +326,10 @@ namespace LibTextPet.Text {
 					|| path.Queue[4] != ']') {
 					return false;
 				}
+				this.byteParseBuffer[0] = path.Queue[2];
+				this.byteParseBuffer[1] = path.Queue[3];
 				if (!byte.TryParse(
-					new string(new char[] { path.Queue[2], path.Queue[3] }),
+					new string(this.byteParseBuffer),
 					NumberStyles.AllowHexSpecifier,
 					CultureInfo.InvariantCulture,
 					out byte b)) {

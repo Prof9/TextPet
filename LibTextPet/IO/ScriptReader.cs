@@ -13,6 +13,8 @@ namespace LibTextPet.IO {
 	/// A script reader that reads a script from an input stream.
 	/// </summary>
 	public abstract class ScriptReader<T> : Manager, IReader<Script> where T : SingleManager, IReader<Command> {
+		private StringBuilder stringBuilder;
+
 		/// <summary>
 		/// Gets the last script element that was read from the current input stream.
 		/// </summary>
@@ -50,9 +52,8 @@ namespace LibTextPet.IO {
 				.SelectMany<T, CommandDatabase>(a => a.Databases)
 				.Distinct()
 				.ToArray()) {
-
+			this.stringBuilder = new StringBuilder();
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
-
 			this.CommandReaders = new ReadOnlyCollection<T>(commandReaders);
 		}
 
@@ -166,24 +167,24 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <returns>The next string read from the input stream, or an empty string if no string exists at the current position in the input stream.</returns>
 		protected virtual string ReadText() {
-			StringBuilder builder = new StringBuilder();
+			this.stringBuilder.Clear();
 
+			bool wasRead;
 			while (HasNext()) {
 				// Read the next character from the input stream.
-				IEnumerable<char> nextChar = this.TextReader.ReadSingle();
-
-				// Check if next character is unrecognized or end of stream.
-				if (!nextChar.Any()) {
-					break;
+				wasRead = false;
+				foreach (char c in this.TextReader.ReadSingle()) {
+					wasRead = true;
+					this.stringBuilder.Append(c);
 				}
 
-				// Append character and advance stream.
-				foreach (char c in nextChar) {
-					builder.Append(c);
+				// Check if next character was unrecognized or end of stream.
+				if (!wasRead) {
+					break;
 				}
 			}
 
-			return builder.ToString();
+			return this.stringBuilder.ToString();
 		}
 
 		/// <summary>
