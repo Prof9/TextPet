@@ -11,8 +11,6 @@ namespace LibTextPet.Text {
     public class ConservativeStreamReader {
 		private int maxByteCount;
 		private int maxCharCount;
-		private byte[] byteBuffer;
-		private char[] charBuffer;
 
 		private Decoder Decoder { get; }
 
@@ -60,8 +58,6 @@ namespace LibTextPet.Text {
 
 			this.maxByteCount = encoding.GetMaxByteCount(1);
 			this.maxCharCount = encoding.GetMaxCharCount(1);
-			this.byteBuffer = new byte[this.maxByteCount];
-			this.charBuffer = new char[this.maxCharCount];
 		}
 
 		/// <summary>
@@ -74,6 +70,11 @@ namespace LibTextPet.Text {
 		/// <param name="charsUsed">When this method exits, the amount of characters that were read from the stream.</param>
 		/// <param name="bytesUsed">When this method exits, the amount of bytes that were read from the stream.</param>
 		/// <returns>true if a code point was successfully read; otherwise, false.</returns>
+		// Try pattern; suppress out parameter message, suppress chars/bytes naming message (modeled after Encoding).
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1720:IdentifiersShouldNotContainTypeNames", MessageId = "chars")]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1720:IdentifiersShouldNotContainTypeNames", MessageId = "bytes")]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1720:IdentifiersShouldNotContainTypeNames", MessageId = "byte")]
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1021:AvoidOutParameters", MessageId = "4#")]
 		public bool TryReadSingleCodePoint(char[] chars, int charIndex, byte[] bytes, int byteIndex, out int charsUsed, out int bytesUsed) {
 			if (chars == null)
 				throw new ArgumentNullException(nameof(chars), "The character array cannot be null.");

@@ -25,7 +25,7 @@ namespace LibTextPet.Text {
 			// Initialize the queue.
 			this.Queue = new List<byte>(bytesToStringLookup.Height);
 			this.LookupPath = bytesToStringLookup.BeginPath();
-			this.Reset();
+			this.ResetSelf();
 
 			this.Greedy = true;
 		}
@@ -73,12 +73,16 @@ namespace LibTextPet.Text {
 			return this.ProcessQueue(flush, true, chars, charIndex);
 		}
 
-		public override void Reset() {
+		private void ResetSelf() {
 			this.Queue.Clear();
 			this.QueueIndex = 0;
 			this.CodePointLength = 0;
 			this.CodePointString = null;
 			this.LookupPath.Reset();
+		}
+
+		public override void Reset() {
+			this.ResetSelf();
 		}
 
 		/// <summary>

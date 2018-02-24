@@ -204,7 +204,6 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			// Read the string.
-			long strPos = this.BaseStream.Position;
 			switch (par.Definition.StringDefinition.Unit) {
 			case StringLengthUnit.Char:
 				for (int i = 0; i < strLen; i++) {
