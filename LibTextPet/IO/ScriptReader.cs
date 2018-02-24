@@ -14,6 +14,8 @@ namespace LibTextPet.IO {
 	/// </summary>
 	public abstract class ScriptReader<T> : Manager, IReader<Script> where T : SingleManager, IReader<Command> {
 		private StringBuilder stringBuilder;
+		private char[] charBuffer;
+		private byte[] byteBuffer;
 
 		/// <summary>
 		/// Gets the last script element that was read from the current input stream.
@@ -52,9 +54,12 @@ namespace LibTextPet.IO {
 				.SelectMany<T, CommandDatabase>(a => a.Databases)
 				.Distinct()
 				.ToArray()) {
-			this.stringBuilder = new StringBuilder();
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
 			this.CommandReaders = new ReadOnlyCollection<T>(commandReaders);
+
+			this.stringBuilder = new StringBuilder();
+			this.charBuffer = new char[this.TextReader.GetMaxCharCount(1)];
+			this.byteBuffer = new byte[this.TextReader.GetMaxByteCount(1)];
 		}
 
 		/// <summary>
@@ -168,20 +173,15 @@ namespace LibTextPet.IO {
 		/// <returns>The next string read from the input stream, or an empty string if no string exists at the current position in the input stream.</returns>
 		protected virtual string ReadText() {
 			this.stringBuilder.Clear();
-
-			bool wasRead;
+			
 			while (HasNext()) {
-				// Read the next character from the input stream.
-				wasRead = false;
-				foreach (char c in this.TextReader.ReadSingle()) {
-					wasRead = true;
-					this.stringBuilder.Append(c);
-				}
-
-				// Check if next character was unrecognized or end of stream.
-				if (!wasRead) {
+				// Read the next code point from the input stream.
+				if (!this.TextReader.TryReadSingleCodePoint(this.charBuffer, 0, this.byteBuffer, 0, out int charsUsed, out _)) {
+					// Next character was unrecognized or end of stream.
 					break;
 				}
+
+				this.stringBuilder.Append(this.charBuffer, 0, charsUsed);
 			}
 
 			return this.stringBuilder.ToString();

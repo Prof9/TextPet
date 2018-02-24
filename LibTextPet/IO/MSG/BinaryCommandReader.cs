@@ -15,6 +15,7 @@ namespace LibTextPet.IO.Msg {
 		private List<byte> byteSequence;
 		private StringBuilder stringBuilder;
 		private char[] charBuffer;
+		private byte[] byteBuffer;
 
 		/// <summary>
 		/// Gets a text reader for the current input stream.
@@ -29,10 +30,12 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="encoding">The encoding to use.</param>
 		public BinaryCommandReader(Stream stream, CommandDatabase database, IgnoreFallbackEncoding encoding) 
 			: base(stream, true, FileAccess.Read, database) {
+			this.TextReader = new ConservativeStreamReader(stream, encoding);
+
 			this.byteSequence = new List<byte>();
 			this.stringBuilder = new StringBuilder();
-
-			this.TextReader = new ConservativeStreamReader(stream, encoding);
+			this.charBuffer = new char[this.TextReader.GetMaxCharCount(1)];
+			this.byteBuffer = new byte[this.TextReader.GetMaxByteCount(1)];
 		}
 
 		/// <summary>
@@ -205,28 +208,17 @@ namespace LibTextPet.IO.Msg {
 			switch (par.Definition.StringDefinition.Unit) {
 			case StringLengthUnit.Char:
 				for (int i = 0; i < strLen; i++) {
-					// Read the next character.
-					IEnumerable<char> nextChar = this.TextReader.ReadSingle();
-					//if (!nextChar.Any()) {
-					//	// Could not read next character.
-					//	return false;
-					//}
-
-					foreach (char c in nextChar) {
-						this.stringBuilder.Append(c);
+					// Read the next code point.
+					if (!this.TextReader.TryReadSingleCodePoint(this.charBuffer, 0, this.byteBuffer, 0, out int charsUsed, out int bytesUsed)) {
+						// Abort on invalid character.
+						break;
 					}
-				}
 
-				// Rewind and add read bytes to buffer.
-				int byteCount = (int)(this.BaseStream.Position - strPos);
-				this.BaseStream.Position = strPos;
-				for (int i = 0; i < byteCount; i++) {
-					int b = this.BaseStream.ReadByte();
-					if (b == -1) {
-						// Could not read the required bytes the second time. Should never happen...
-						return false;
+					this.stringBuilder.Append(this.charBuffer, 0, charsUsed);
+					// Add read bytes to buffer.
+					for (int j = 0; j < bytesUsed; j++) {
+						readBytes.Add(this.byteBuffer[0]);
 					}
-					readBytes.Add((byte)b);
 				}
 				break;
 			case StringLengthUnit.Byte:
