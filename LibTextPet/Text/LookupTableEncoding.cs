@@ -38,7 +38,8 @@ namespace LibTextPet.Text {
 		}
 
 		public int MaxBytesPerCodePoint => this.BytesToStringLookup.Height;
-		public int MaxCharsPerCodePoint => this.StringToBytesLookup.Height;
+		// Account for [$00] hex byte specifier.
+		public int MaxCharsPerCodePoint => Math.Max(5, this.StringToBytesLookup.Height);
 
 		public override string EncodingName { get; }
 
