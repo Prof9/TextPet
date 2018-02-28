@@ -105,7 +105,7 @@ namespace LibTextPet.IO.Msg {
 
 			this.byteSequence.Clear();
 
-			int byteCount = Math.Max(definition.Base.Count, definition.Mask.Count);
+			int byteCount = definition.Base.Count;
 			for (int i = 0; i < byteCount; i++) {
 				int b = this.BaseStream.ReadByte();
 				if (b == -1) {
@@ -116,8 +116,8 @@ namespace LibTextPet.IO.Msg {
 			}
 
 			// Verify base bytes.
-			for (int i = 0; i < Math.Min(definition.Base.Count, definition.Mask.Count); i++) {
-				if ((this.byteSequence[i] & definition.Mask[i]) != definition.Base[i]) {
+			for (int i = 0; i < byteCount; i++) {
+				if (this.byteSequence[i] != definition.Base[i]) {
 					// Base mismatch; return null.
 					return null;
 				}

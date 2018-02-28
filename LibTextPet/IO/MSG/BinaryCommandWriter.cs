@@ -36,13 +36,8 @@ namespace LibTextPet.IO.Msg {
 
 			// Write the base.
 			IList<byte> bytes = new List<byte>();
-			foreach (byte b in obj.Definition.Base) {
-				bytes.Add(b);
-			}
-
-			// Extend to mask length if needed.
-			while (bytes.Count < obj.Definition.Mask.Count) {
-				bytes.Add(0);
+			foreach (MaskedByte mb in obj.Definition.Base) {
+				bytes.Add(mb.Byte);
 			}
 
 			// Write the elements.

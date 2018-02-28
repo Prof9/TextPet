@@ -194,7 +194,7 @@ namespace LibTextPet.Msg {
 				byte first = sequence[0];
 				defs = new LinkedList<CommandDefinition>();
 				foreach (CommandDefinition def in this.definitions) {
-					if ((first & def.Mask[0]) == def.Base[0]) {
+					if (first == def.Base[0]) {
 						defs.AddLast(def);
 					}
 				}
@@ -230,7 +230,7 @@ namespace LibTextPet.Msg {
 					}
 
 					// Remove if base length exceeded or mismatch.
-					if (sequence.Count > def.MinimumLength || (sequence[i] & def.Mask[i]) != def.Base[i]) {
+					if (sequence.Count > def.MinimumLength || sequence[i] != def.Base[i]) {
 						defs.Remove(def);
 					}
 				}

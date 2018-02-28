@@ -125,12 +125,16 @@ namespace LibTextPet.Plugins {
 			string maskString = cmdSection.PropertyAsString("MASK", "");
 
 			// Parse base and mask.
-			byte[] baseSeq = NumberParser.ParseHexString(baseString).ToArray();
+			byte[] byteSeq = NumberParser.ParseHexString(baseString).ToArray();
 			byte[] maskSeq = NumberParser.ParseHexString(maskString).ToArray();
-			if (baseSeq.Length < maskSeq.Length) {
-				Array.Resize(ref baseSeq, maskSeq.Length);
-			} else if (baseSeq.Length > maskSeq.Length) {
+			if (byteSeq.Length < maskSeq.Length) {
+				Array.Resize(ref byteSeq, maskSeq.Length);
+			} else if (byteSeq.Length > maskSeq.Length) {
 				throw new InvalidDataException("Base sequence for command \"" + name + "\" is longer than mask sequence.");
+			}
+			MaskedByte[] baseSeq = new MaskedByte[byteSeq.Length];
+			for (int i = 0; i < byteSeq.Length; i++) {
+				baseSeq[i] = new MaskedByte(byteSeq[i], maskSeq[i]);
 			}
 
 			// Find the base command.
@@ -148,7 +152,7 @@ namespace LibTextPet.Plugins {
 			List<CommandElementDefinition> elemDefs = LoadCommandElementDefinitions(enumerator, jumpContVals, superCmdDef);
 
 			// Create the command definition.
-			CommandDefinition cmdDef = new CommandDefinition(name, desc, baseSeq, maskSeq, ends, prnt, mugs, plen, rwnd, elemDefs);
+			CommandDefinition cmdDef = new CommandDefinition(name, desc, baseSeq, ends, prnt, mugs, plen, rwnd, elemDefs);
 
 			// Set as alternative of parent command.
 			if (isExt) {

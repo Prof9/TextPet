@@ -75,6 +75,7 @@
     <Compile Include="General\LookupTree.cs" />
     <Compile Include="General\LookupTreeNode.cs" />
     <Compile Include="General\LookupTreePath.cs" />
+    <Compile Include="General\MaskedByte.cs" />
     <Compile Include="General\NamedCollection.cs" />
     <Compile Include="IO\IPatcher.cs" />
     <Compile Include="IO\Msg\FileManager.cs" />

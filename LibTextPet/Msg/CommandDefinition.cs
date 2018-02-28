@@ -20,14 +20,9 @@ namespace LibTextPet.Msg {
 		public string Description { get; }
 
 		/// <summary>
-		/// Gets the base bytes of the script command.
+		/// Gets the masked base bytes of the script command.
 		/// </summary>
-		public ReadOnlyCollection<byte> Base { get; }
-
-		/// <summary>
-		/// Gets the base mask of the script command.
-		/// </summary>
-		public ReadOnlyCollection<byte> Mask { get; }
+		public ReadOnlyCollection<MaskedByte> Base { get; }
 
 		/// <summary>
 		/// Gets the amount of bytes after which this command should be forcibly chosen if it is still a potential candidate.
@@ -112,7 +107,7 @@ namespace LibTextPet.Msg {
 		/// <param name="pars">The parameter definitions of the script command, or null.</param>
 		/// <param name="lengthPar">The parameter definition of the data length, or null.</param>
 		/// <param name="dataPars">The parameter definitions of the data parameters, or null.</param>
-		public CommandDefinition(string name, string description, byte[] baseSequence, byte[] mask, EndType endType, bool prints, string mugshotName,
+		public CommandDefinition(string name, string description, MaskedByte[] baseSequence, EndType endType, bool prints, string mugshotName,
 			long priorityLength, long rewind, IEnumerable<CommandElementDefinition> elems) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
@@ -122,17 +117,12 @@ namespace LibTextPet.Msg {
 				throw new ArgumentNullException(nameof(baseSequence), "The base cannot be null.");
 			if (!baseSequence.Any())
 				throw new ArgumentException("The base cannot be empty.", nameof(baseSequence));
-			if (mask == null)
-				throw new ArgumentNullException(nameof(mask), "The mask cannot be null.");
-			if (mask.Length != baseSequence.Length)
-				throw new ArgumentException("The mask must be the same length as the base.", nameof(mask));
 			if (priorityLength < 0)
 				throw new ArgumentOutOfRangeException(nameof(priorityLength), priorityLength, "The priority length cannot be negative.");
 
 			this.Name = name.Trim();
 			this.Description = description?.Trim() ?? "";
-			this.Base = new ReadOnlyCollection<byte>(baseSequence);
-			this.Mask = new ReadOnlyCollection<byte>(mask);
+			this.Base = new ReadOnlyCollection<MaskedByte>(baseSequence);
 			this.EndType = endType;
 			this.Prints = prints;
 			this.RewindCount = rewind;
@@ -201,19 +191,13 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <returns>A new script command definition that is a copy of this instance.</returns>
 		public CommandDefinition Clone() {
-			byte[] newBase = new byte[this.Base.Count];
+			MaskedByte[] newBase = new MaskedByte[this.Base.Count];
 			for (int i = 0; i < newBase.Length; i++) {
 				newBase[i] = this.Base[i];
 			}
 
-			byte[] newMask = new byte[this.Mask.Count];
-			for (int i = 0; i < newMask.Length; i++) {
-				newMask[i] = this.Mask[i];
-			}
-
 			return new CommandDefinition(
-				String.Copy(this.Name), String.Copy(this.Description),
-				newBase, newMask,
+				String.Copy(this.Name), String.Copy(this.Description), newBase,
 				this.EndType, this.Prints, String.Copy(this.MugshotParameterName),
 				this.PriorityLength, this.RewindCount,
 				this.Elements.Select(elemDef => elemDef.Clone())
