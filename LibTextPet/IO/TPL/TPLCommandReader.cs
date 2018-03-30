@@ -197,11 +197,11 @@ namespace LibTextPet.IO.TPL {
 		/// <param name="token">The token to read from.</param>
 		/// <returns>The script command that was initialized.</returns>
 		private Command CreateCommand(Token token) {
-			IList<CommandDefinition> defs = this.Database.Find(token.Value);
-			if (defs.Count <= 0) {
+			CommandDefinition def = this.Database[token.Value].FirstOrDefault();
+			if (def is null) {
 				throw new ArgumentException("Unrecognized script command \"" + token.Value + "\".", nameof(token));
 			}
-			return new Command(defs[0]);
+			return new Command(def);
 		}
 	}
 }

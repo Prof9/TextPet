@@ -15,6 +15,11 @@ namespace LibTextPet.General {
 		public ReadOnlyNamedCollection(IEnumerable<T> elements)
 			: base(elements, StringComparer.OrdinalIgnoreCase) { }
 
+		internal ReadOnlyNamedCollection()
+			: base(StringComparer.OrdinalIgnoreCase) {
+			// Doesn't lock it
+		}
+
 		/// <summary>
 		/// Extracts the name from the specified element.
 		/// </summary>

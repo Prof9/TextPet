@@ -64,11 +64,15 @@ namespace LibTextPet.Msg {
 
 			this.Definition = definition;
 
-			List<CommandElement> elems = new List<CommandElement>(definition.Elements.Count);
-			foreach (CommandElementDefinition elemDef in definition.Elements) {
-				elems.Add(new CommandElement(elemDef));
+			// Create an unlocked read-only collection to save copying.
+			this.Elements = new ReadOnlyNamedCollection<CommandElement>();
+			
+			for (int i = 0; i < definition.Elements.Count; i++) {
+				this.Elements.Add(new CommandElement(definition.Elements[i]));
 			}
-			this.Elements = new ReadOnlyNamedCollection<CommandElement>(elems);
+
+			// Lock the elements collection to make it read-only.
+			this.Elements.Locked = true;
 		}
 
 		/// <summary>

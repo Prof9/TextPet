@@ -92,14 +92,18 @@ namespace LibTextPet.Msg {
 		/// </summary>
 		/// <returns>The default data entry.</returns>
 		public ReadOnlyNamedCollection<Parameter> CreateDataEntry() {
-			// Create new data parameters.
-			Parameter[] pars = new Parameter[this.Definition.DataParameterDefinitions.Count];
-			for (int i = 0; i < pars.Length; i++) {
-				pars[i] = new Parameter(this.Definition.DataParameterDefinitions[i]);
+			// Create an unlocked read-only collection to save copying.
+			ReadOnlyNamedCollection<Parameter> dataEntry = new ReadOnlyNamedCollection<Parameter>();
+
+			int parCount = this.Definition.DataParameterDefinitions.Count;
+			for (int i = 0; i < parCount; i++) {
+				dataEntry.Add(new Parameter(this.Definition.DataParameterDefinitions[i]));
 			}
 
-			// Create new data entry from data parameters.
-			return new ReadOnlyNamedCollection<Parameter>(pars);
+			// Lock the data entry to make it read-only.
+			dataEntry.Locked = true;
+
+			return dataEntry;
 		}
 
 		/// <summary>

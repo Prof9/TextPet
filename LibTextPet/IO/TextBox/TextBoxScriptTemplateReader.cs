@@ -41,33 +41,33 @@ namespace LibTextPet.IO.TextBox {
 				throw new ArgumentNullException(nameof(db), "The command database cannot be null.");
 
 			switch (token.Class) {
-				case (int)TextBoxTokenType.Directive:
-					DirectiveElement directive = ParseDirective(token);
-					switch (directive.DirectiveType) {
-						case DirectiveType.TextArchive:
-							return ProcessResult.Stop;
-						default:
-							obj.Add(directive);
-							return ProcessResult.ConsumeAndContinue;
-					}
-				case (int)TextBoxTokenType.Command:
-					IList<CommandDefinition> defs = db.Find(token.Value);
-					if (defs.Count < 1) {
-						return new ProcessResult(null, false, false);
-					}
-					obj.Add(new Command(defs[0]));
+			case (int)TextBoxTokenType.Directive:
+				DirectiveElement directive = ParseDirective(token);
+				switch (directive.DirectiveType) {
+				case DirectiveType.TextArchive:
+					return ProcessResult.Stop;
+				default:
+					obj.Add(directive);
 					return ProcessResult.ConsumeAndContinue;
-				case (int)TextBoxTokenType.Text:
-					obj.Add(new TextElement(token.Value
-						.Replace("\\<", "<")
-						.Replace("\\>", ">")
-						.Replace("\\\\", "\\")
-						.Replace("\r", "")
-						.Replace("\n", "\\n")
-					));
-					return ProcessResult.ConsumeAndContinue;
-				case (int)TextBoxTokenType.Comment:
-					return ProcessResult.ConsumeAndContinue;
+				}
+			case (int)TextBoxTokenType.Command:
+				CommandDefinition def = db[token.Value].FirstOrDefault();
+				if (def is null) {
+					return new ProcessResult(null, false, false);
+				}
+				obj.Add(new Command(def));
+				return ProcessResult.ConsumeAndContinue;
+			case (int)TextBoxTokenType.Text:
+				obj.Add(new TextElement(token.Value
+					.Replace("\\<", "<")
+					.Replace("\\>", ">")
+					.Replace("\\\\", "\\")
+					.Replace("\r", "")
+					.Replace("\n", "\\n")
+				));
+				return ProcessResult.ConsumeAndContinue;
+			case (int)TextBoxTokenType.Comment:
+				return ProcessResult.ConsumeAndContinue;
 			}
 			throw new ArgumentException("Unrecognized token.", nameof(token));
 		}

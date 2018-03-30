@@ -5,19 +5,33 @@ using System.Text;
 
 namespace LibTextPet.General {
 	public class LookupTree<TKeyElement, TValue> where TKeyElement : IEquatable<TKeyElement> {
+		private IEqualityComparer<TKeyElement> equalityComparer;
+
 		/// <summary>
 		/// Gets the root node of the tree.
 		/// </summary>
 		internal LookupTreeNode<TKeyElement, TValue> RootNode { get; }
 
-		internal LookupTreePath<TKeyElement, TValue> Path { get; }
+		internal LookupTreePath<TKeyElement, TValue> Path { get; set; }
 
 		/// <summary>
 		/// Creates an empty lookup tree.
 		/// </summary>
 		public LookupTree()
-			: base() {
-			this.RootNode = new LookupTreeNode<TKeyElement, TValue>();
+			: this(null) { }
+
+		/// <summary>
+		/// Creates an empty lookup tree.
+		/// </summary>
+		/// <param name="equalityComparer">The equality comparer to use for the node keys.</param>
+		public LookupTree(IEqualityComparer<TKeyElement> equalityComparer) {
+			this.equalityComparer = equalityComparer;
+
+			if (equalityComparer != null) {
+				this.RootNode = new LookupTreeNode<TKeyElement, TValue>(equalityComparer);
+			} else {
+				this.RootNode = new LookupTreeNode<TKeyElement, TValue>();
+			}
 			this.Path = new LookupTreePath<TKeyElement, TValue>(this);
 			this.Height = 0;
 		}
@@ -31,7 +45,7 @@ namespace LibTextPet.General {
 		/// Begins a new path through the current tree.
 		/// </summary>
 		/// <returns>The path.</returns>
-		public LookupTreePath<TKeyElement, TValue> BeginPath() {
+		public virtual LookupTreePath<TKeyElement, TValue> BeginPath() {
 			return new LookupTreePath<TKeyElement, TValue>(this);
 		}
 
@@ -40,7 +54,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="key">The key of the item to add.</param>
 		/// <param name="value">The value of the item to add.</param>
-		public void Add(IList<TKeyElement> key, TValue value) {
+		public virtual void Add(IList<TKeyElement> key, TValue value) {
 			if (key == null)
 				throw new ArgumentNullException(nameof(key));
 			if (!key.Any())
@@ -51,7 +65,7 @@ namespace LibTextPet.General {
 
 			// Add nodes until desired depth reached.
 			while (this.Path.Depth < key.Count) {
-				LookupTreeNode<TKeyElement, TValue> node = new LookupTreeNode<TKeyElement, TValue>();
+				LookupTreeNode<TKeyElement, TValue> node = this.CreateNode(this.Path.Depth);
 				this.Path.CurrentNode.AddChild(key[this.Path.Depth++], node);
 				this.Path.CurrentNode = node;
 			}
@@ -65,6 +79,17 @@ namespace LibTextPet.General {
 			if (this.Path.Depth > this.Height) {
 				this.Height = this.Path.Depth;
 			}
+		}
+
+		internal virtual LookupTreeNode<TKeyElement, TValue> CreateNode(int depth) {
+			LookupTreeNode<TKeyElement, TValue> node;
+			if (this.equalityComparer != null) {
+				node = new LookupTreeNode<TKeyElement, TValue>(this.equalityComparer);
+			} else {
+				node = new LookupTreeNode<TKeyElement, TValue>();
+			}
+
+			return node;
 		}
 
 		/// <summary>

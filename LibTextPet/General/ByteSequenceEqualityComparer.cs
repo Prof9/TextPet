@@ -8,7 +8,7 @@ namespace LibTextPet.General
 		private static ByteSequenceEqualityComparer _instance;
 		public static ByteSequenceEqualityComparer Instance => _instance ?? (_instance = new ByteSequenceEqualityComparer());
 
-		private ByteSequenceEqualityComparer() { }
+		protected ByteSequenceEqualityComparer() { }
 
 		/// <summary>
 		/// Determines whether the specified byte sequences are equal.

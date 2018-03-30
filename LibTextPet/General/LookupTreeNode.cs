@@ -9,11 +9,7 @@ namespace LibTextPet.General {
 	/// </summary>
 	internal class LookupTreeNode<TKeyElement, TValue> {
 		private TValue _value;
-
-		/// <summary>
-		/// Gets the depth of this tree node.
-		/// </summary>
-		public int Depth { get; }
+		private IEqualityComparer<TKeyElement> equalityComparer;
 
 		/// <summary>
 		/// Gets the children of this tree node.
@@ -93,6 +89,25 @@ namespace LibTextPet.General {
 		}
 
 		/// <summary>
+		/// Creates a new tree node with the specified value.
+		/// </summary>
+		/// <param name="value">The value of this tree node.</param>
+		/// <param name="equalityComparer">The equality comparer to use for the child keys.</param>
+		public LookupTreeNode(TValue value, IEqualityComparer<TKeyElement> equalityComparer)
+			: this(value) {
+			this.equalityComparer = equalityComparer;
+		}
+
+		/// <summary>
+		/// Creates a new tree node with no value.
+		/// </summary>
+		/// <param name="equalityComparer">The equality comparer to use for the child keys.</param>
+		public LookupTreeNode(IEqualityComparer<TKeyElement> equalityComparer)
+			: this() {
+			this.equalityComparer = equalityComparer;
+		}
+
+		/// <summary>
 		/// Adds a child to this tree node.
 		/// </summary>
 		/// <param name="keyElement">The key element of the child.</param>
@@ -103,7 +118,11 @@ namespace LibTextPet.General {
 
 			// Create child dictionary if it does not exist.
 			if (this.Children == null) {
-				this.Children = new Dictionary<TKeyElement, LookupTreeNode<TKeyElement, TValue>>();
+				if (this.equalityComparer != null) {
+					this.Children = new Dictionary<TKeyElement, LookupTreeNode<TKeyElement, TValue>>(equalityComparer);
+				} else {
+					this.Children = new Dictionary<TKeyElement, LookupTreeNode<TKeyElement, TValue>>();
+				}
 			}
 			// Add the child to the dictionary.
 			this.Children.Add(keyElement, child);

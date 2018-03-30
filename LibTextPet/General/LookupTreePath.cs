@@ -49,7 +49,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="keyElement">The key element.</param>
 		/// <returns>true if the step moved to a new node; otherwise, false.</returns>
-		public bool Step(TKeyElement keyElement) {
+		public virtual bool Step(TKeyElement keyElement) {
 			if (this.CurrentNode.TryGetChild(keyElement, out LookupTreeNode<TKeyElement, TValue> child)) {
 				this.CurrentNode = child;
 				this.Depth += 1;

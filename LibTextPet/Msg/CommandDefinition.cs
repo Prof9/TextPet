@@ -27,7 +27,7 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the amount of bytes after which this command should be forcibly chosen if it is still a potential candidate.
 		/// </summary>
-		public long PriorityLength { get; }
+		public int PriorityLength { get; }
 
 		/// <summary>
 		/// Gets the minimum length of the script command in bytes.
@@ -89,7 +89,7 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the number of bytes this command should rewind after being read.
 		/// </summary>
-		public long RewindCount { get; }
+		public int RewindCount { get; }
 
 		/// <summary>
 		/// Constructs a script command definition with the given name, description, base, mask and parameter definitions.
@@ -108,7 +108,7 @@ namespace LibTextPet.Msg {
 		/// <param name="lengthPar">The parameter definition of the data length, or null.</param>
 		/// <param name="dataPars">The parameter definitions of the data parameters, or null.</param>
 		public CommandDefinition(string name, string description, MaskedByte[] baseSequence, EndType endType, bool prints, string mugshotName,
-			long priorityLength, long rewind, IEnumerable<CommandElementDefinition> elems) {
+			int priorityLength, int rewind, IEnumerable<CommandElementDefinition> elems) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (String.IsNullOrWhiteSpace(name))

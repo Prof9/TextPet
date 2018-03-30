@@ -174,7 +174,7 @@ namespace LibTextPet.General {
 		/// <param name="valueEncodings">The value encodings.</param>
 		private static void LoadValueEncodings(CommandDatabase db, IDictionary<string, IgnoreFallbackEncoding> valueEncodings) {
 			// Iterate through all commands in the database.
-			foreach (CommandDefinition cmd in db) {
+			foreach (CommandDefinition cmd in db.Commands) {
 				// Iterate through all parameters.
 				foreach (ParameterDefinition par in cmd.FlattenParameters()) {
 					// Does the parameter not have value encoding or is it already loaded?

@@ -11,7 +11,7 @@ namespace LibTextPet.General {
 	public abstract class ReadOnlyKeyedCollection<TKey, TValue> : KeyedCollection<TKey, TValue> {
 		private const string exceptionMessage = "This collection is read-only.";
 
-		private bool locked;
+		internal bool Locked { get; set; }
 
 		/// <summary>
 		/// Constructs a read-only collection containing the given values that uses the specified equality comparer.
@@ -23,13 +23,18 @@ namespace LibTextPet.General {
 			if (values == null)
 				throw new ArgumentNullException(nameof(values), "The values cannot be null.");
 
-			this.locked = false;
+			this.Locked = false;
 
 			foreach (TValue value in values) {
 				Add(value);
 			}
 
-			this.locked = true;
+			this.Locked = true;
+		}
+
+		internal ReadOnlyKeyedCollection(IEqualityComparer<TKey> comparer)
+			: base(comparer) {
+			// Doesn't lock it
 		}
 
 		/// <summary>
@@ -40,7 +45,7 @@ namespace LibTextPet.General {
 			: this(values, EqualityComparer<TKey>.Default) { }
 
 		protected override void InsertItem(int index, TValue item) {
-			if (locked)
+			if (Locked)
 				throw new NotSupportedException(exceptionMessage);
 			if (item == null)
 				throw new ArgumentNullException(nameof(item), "The item cannot be null.");

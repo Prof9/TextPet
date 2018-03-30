@@ -100,15 +100,15 @@ namespace LibTextPet.Plugins {
 		/// Loads a command definition from the specified INI section enumerator.
 		/// </summary>
 		/// <param name="enumerator">The enumerator to read from.</param>
-		/// <param name="defs">The previously loaded command defitions.</param>
+		/// <param name="db">The command database to modify.</param>
 		/// <param name="jumpContVals">The values for jump targets that lead to continuing the current script.</param>
 		/// <param name="isExt">true if the command definition is an extension; otherwise, false.</param>
 		/// <returns>The resulting command definition.</returns>
-		private static CommandDefinition LoadCommandDefinition(IEnumerator<IniSection> enumerator, IEnumerable<CommandDefinition> defs, IList<long> jumpContVals, bool isExt) {
+		private static CommandDefinition LoadCommandDefinition(IEnumerator<IniSection> enumerator, CommandDatabase db, IList<long> jumpContVals, bool isExt) {
 			if (enumerator == null)
 				throw new ArgumentNullException(nameof(enumerator), "The enumerator cannot be null.");
-			if (defs == null)
-				throw new ArgumentNullException(nameof(defs), "The command definitions cannot be null.");
+			if (db == null)
+				throw new ArgumentNullException(nameof(db), "The command database cannot be null.");
 
 			if (isExt) {
 				ValidateCurrentSectionNameAny(enumerator, "EXTENSION");
@@ -138,15 +138,15 @@ namespace LibTextPet.Plugins {
 			}
 
 			// Find the base command.
-			CommandDefinition superCmdDef = FindPreviousCommand(defs, isExt, name);
+			CommandDefinition superCmdDef = FindBaseCommand(db, isExt, name);
 
 			// Set optional properties.
 			string desc = cmdSection.PropertyAsString("DESC", superCmdDef?.Description ?? "");
-			long plen = cmdSection.PropertyAsInt64("PLEN", superCmdDef?.PriorityLength ?? 0);
+			int plen = (int)cmdSection.PropertyAsInt64("PLEN", superCmdDef?.PriorityLength ?? 0);
 			EndType ends = ParseEndType(cmdSection.PropertyAsString("ENDS", null) ?? (superCmdDef?.EndType.ToString() ?? EndType.Default.ToString()));
 			bool prnt = cmdSection.PropertyAsBoolean("PRNT", superCmdDef?.Prints ?? false);
 			string mugs = cmdSection.PropertyAsString("MUGS", superCmdDef?.MugshotParameterName);
-			long rwnd = cmdSection.PropertyAsInt64("RWND", superCmdDef?.RewindCount ?? 0);
+			int rwnd = (int)cmdSection.PropertyAsInt64("RWND", superCmdDef?.RewindCount ?? 0);
 
 			// Load parameters.
 			List<CommandElementDefinition> elemDefs = LoadCommandElementDefinitions(enumerator, jumpContVals, superCmdDef);
@@ -350,14 +350,14 @@ namespace LibTextPet.Plugins {
 		}
 
 		/// <summary>
-		/// Finds a base command in the specified set of command definitions with the specified name.
+		/// Finds a base command in the specified command database with the specified name.
 		/// </summary>
-		/// <param name="defs">The previously defined command definitions.</param>
+		/// <param name="db">The command database.</param>
 		/// <param name="isExt">true if the base command is to be extended; otherwise, false.</param>
 		/// <param name="name">The name of the command to find.</param>
 		/// <returns>The base command, or null if there is no base command.</returns>
-		private static CommandDefinition FindPreviousCommand(IEnumerable<CommandDefinition> defs, bool isExt, string name) {
-			CommandDefinition super = defs.FirstOrDefault(cd => cd.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+		private static CommandDefinition FindBaseCommand(CommandDatabase db, bool isExt, string name) {
+			CommandDefinition super = db[name]?.FirstOrDefault();
 			if (isExt && super == null) {
 				throw new InvalidDataException("No command \"" + name + "\" found to extend.");
 			}
