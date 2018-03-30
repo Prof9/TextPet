@@ -16,8 +16,6 @@ namespace LibTextPet.IO.Msg {
 		private StringBuilder stringBuilder;
 		private char[] charBuffer;
 		private byte[] byteBuffer;
-		private LookupTreePath<MaskedByte, CommandDefinition> cmdDefPath;
-		private Dictionary<string, int> labelDict;
 
 		/// <summary>
 		/// Gets a text reader for the current input stream.
@@ -32,95 +30,83 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="encoding">The encoding to use.</param>
 		public BinaryCommandReader(Stream stream, CommandDatabase database, IgnoreFallbackEncoding encoding) 
 			: base(stream, true, FileAccess.Read, database) {
-			if (database == null)
-				throw new ArgumentNullException(nameof(database), "The command database cannot be null.");
-
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
 
 			this.byteSequence = new List<byte>();
 			this.stringBuilder = new StringBuilder();
 			this.charBuffer = new char[this.TextReader.GetMaxCharCount(1)];
 			this.byteBuffer = new byte[this.TextReader.GetMaxByteCount(1)];
-			this.cmdDefPath = database.BytesToCommandLookup.BeginPath();
-			this.labelDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 		}
 
 		/// <summary>
-		/// Reads the next script command from the input stream. The stream is advanced even if no valid script command was read.
+		/// Reads the next script command from the input stream.
 		/// </summary>
 		/// <returns>The next script command read from the input stream, or null if no script command was read.</returns>
 		public Command Read() {
-			this.cmdDefPath.Reset();
 			this.byteSequence.Clear();
+			IList<CommandDefinition> defs;
 			long start = this.BaseStream.Position;
 
-			int bytesRead = 0;
+
+			// Filter command database to find matching element.
 			CommandDefinition matchDef = null;
-			CommandDefinition priorityDef = null;
-			int priorityLength = -1;
-			while (true) {
+			do {
 				// Cancel if end of stream reached.
 				int b = this.BaseStream.ReadByte();
 				if (b == -1) {
 					return null;
 				}
 				this.byteSequence.Add((byte)b);
-				bytesRead++;
 
-				// Step on current byte.
-				if (!this.cmdDefPath.Step(new MaskedByte(b, 0xFF))) {
-					// Stop if no more matches.
-					break;
+				// Match current sequence.
+				defs = this.Databases[this.Databases.Count - 1].Match(this.byteSequence);
+				if (defs.Count == 0) {
+					// Cancel if no more matches.
+					return null;
 				}
 
-				// Did we reach a potential command?
-				if (this.cmdDefPath.AtValue) {
-					matchDef = this.cmdDefPath.CurrentValue;
-
-					// Does this command take priority at a lower length than the current priority?
-					if (matchDef.PriorityLength > 0 && (priorityLength < 0 || matchDef.PriorityLength < priorityLength)) {
-						priorityDef = matchDef;
-						priorityLength = matchDef.PriorityLength;
+				// Is there a command that takes priority at at least this length?
+				foreach (CommandDefinition def in defs) {
+					if (def.PriorityLength > 0 && this.byteSequence.Count >= def.PriorityLength) {
+						// Do we already have a priority command?
+						if (matchDef == null) {
+							matchDef = def;
+						} else {
+							// We can't have multiple commands taking priority, so abort.
+							matchDef = null;
+							break;
+						}
 					}
 				}
 
-				if (this.cmdDefPath.AtEnd) {
-					// Stop if end reached.
-					break;
+				// Did we find a non-priority match?
+				if (matchDef == null && defs.Count == 1) {
+					matchDef = defs[0];
 				}
-			}
-
-			// Did we find a priority match?
-			if (priorityLength >= 0) {
-				matchDef = priorityDef;
-			}
-
-			// Did we find a match?
-			if (matchDef == null) {
-				return null;
-			}
+			} while (matchDef == null);
 
 			// If match found, read it.
-			return this.ReadFromDefinition(matchDef);
+			this.BaseStream.Position = start;
+			return Read(matchDef);
 		}
 
 		/// <summary>
 		/// Reads the next script command from the input stream with the given command definition.
 		/// </summary>
 		/// <param name="definition">The command definition.</param>
-		/// <param name="bytesRead">The amount of bytes that were already read.</param>
 		/// <returns>The command read.</returns>
-		private Command ReadFromDefinition(CommandDefinition definition) {
+		protected Command Read(CommandDefinition definition) {
 			if (definition == null)
 				throw new ArgumentNullException(nameof(definition), "The command definition cannot be null.");
 
 			Command cmd = new Command(definition);
 
-			this.labelDict.Clear();
+			Dictionary<string, int> labelDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-			// Read (rest of) base bytes.
+			this.byteSequence.Clear();
+
 			int byteCount = definition.Base.Count;
-			while (this.byteSequence.Count < byteCount) {
+			for (int i = 0; i < byteCount; i++) {
 				int b = this.BaseStream.ReadByte();
 				if (b == -1) {
 					// Cannot read enough bytes.
@@ -131,17 +117,10 @@ namespace LibTextPet.IO.Msg {
 
 			// Verify base bytes.
 			for (int i = 0; i < byteCount; i++) {
-				if (!CommonBitsEqualityComparer.Instance.Equals(definition.Base[i], this.byteSequence[i])) {
+				if ((this.byteSequence[i] & definition.Base[i].Mask) != definition.Base[i].Byte) {
 					// Base mismatch; return null.
 					return null;
 				}
-			}
-
-			// Rewind if we already read too many bytes.
-			if (this.byteSequence.Count > byteCount) {
-				int overflow = this.byteSequence.Count - byteCount;
-				this.byteSequence.RemoveRange(byteCount, overflow);
-				this.BaseStream.Position -= overflow;
 			}
 
 			// Read elements.

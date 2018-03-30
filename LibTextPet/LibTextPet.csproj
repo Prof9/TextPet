@@ -76,10 +76,6 @@
     <Compile Include="General\LookupTreeNode.cs" />
     <Compile Include="General\LookupTreePath.cs" />
     <Compile Include="General\MaskedByte.cs" />
-    <Compile Include="General\CommonBitsEqualityComparer.cs" />
-    <Compile Include="General\MaskedByteLookupTree.cs" />
-    <Compile Include="General\MaskedByteLookupTreePath.cs" />
-    <Compile Include="General\MultiValueDictionary.cs" />
     <Compile Include="General\NamedCollection.cs" />
     <Compile Include="IO\IPatcher.cs" />
     <Compile Include="IO\Msg\FileManager.cs" />
