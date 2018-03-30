@@ -86,11 +86,24 @@ namespace LibTextPet.Text {
 				return 0;
 			}
 
+			// Save encoder state.
+			this.prevPaths.Clear();
+			foreach (Path path in this.Paths) {
+				// Clone every path.
+				prevPaths.Add(path.Clone());
+			}
+
 			// Process every char in the char array.
 			for (int i = 0; i < count; i++) {
 				this.AddToQueue(chars[index + i]);
 			}
-			return this.ProcessPaths(flush, false, null, 0);
+			int byteCount = this.ProcessPaths(flush, null, 0);
+
+			// Restore encoder state.
+			this.Paths.Clear();
+			this.Paths.AddRange(this.prevPaths);
+
+			return byteCount;
 		}
 
 		public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, bool flush) {
@@ -113,8 +126,15 @@ namespace LibTextPet.Text {
 			for (int i = 0; i < charCount; i++) {
 				this.AddToQueue(chars[charIndex + i]);
 			}
+			
+			int byteCount = this.ProcessPaths(flush, bytes, byteIndex);
 
-			return this.ProcessPaths(flush, true, bytes, byteIndex);
+			if (flush) {
+				// If flushing, remove all paths.
+				this.Paths.Clear();
+			}
+
+			return byteCount;
 		}
 
 		public override void Reset() {
@@ -122,29 +142,20 @@ namespace LibTextPet.Text {
 		}
 
 		private void AddToQueue(char c) {
-			foreach (Path path in this.Paths) {
-				path.Queue.Add(c);
-			}
-		}
-
-		private int ProcessPaths(bool flush, bool update, byte[] bytes, int byteIndex) {
-			int byteCount = 0;
-
-			// Save encoder state.
-			if (!update) {
-				this.prevPaths.Clear();
-				foreach (Path path in this.Paths) {
-					// Clone every path.
-					prevPaths.Add(path.Clone());
-				}
-			}
-
 			// If no paths, spawn initial path.
 			if (this.Paths.Count == 0) {
 				this.Paths.Add(new Path(this.StringToBytesLookup) {
 					IsCritical = true
 				});
 			}
+
+			foreach (Path path in this.Paths) {
+				path.Queue.Add(c);
+			}
+		}
+
+		private int ProcessPaths(bool flush, byte[] bytes, int byteIndex) {
+			int byteCount = 0;
 
 			// Process every path.
 			for (int i = 0; i < this.Paths.Count; i++) {
@@ -201,17 +212,6 @@ namespace LibTextPet.Text {
 				}
 			}
 
-			if (update) {
-				if (flush) {
-					// If flushing, remove all paths.
-					this.Paths.Clear();
-				}
-			} else {
-				// Restore encoder state.
-				this.Paths.Clear();
-				this.Paths.AddRange(this.prevPaths);
-			}
-
 			return byteCount;
 		}
 
@@ -247,6 +247,7 @@ namespace LibTextPet.Text {
 							if (!this.OptimalPath) {
 								// Apply the code point immediately if using branching paths.
 								doCodePoint();
+								i = -1;
 							}
 						} else {
 							// Did not reach value, but queue is still valid.
@@ -277,7 +278,7 @@ namespace LibTextPet.Text {
 
 				// Trailing chars that we cannot match.
 				// If flushing, have to fallback on the first char to get rid of it.
-				if (flush) {
+				if (flush && path.Queue.Count > 0) {
 					// Fallback on first char.
 					doFallback();
 					path.QueueIndex = 0;
