@@ -23,23 +23,49 @@ namespace LibTextPet.IO.TPL {
 			get {
 				if (PreCompiledTokenizerRegex == null) {
 					PreCompiledTokenizerRegex = new Regex(
+						// Multiline comment:
+						// /* Blah
+						//    Blah */
+						@"(?:/\*[^\S\r\n]*(?<" + nameof(TPLTokenType.MultilineComment) + @">(?:\\|\\*|.)*?)[^\S\r\n]*\*/)" +
+						@"|" +
+						// Unterminated multiline comment (consumes rest of input):
+						// /* Blah
+						@"(?<" + nameof(TPLTokenType.UnterminatedMultilineComment) + @">/\*.*)" +
+						@"|" +
+						// Single-line comment:
+						// // Blah
+						@"(?://[^\S\r\n]*(?<" + nameof(TPLTokenType.Comment) + @">.*?)[^\S\r\n]*(?:\r?\n|$))" +
+						@"|" +
 						// Indented heredoc:
 						// """
 						// Blah blah
 						// """
 						@"(?:(?<" + nameof(TPLTokenType.HeredocStart) + @">^[^\S\r]*?"""""")[^\S\r]*\r?\n" +
-						@"(?<" + nameof(TPLTokenType.Heredoc) + @">^.*?)\r?\n[^\S\r\n]*" + 
+						@"(?<" + nameof(TPLTokenType.Heredoc) + @">^.*?)\r?\n[^\S\r\n]*" +
 						@"(?<" + nameof(TPLTokenType.HeredocEnd) + @">""""""))" +
 						@"|" +
-						// Single symbol
-						@"(?<" + nameof(TPLTokenType.Symbol) + @">[,=\[\]{}!<>;])" +
+						// Unterminated heredoc (consumes rest of input):
+						// """
+						// Blah
+						@"(?:^[^\S\r]*?(?<" + nameof(TPLTokenType.UnterminatedHeredoc) + @">""""""[^\S\r]*\r?\n.*))" +
 						@"|" +
 						// Regular string:
 						// "Blah blah"
 						@"(?:""(?<" + nameof(TPLTokenType.String) + @">[^""\\]*(?:\\.[^""\\]*)*)"")" +
 						@"|" +
-						// Word
-						@"(?<" + nameof(TPLTokenType.Word) + @">[^""\s\r,=\[\]{}!<>;]+)",
+						// Unterminated string (consumes rest of input):
+						// "Blah
+						@"(?<" + "UnterminatedString" + @">"".*)" +
+						@"|" +
+						// Word:
+						// Blah
+						@"(?<" + nameof(TPLTokenType.Word) + @">[^""\s\r,=\[\]{}!<>;/]+)" +
+						@"|" +
+						// Single symbol
+						@"(?<" + nameof(TPLTokenType.Symbol) + @">[,=\[\]{}!<>;])" +
+						@"|" +
+						// Unrecognized token (consumes rest of input)
+						@"(?<" + nameof(TPLTokenType.Unknown) + @">\S).*",
 						RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.Singleline);
 				}
 				return PreCompiledTokenizerRegex;
@@ -85,5 +111,36 @@ namespace LibTextPet.IO.TPL {
 				throw new ArgumentException("Could not find a matching token type.", nameof(match));
 			}
 		}
+
+		/// <summary>
+		/// Processes the specified token for the specified object.
+		/// </summary>
+		/// <param name="obj">The object to modify.</param>
+		/// <param name="token">The token to process.</param>
+		/// <returns>A result value that indicates whether the token was consumed, and whether to continue reading.</returns>
+		protected override sealed ProcessResult ProcessToken(T obj, Token token, CommandDatabase db) {
+			switch (token.Class) {
+			case (int)TPLTokenType.Comment:
+			case (int)TPLTokenType.MultilineComment:
+				return ProcessResult.ConsumeAndContinue;
+			case (int)TPLTokenType.UnterminatedMultilineComment:
+				throw new ArgumentException("Unterminated multiline comment.", nameof(token));
+			case (int)TPLTokenType.UnterminatedHeredoc:
+				throw new ArgumentException("Unterminated heredoc.", nameof(token));
+			case (int)TPLTokenType.UnterminatedString:
+				throw new ArgumentException("Unterminated string.", nameof(token));
+			case (int)TPLTokenType.Unknown:
+				throw new ArgumentException("Unrecognized token \"" + token.Value + "\".", nameof(token));
+			}
+			return this.ProcessOwnToken(obj, token, db);
+		}
+
+		/// <summary>
+		/// When overridden in a derived class, processes the specified token for the specified object.
+		/// </summary>
+		/// <param name="obj">The object to modify.</param>
+		/// <param name="token">The token to process.</param>
+		/// <returns>A result value that indicates whether the token was consumed, and whether to continue reading.</returns>
+		protected abstract ProcessResult ProcessOwnToken(T obj, Token token, CommandDatabase db);
 	}
 }

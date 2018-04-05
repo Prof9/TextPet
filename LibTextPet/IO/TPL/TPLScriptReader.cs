@@ -64,7 +64,7 @@ namespace LibTextPet.IO.TPL {
 		/// <param name="obj">The script to modify.</param>
 		/// <param name="token">The token to process.</param>
 		/// <returns>A result value that indicates whether the token was consumed, and whether to continue reading.</returns>
-		protected override ProcessResult ProcessToken(Script obj, Token token, CommandDatabase db) {
+		protected override ProcessResult ProcessOwnToken(Script obj, Token token, CommandDatabase db) {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The script cannot be null.");
 

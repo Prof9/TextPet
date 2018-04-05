@@ -67,7 +67,7 @@ namespace LibTextPet.IO.TPL {
 		/// <param name="obj">The text archive to modify.</param>
 		/// <param name="token">The token to modify.</param>
 		/// <returns>A result value that indicates whether the token was consumed, and whether to continue reading.</returns>
-		protected override ProcessResult ProcessToken(TextArchive obj, Token token, CommandDatabase db) {
+		protected override ProcessResult ProcessOwnToken(TextArchive obj, Token token, CommandDatabase db) {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The text archive cannot be null.");
 			

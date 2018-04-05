@@ -16,6 +16,7 @@ namespace LibTextPet.IO {
 		/// A value that indicates the result of processing a single token.
 		/// </summary>
 		protected struct ProcessResult {
+			internal static readonly ProcessResult NoResult = new ProcessResult();
 			internal static readonly ProcessResult ConsumeAndContinue = new ProcessResult(true, true);
 			internal static readonly ProcessResult ConsumeAndStop = new ProcessResult(true, false);
 			internal static readonly ProcessResult Continue = new ProcessResult(false, true);
@@ -42,17 +43,22 @@ namespace LibTextPet.IO {
 			/// <summary>
 			/// Gets a boolean that indicates whether the provided object was modified.
 			/// </summary>
-			public bool Modified { get; private set; }
+			public bool Modified { get; }
 
 			/// <summary>
 			/// Gets a boolean that indicates whether the provided token was consumed.
 			/// </summary>
-			public bool Consumed { get; private set; }
+			public bool Consumed { get; }
 
 			/// <summary>
 			/// Gets a boolean that indicates whether token reading should continue.
 			/// </summary>
-			public bool ToContinue { get; private set; }
+			public bool ToContinue { get; }
+
+			/// <summary>
+			/// Gets a boolean that indicates whether a result was produced.
+			/// </summary>
+			public bool HasResult { get; }
 
 			/// <summary>
 			/// Creates new processing results with no modified object and the specified results.
@@ -64,6 +70,7 @@ namespace LibTextPet.IO {
 				this.Modified = false;
 				this.Consumed = consumed;
 				this.ToContinue = toContinue;
+				this.HasResult = true;
 			}
 
 			/// <summary>
@@ -77,6 +84,7 @@ namespace LibTextPet.IO {
 				this.Modified = true;
 				this.Consumed = consumed;
 				this.ToContinue = toContinue;
+				this.HasResult = true;
 			}
 
 			public override bool Equals(object obj) {
@@ -297,6 +305,11 @@ namespace LibTextPet.IO {
 			this.Consumed = moveNext;
 			while (!this.Consumed || this.TokenEnumerator.MoveNext()) {
 				ProcessResult result = ProcessToken(t, this.TokenEnumerator.Current, db);
+				// Do we have a result?
+				if (!result.HasResult) {
+					throw new InvalidOperationException("Could not process token.");
+				}
+
 				// Was the object modified?
 				if (result.Modified) {
 					t = result.ModifiedObject;
