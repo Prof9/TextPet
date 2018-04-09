@@ -72,8 +72,6 @@ namespace LibTextPet.IO.TPL {
 		/// <param name="token">The token to process.</param>
 		/// <returns>A result value that indicates whether the token was consumed, and whether to continue reading.</returns>
 		protected override ProcessResult ProcessOwnToken(Command obj, Token token, CommandDatabase db) {
-			ProcessResult result = base.ProcessToken(obj, token, db);
-
 			switch (token.Class) {
 			case (int)TPLTokenType.Word:
 				if (obj == null) {
