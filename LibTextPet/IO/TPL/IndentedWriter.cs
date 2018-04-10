@@ -22,7 +22,7 @@ namespace LibTextPet.IO.TPL {
 		/// <summary>
 		/// Gets or sets a boolean that indicates whether the indented writer is at the start of a new line. This property is automatically updated as lines are written.
 		/// </summary>
-		protected bool IsNewLine { get; set; }
+		public bool IsNewLine { get; set; }
 
 		private int indentLevel;
 		/// <summary>

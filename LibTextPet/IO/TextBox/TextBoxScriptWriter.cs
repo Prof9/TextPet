@@ -14,6 +14,7 @@ namespace LibTextPet.IO.TextBox {
 		private bool textBoxActive;
 		private string activeMugshot;
 		private List<Command> taggedCommands;
+		private IndentedWriter<Command> indentedCommandWriter;
 
 		private string _textBoxSeparator;
 		public string TextBoxSeparator {
@@ -36,6 +37,7 @@ namespace LibTextPet.IO.TextBox {
 			: base(stream, false, false, new UTF8Encoding(false, true), new TPLCommandWriter(stream) { Flatten = true }) {
 			this.TextBoxSeparator = Environment.NewLine + "###--------" + Environment.NewLine;
 			this.taggedCommands = new List<Command>();
+			this.indentedCommandWriter = (IndentedWriter<Command>)this.CommandWriter;
 		}
 
 		public override void Write(Script obj) {
@@ -122,8 +124,9 @@ namespace LibTextPet.IO.TextBox {
 					this.TextWriter.WriteLine();
 					this.TextWriter.Write("###" + nameof(DirectiveType.Command) + ":");
 					this.TextWriter.Flush();
-					
+
 					// Write the printed command to the stream.
+					this.indentedCommandWriter.IsNewLine = false;
 					base.WriteCommand(cmd);
 				}
 
