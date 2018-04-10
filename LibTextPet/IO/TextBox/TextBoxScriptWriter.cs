@@ -1,4 +1,5 @@
-﻿using LibTextPet.Msg;
+﻿using LibTextPet.IO.TPL;
+using LibTextPet.Msg;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +13,7 @@ namespace LibTextPet.IO.TextBox {
 	public class TextBoxScriptWriter : ScriptWriter {
 		private bool textBoxActive;
 		private string activeMugshot;
+		private List<Command> taggedCommands;
 
 		private string _textBoxSeparator;
 		public string TextBoxSeparator {
@@ -31,8 +33,9 @@ namespace LibTextPet.IO.TextBox {
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
 		public TextBoxScriptWriter(Stream stream)
-			: base(stream, false, false, new UTF8Encoding(false, true), new TextBoxCommandWriter(stream)) {
+			: base(stream, false, false, new UTF8Encoding(false, true), new TPLCommandWriter(stream) { Flatten = true }) {
 			this.TextBoxSeparator = Environment.NewLine + "###--------" + Environment.NewLine;
+			this.taggedCommands = new List<Command>();
 		}
 
 		public override void Write(Script obj) {
@@ -72,8 +75,13 @@ namespace LibTextPet.IO.TextBox {
 			if (command.Definition.Prints) {
 				// Start text box, if necessary.
 				StartTextBox();
-				// Write the printed command to the stream.
-				base.WriteCommand(command);
+
+				this.TextWriter.Write('<');
+				this.TextWriter.Write(command.Name);
+				this.TextWriter.Write('>');
+
+				// Store the command to print at the end of the text box.
+				this.taggedCommands.Add(command);
 			} else {
 				// Write the end of this text box to the stream.
 				FinishTextBox();
@@ -99,6 +107,9 @@ namespace LibTextPet.IO.TextBox {
 					this.TextWriter.Flush();
 				}
 
+				// Clear printed commands.
+				this.taggedCommands.Clear();
+
 				textBoxActive = true;
 			}
 		}
@@ -106,6 +117,16 @@ namespace LibTextPet.IO.TextBox {
 		protected void FinishTextBox() {
 			// Only finish if text box active.
 			if (textBoxActive) {
+				// Print all tagged commands.
+				foreach (Command cmd in this.taggedCommands) {
+					this.TextWriter.WriteLine();
+					this.TextWriter.Write("###" + nameof(DirectiveType.Command) + ":");
+					this.TextWriter.Flush();
+					
+					// Write the printed command to the stream.
+					base.WriteCommand(cmd);
+				}
+
 				// Write text box separator.
 				this.TextWriter.Write(this.TextBoxSeparator);
 				this.TextWriter.Flush();

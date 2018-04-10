@@ -89,7 +89,6 @@
     <Compile Include="IO\Msg\BinaryTextArchiveWriter.cs" />
     <Compile Include="IO\TextArchiveTextBoxPatcher.cs" />
     <Compile Include="IO\TextBox\TextBoxScriptWriter.cs" />
-    <Compile Include="IO\TextBox\TextBoxCommandWriter.cs" />
     <Compile Include="IO\TextBox\TextBoxTemplateReader.cs" />
     <Compile Include="IO\TextBox\TextBoxTextArchiveWriter.cs" />
     <Compile Include="IO\TextBox\TextBoxScriptTemplateReader.cs" />

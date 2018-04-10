@@ -13,5 +13,6 @@ namespace LibTextPet.Msg {
 		ImportScript,
 		InsertCommand,
 		RemoveCommand,
+		Command,
 	}
 }
