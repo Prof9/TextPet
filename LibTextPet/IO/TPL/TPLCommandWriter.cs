@@ -20,28 +20,28 @@ namespace LibTextPet.IO.TPL {
 			: base(stream) { }
 
 		/// <summary>
-		/// Outputs the specified script command as a string.
+		/// Writes the specified script command to the output stream.
 		/// </summary>
-		/// <param name="obj">The script command to output.</param>
-		/// <returns>The resulting string.</returns>
-		protected override string Output(Command obj) {
+		/// <param name="obj">The command to write.</param>
+		public override void Write(Command obj) {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The script command cannot be null.");
 
-			StringBuilder builder = new StringBuilder();
-			string indent = new string('\t', this.IndentLevel);
-			string newLine = Environment.NewLine;
-
 			// Write the name of the command.
-			builder.AppendFormat("{0}{1}{2}", indent, obj.Name, newLine);
+			this.WriteLine(obj.Name);
+			this.IndentLevel++;
 
 			// Write the command elements.
 			foreach (CommandElement elem in obj.Elements) {
 				if (elem.Definition.HasMultipleDataEntries) {
 					// Write the data entries.
-					builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = [{2}", indent, elem.Name, newLine);
-					// Yeah this is kinda dumb huh. TODO: Integrate this into IndentedWriter.
-					indent += '\t';
+					this.Write(elem.Name);
+					if (this.Flatten) {
+						this.WriteLine("=[");
+					} else {
+						this.WriteLine(" = [");
+					}
+					this.IndentLevel++;
 				}
 
 				// Write the data entries.
@@ -50,28 +50,36 @@ namespace LibTextPet.IO.TPL {
 					// Write every parameter.
 					for (int j = 0; j < entry.Count; j++) {
 						Parameter par = entry[j];
-						// Only write a comma after the last data parameter of the non-last entry.
-						bool writeComma = j == entry.Count - 1 && i != elem.Count - 1;
 
-						string parString = par.ToString();
+						this.Write(par.Name);
+						if (this.Flatten) {
+							this.Write("=");
+						} else {
+							this.Write(" = ");
+						}
 						if (par.IsString) {
-							parString = '"' + parString.Replace("\"", "\\\"") + '"';
+							this.Write('"' + par.ToString().Replace("\"", "\\\"") + '"');
+						} else {
+							this.Write(par.ToString());
 						}
 
-						builder.AppendFormat(CultureInfo.InvariantCulture, "{0}\t{1} = {2}{3}{4}",
-							indent, par.Name, parString, writeComma ? "," : "", newLine);
+						// Only write a comma after the last data parameter of the non-last entry.
+						if (j == entry.Count - 1 && i != elem.Count - 1) {
+							this.Write(",");
+						}
+
+						this.WriteLine();
 					}
 				}
 
 				if (elem.Definition.HasMultipleDataEntries) {
-					// TODO: Integrate this into IndentedWriter.
-					indent = indent.Substring(1);
-					builder.AppendFormat("{0}\t]{1}", indent, newLine);
+					this.IndentLevel--;
+					this.WriteLine("]");
 				}
 			}
 
-			// Return the resulting string.
-			return builder.ToString();
+			this.IndentLevel--;
+			this.Flush();
 		}
 	}
 }
