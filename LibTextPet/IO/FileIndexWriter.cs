@@ -97,7 +97,7 @@ namespace LibTextPet.IO {
 			if (obj == null) {
 				throw new ArgumentNullException(nameof(obj), "The file index entries cannot be null.");
 			}
-			if (file != null) {
+			if (this.IncludePostBytesComments && file != null) {
 				if (!file.CanRead) {
 					throw new ArgumentException("The file does not support reading.");
 				}
