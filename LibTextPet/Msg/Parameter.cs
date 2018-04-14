@@ -10,7 +10,7 @@ namespace LibTextPet.Msg {
 	/// <summary>
 	/// A parameter of a script command.
 	/// </summary>
-	public class Parameter : IDefined<ParameterDefinition>, INameable {
+	public class Parameter : IDefined<ParameterDefinition>, INameable, IEquatable<Parameter> {
 		/// <summary>
 		/// Gets the definition for this parameter.
 		/// </summary>
@@ -147,6 +147,70 @@ namespace LibTextPet.Msg {
 				// Parse string.
 				this.NumberValue = this.Definition.ParseString(value);
 			}
+		}
+
+		/// <summary>
+		/// Returns the hash code for this command parameter's value.
+		/// </summary>
+		/// <returns>The hash code for this command parameter.</returns>
+		public override int GetHashCode() {
+			if (this.IsNumber) {
+				return this.numberValue.GetHashCode();
+			}
+			if (this.IsString) {
+				return this.stringValue.GetHashCode();
+			}
+			return 0;
+		}
+
+		/// <summary>
+		/// Indicates whether this instance and a given object are equal.
+		/// </summary>
+		/// <param name="obj">Another object to compare to.</param>
+		/// <returns>true if obj and this instance are the same type and represent the same value; otherwise, false.</returns>
+		public override bool Equals(object obj) {
+			if (obj == null || GetType() != obj.GetType())
+				return false;
+
+			Parameter par = (Parameter)obj;
+
+			return this.Equals(par);
+		}
+
+		/// <summary>
+		/// Indicates whether this instance and a given parameter are equal.
+		/// </summary>
+		/// <param name="other">Another parameter to compare to.</param>
+		/// <returns>true if other and this instance are the same type and represent the same value; otherwise, false.</returns>
+		public bool Equals(Parameter other) {
+			if (other == null) {
+				return false;
+			}
+
+			if (this.Definition != other.Definition) {
+				return false;
+			}
+			if (this.IsNumber && other.IsNumber) {
+				return this.numberValue == other.numberValue;
+			}
+			if (this.IsString && other.IsString) {
+				return this.stringValue == other.stringValue;
+			}
+			return false;
+		}
+
+		public static bool operator ==(Parameter parameter1, Parameter parameter2) {
+			if (ReferenceEquals(parameter1, parameter2)) {
+				return true;
+			} else if (parameter1 is null || parameter2 is null) {
+				return false;
+			} else {
+				return parameter1.Equals(parameter2);
+			}
+		}
+
+		public static bool operator !=(Parameter parameter1, Parameter parameter2) {
+			return !(parameter1 == parameter2);
 		}
 	}
 }
