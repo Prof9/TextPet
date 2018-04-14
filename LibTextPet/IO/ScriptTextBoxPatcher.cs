@@ -50,8 +50,8 @@ namespace LibTextPet.IO {
 			if (patchObj == null)
 				throw new ArgumentNullException(nameof(patchObj), "The patch script cannot be null.");
 
-			IList<Command> boxA;
-			Script boxB;
+			IList<Command> cmds;
+			Script newBox;
 
 			// Load the text box split script, if there is one.
 			Script splitSnippet = GetTextBoxSplitSnippet(baseObj);
@@ -75,10 +75,10 @@ namespace LibTextPet.IO {
 				}
 
 				// Extract text box from B.
-				boxB = RemoveSplitTextBox(patchObj, b);
+				newBox = RemoveSplitTextBox(patchObj, b);
 
 				// If box B is empty, merge the current and next text box in the base script.
-				if (!boxB.Any()) {
+				if (!newBox.Any()) {
 					// Do we have a split script?
 					if (splitSnippet == null) {
 						throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box merging is not supported.", nameof(patchObj));
@@ -87,17 +87,18 @@ namespace LibTextPet.IO {
 					MergeNextTextBox(baseObj, splitSnippet, a);
 				} else {
 					// Remove the old text box from A.
-					boxA = ExtractTextBoxCommands(baseObj, a);
+					RemoveTextBoxCommands(baseObj, a);
+					cmds = new List<Command>();
 
 					// Process the directives in boxB.
-					IList<DirectiveElement> directives = ExtractDirectives(boxB);
-					ProcessDirectives(boxA, directives, this.CommandReaders[baseObj.DatabaseName]);
+					IList<DirectiveElement> directives = ExtractDirectives(newBox);
+					ProcessDirectives(cmds, directives, this.CommandReaders[baseObj.DatabaseName]);
 
 					// Patch box B commands with commands in A.
-					PatchTextBox(boxB, boxA, splitSnippet);
+					PatchTextBox(newBox, cmds, splitSnippet);
 
 					// Re-insert the patched text box in A.
-					foreach (IScriptElement elem in boxB) {
+					foreach (IScriptElement elem in newBox) {
 						baseObj.Insert(a++, elem);
 					}
 				}
@@ -115,20 +116,10 @@ namespace LibTextPet.IO {
 		/// <param name="script">The script to extract from.</param>
 		/// <param name="index">The index at which to begin extracting.</param>
 		/// <returns>The extracted script commands.</returns>
-		private static IList<Command> ExtractTextBoxCommands(Script script, int index) {
-			// Extract commands from next text box.
-			IList<Command> box = new List<Command>();
+		private static void RemoveTextBoxCommands(Script script, int index) {
 			while (index < script.Count && !EndsTextBox(script[index])) {
-				// We only need to copy the commands, so discard the other elements.
-				if (script[index] is Command cmd) {
-					// Extract the command.
-					box.Add(cmd);
-				}
-				// Discard the printed element.
 				script.RemoveAt(index);
 			}
-
-			return box;
 		}
 
 		/// <summary>
@@ -143,9 +134,7 @@ namespace LibTextPet.IO {
 				IScriptElement elem = box[i];
 
 				if (elem is DirectiveElement directive) {
-					if (directive.DirectiveType == DirectiveType.InsertCommand
-					||	directive.DirectiveType == DirectiveType.RemoveCommand
-					) {
+					if (directive.DirectiveType == DirectiveType.Command) {
 						box.RemoveAt(i--);
 						directives.Add(directive);
 					}
@@ -171,8 +160,7 @@ namespace LibTextPet.IO {
 					boxB.Add(elem);
 				}
 				if (elem is DirectiveElement dirElem && (
-					dirElem.DirectiveType == DirectiveType.InsertCommand ||
-					dirElem.DirectiveType == DirectiveType.RemoveCommand
+					dirElem.DirectiveType == DirectiveType.Command
 				)) {
 					// Also add directives that should be here.
 					boxB.Add(elem);
@@ -322,41 +310,11 @@ namespace LibTextPet.IO {
 		private static void ProcessDirectives(IList<Command> cmds, IList<DirectiveElement> directives, TPLReader<Command> cmdReader) {
 			foreach (DirectiveElement directive in directives) {
 				switch (directive.DirectiveType) {
-					case DirectiveType.InsertCommand:
-						foreach (Command cmd in cmdReader.Read(directive.Value)) {
-							cmds.Add(cmd);
-						}
-						break;
-					case DirectiveType.RemoveCommand:
-						string cmdName;
-						int cmdIndex;
-
-						int commaIndex = directive.Value.IndexOf(',');
-						if (commaIndex >= 0) {
-							cmdName = directive.Value.Substring(0, commaIndex);
-							cmdIndex = NumberParser.ParseInt32(directive.Value.Substring(commaIndex + 1));
-						} else {
-							cmdName = directive.Value;
-							cmdIndex = 0;
-						}
-
-						if (cmdIndex < 0)
-							throw new ArgumentException("A negative command index for the RemoveCommand directive is not allowed.");
-
-						bool removed = false;
-						int skip = cmdIndex;
-						for (int i = 0; i < cmds.Count; i++) {
-							if (cmds[i].Name == cmdName && skip-- <= 0) {
-								cmds.RemoveAt(i);
-								removed = true;
-								break;
-							}
-						}
-						if (!removed) {
-							throw new ArgumentException("RemoveCommand directive could not find a command \"" + cmdName + "\" with index " + cmdIndex + ".");
-						}
-
-						break;
+				case DirectiveType.Command:
+					foreach (Command cmd in cmdReader.Read(directive.Value)) {
+						cmds.Add(cmd);
+					}
+					break;
 				}
 			}
 		}
