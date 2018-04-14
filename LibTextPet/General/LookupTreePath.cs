@@ -49,7 +49,7 @@ namespace LibTextPet.General {
 		/// </summary>
 		/// <param name="keyElement">The key element.</param>
 		/// <returns>true if the step moved to a new node; otherwise, false.</returns>
-		public virtual bool Step(TKeyElement keyElement) {
+		public virtual bool StepNext(TKeyElement keyElement) {
 			if (this.CurrentNode.TryGetChild(keyElement, out LookupTreeNode<TKeyElement, TValue> child)) {
 				this.CurrentNode = child;
 				this.Depth += 1;
@@ -70,7 +70,7 @@ namespace LibTextPet.General {
 				throw new ArgumentNullException(nameof(keyElementEnumerator));
 
 			// Root node is empty and should not have a value.
-			while (keyElementEnumerator.MoveNext() && this.Step(keyElementEnumerator.Current)) {
+			while (keyElementEnumerator.MoveNext() && this.StepNext(keyElementEnumerator.Current)) {
 				if (this.CurrentNode.HasValue) {
 					value = this.CurrentNode.Value;
 					return true;

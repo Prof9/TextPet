@@ -115,7 +115,7 @@ namespace LibTextPet.Text {
 					}
 
 					// Step on next byte in queue.
-					if (this.LookupPath.Step(this.Queue[i])) {
+					if (this.LookupPath.StepNext(this.Queue[i])) {
 						// Check if we reached a value.
 						if (this.LookupPath.AtValue) {
 							// Get the code point.

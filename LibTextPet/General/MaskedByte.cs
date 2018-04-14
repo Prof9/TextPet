@@ -45,5 +45,13 @@ namespace LibTextPet.General {
 			return this.Byte == other.Byte
 				&& this.Mask == other.Mask;
 		}
+
+		public static bool operator ==(MaskedByte mb1, MaskedByte mb2) {
+			return mb1.Equals(mb2);
+		}
+
+		public static bool operator !=(MaskedByte mb1, MaskedByte mb2) {
+			return !mb1.Equals(mb2);
+		}
 	}
 }

@@ -232,7 +232,7 @@ namespace LibTextPet.Text {
 					}
 
 					// Step on next char in queue.
-					if (path.LookupPath.Step(path.Queue[i])) {
+					if (path.LookupPath.StepNext(path.Queue[i])) {
 						// Check if we reached a value.
 						if (path.LookupPath.AtValue) {
 							if (this.OptimalPath && !path.LookupPath.AtEnd) {
