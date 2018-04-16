@@ -90,25 +90,26 @@ namespace LibTextPet.Msg {
 		/// Gets the number of bytes this command should rewind after being read.
 		/// </summary>
 		public int RewindCount { get; }
+		/// <summary>
+		/// Gets a boolean that indicates the command parser should look ahead for a better match if this command is encountered.
+		/// </summary>
+		public bool LookAhead { get; }
 
 		/// <summary>
 		/// Constructs a script command definition with the given name, description, base, mask and parameter definitions.
 		/// </summary>
 		/// <param name="name">The name of the script command.</param>
 		/// <param name="description">The description of the script command, or null.</param>
-		/// <param name="baseSequence">The base bytes of the script command.</param>
-		/// <param name="mask">The base mask of the script command.</param>
+		/// <param name="baseSequence">The masked base bytes of the script command.</param>
 		/// <param name="endType">An enum that indicates when the script command ends script execution.</param>
 		/// <param name="prints">A boolean that indicates whether this script command prints to text.</param>
 		/// <param name="mugshotName">The name of the mugshot parameter, if this command changes the active mugshot; an empty string, if this command clears the active mugshot; otherwise, null if this command does not affect the active mugshot.</param>
-		/// <param name="dataEntryLength">The length in bytes of each data entry, or 0 if the script command has no data.</param>
-		/// <param name="dataCountOffset">The value offset for the amount of data entries as dictated by the script command's length parameter.</param>
 		/// <param name="priorityLength">The amount of bytes after which this command should be forcibly chosen if it is still a potential candidate, or 0 to never forcibly choose this command.</param>
-		/// <param name="pars">The parameter definitions of the script command, or null.</param>
-		/// <param name="lengthPar">The parameter definition of the data length, or null.</param>
-		/// <param name="dataPars">The parameter definitions of the data parameters, or null.</param>
+		/// <param name="elems">The command element definitions of this parameter, or null if it has none.</param>
+		/// <param name="rewind">The number of bytes to rewind after reading this command.</param>
+		/// <param name="lookAhead">A boolean that indicates whether the command parser should look ahead for a better matching command.</param>
 		public CommandDefinition(string name, string description, MaskedByte[] baseSequence, EndType endType, bool prints, string mugshotName,
-			int priorityLength, int rewind, IEnumerable<CommandElementDefinition> elems) {
+			int priorityLength, int rewind, bool lookAhead, IEnumerable<CommandElementDefinition> elems) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (String.IsNullOrWhiteSpace(name))
@@ -126,6 +127,7 @@ namespace LibTextPet.Msg {
 			this.EndType = endType;
 			this.Prints = prints;
 			this.RewindCount = rewind;
+			this.LookAhead = lookAhead;
 			this.PriorityLength = priorityLength;
 			this.Elements = new ReadOnlyNamedCollection<CommandElementDefinition>(elems ?? new CommandElementDefinition[0]);
 
@@ -199,7 +201,7 @@ namespace LibTextPet.Msg {
 			return new CommandDefinition(
 				String.Copy(this.Name), String.Copy(this.Description), newBase,
 				this.EndType, this.Prints, String.Copy(this.MugshotParameterName),
-				this.PriorityLength, this.RewindCount,
+				this.PriorityLength, this.RewindCount, this.LookAhead,
 				this.Elements.Select(elemDef => elemDef.Clone())
 			) {
 				alternatives = this.alternatives,

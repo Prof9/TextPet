@@ -147,12 +147,13 @@ namespace LibTextPet.Plugins {
 			bool prnt = cmdSection.PropertyAsBoolean("PRNT", superCmdDef?.Prints ?? false);
 			string mugs = cmdSection.PropertyAsString("MUGS", superCmdDef?.MugshotParameterName);
 			int rwnd = (int)cmdSection.PropertyAsInt64("RWND", superCmdDef?.RewindCount ?? 0);
+			bool lahd = cmdSection.PropertyAsBoolean("LAHD", superCmdDef?.LookAhead ?? false);
 
 			// Load parameters.
 			List<CommandElementDefinition> elemDefs = LoadCommandElementDefinitions(enumerator, jumpContVals, superCmdDef);
 
 			// Create the command definition.
-			CommandDefinition cmdDef = new CommandDefinition(name, desc, baseSeq, ends, prnt, mugs, plen, rwnd, elemDefs);
+			CommandDefinition cmdDef = new CommandDefinition(name, desc, baseSeq, ends, prnt, mugs, plen, rwnd, lahd, elemDefs);
 
 			// Set as alternative of parent command.
 			if (isExt) {
