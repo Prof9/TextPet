@@ -31,11 +31,27 @@ namespace LibTextPet.IO.Msg {
 		public BinaryCommandReader(Stream stream, CommandDatabase database, IgnoreFallbackEncoding encoding) 
 			: base(stream, true, FileAccess.Read, database) {
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
+			this.BytesLeft = -1;
 
 			this.byteSequence = new List<byte>();
 			this.stringBuilder = new StringBuilder();
 			this.charBuffer = new char[this.TextReader.GetMaxCharCount(1)];
 			this.byteBuffer = new byte[this.TextReader.GetMaxByteCount(1)];
+		}
+
+		/// <summary>
+		/// Gets or sets the amount of bytes that this binary command reader is allowed to continue reading. If this value is negative, no limit is imposed.
+		/// </summary>
+		public long BytesLeft { get; set; }
+
+		protected virtual int ReadNextByte() {
+			if (this.BytesLeft == 0) {
+				return -1;
+			}
+			if (this.BytesLeft > 0) {
+				this.BytesLeft--;
+			}
+			return this.BaseStream.ReadByte();
 		}
 
 		/// <summary>
@@ -46,15 +62,15 @@ namespace LibTextPet.IO.Msg {
 			this.byteSequence.Clear();
 			IList<CommandDefinition> defs;
 			long start = this.BaseStream.Position;
-
+			long bytesLeft = this.BytesLeft;
 
 			// Filter command database to find matching element.
 			CommandDefinition matchDef = null;
 			do {
 				// Cancel if end of stream reached.
-				int b = this.BaseStream.ReadByte();
+				int b = this.ReadNextByte();
 				if (b == -1) {
-					return null;
+					break;
 				}
 				this.byteSequence.Add((byte)b);
 
@@ -62,7 +78,7 @@ namespace LibTextPet.IO.Msg {
 				defs = this.Databases[this.Databases.Count - 1].Match(this.byteSequence);
 				if (defs.Count == 0) {
 					// Cancel if no more matches.
-					return null;
+					break;
 				}
 
 				// Is there a command that takes priority at at least this length?
@@ -80,13 +96,19 @@ namespace LibTextPet.IO.Msg {
 				}
 
 				// Did we find a non-priority match?
-				if (matchDef == null && defs.Count == 1) {
+				if ((matchDef == null || matchDef.LookAhead) && defs.Count == 1) {
 					matchDef = defs[0];
 				}
-			} while (matchDef == null);
+			} while (matchDef == null || matchDef.LookAhead);
+
+			// Abort if no match found.
+			if (matchDef == null) {
+				return null;
+			}
 
 			// If match found, read it.
 			this.BaseStream.Position = start;
+			this.BytesLeft = bytesLeft;
 			return Read(matchDef);
 		}
 
@@ -107,7 +129,7 @@ namespace LibTextPet.IO.Msg {
 
 			int byteCount = definition.Base.Count;
 			for (int i = 0; i < byteCount; i++) {
-				int b = this.BaseStream.ReadByte();
+				int b = this.ReadNextByte();
 				if (b == -1) {
 					// Cannot read enough bytes.
 					return null;
@@ -194,7 +216,7 @@ namespace LibTextPet.IO.Msg {
 			if (strOffset > readBytes.Count) {
 				int byteCount = strOffset - readBytes.Count;
 				for (int i = 0; i < byteCount; i++) {
-					int b = this.BaseStream.ReadByte();
+					int b = this.ReadNextByte();
 					if (b == -1) {
 						// Could not read the required bytes.
 						return false;
@@ -223,12 +245,13 @@ namespace LibTextPet.IO.Msg {
 			case StringLengthUnit.Byte:
 				// Read the bytes.
 				byte[] buffer = new byte[strLen];
-				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
-					// Could not read the required bytes.
-					return false;
-				}
-				foreach (byte b in buffer) {
-					readBytes.Add(b);
+				for (int i = 0; i < buffer.Length; i++) {
+					int b = this.ReadNextByte();
+					if (b == -1) {
+						// Could not read the required bytes.
+						return false;
+					}
+					readBytes.Add(buffer[i] = (byte)b);
 				}
 
 				// Expand char buffer if necessary.
@@ -292,15 +315,13 @@ namespace LibTextPet.IO.Msg {
 			labelDict[parDef.Name] = offset + parDef.Offset;
 
 			// Read extra bytes if needed.
-			if (readBytes.Count < bytesNeeded) {
-				byte[] buffer = new byte[bytesNeeded - readBytes.Count];
-				if (this.BaseStream.Read(buffer, 0, buffer.Length) != buffer.Length) {
+			while (readBytes.Count < bytesNeeded) {
+				int b = this.ReadNextByte();
+				if (b == -1) {
 					// Cannot read enough bytes.
 					return false;
 				}
-				foreach (byte b in buffer) {
-					readBytes.Add(b);
-				}
+				readBytes.Add((byte)b);
 			}
 
 			result = ReadParameterValueFromBytes(readBytes, parDef, offset);

@@ -83,14 +83,12 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <returns>The next script command read from the input stream, or null if no script command exists at the current position in the input stream.</returns>
 		protected override Command ReadCommand(IReader<Command> commandReader) {
-			Command cmd = base.ReadCommand(commandReader);
+			if (commandReader == null)
+				throw new ArgumentNullException(nameof(commandReader), "The command reader cannot be null.");
 
-			// Abort if the command would exceed the fixed script size.
-			if (cmd != null && this.BaseStream.Position - this.StartPosition > this.FixedLength) {
-				cmd = null;
-			}
+			((BinaryCommandReader)commandReader).BytesLeft = this.FixedLength - (this.BaseStream.Position - this.StartPosition);
 
-			return cmd;
+			return commandReader.Read();
 		}
 
 		/// <summary>
