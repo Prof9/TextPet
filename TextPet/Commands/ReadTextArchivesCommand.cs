@@ -26,6 +26,7 @@ namespace TextPet.Commands {
 		private const string recursiveArg = "recursive";
 		private const string updateArg = "update";
 		private const string searchPointersArg = "search-pointers";
+		private const string allowFallbackArg = "allow-fallback";
 		private const string patchArg = "patch";
 
 		private readonly string[] binFormats = new string[] {
@@ -51,6 +52,7 @@ namespace TextPet.Commands {
 				new OptionalArgument(recursiveArg, 'r'),
 				new OptionalArgument(updateArg, 'u'),
 				new OptionalArgument(searchPointersArg, 's'),
+				new OptionalArgument(allowFallbackArg, 'a'),
 				new OptionalArgument(patchArg, 'p'),
 			}) {
 			this.Recursive = false;
@@ -62,6 +64,7 @@ namespace TextPet.Commands {
 			this.Recursive = GetOptionalValues(recursiveArg) != null;
 			bool update = GetOptionalValues(updateArg) != null;
 			bool searchPointers = GetOptionalValues(searchPointersArg) != null;
+			bool allowFallback = GetOptionalValues(allowFallbackArg) != null;
 			bool patchMode = GetOptionalValues(patchArg) != null;
 
 			// If format is not specified, use file extension.
@@ -88,7 +91,7 @@ namespace TextPet.Commands {
 			} else if (txtFormats.Contains(format)) {
 				this.ReadTextArchivesTextBoxes(path, patchMode);
 			} else if (romFormats.Contains(format)) {
-				this.Core.ReadTextArchivesFile(path, update, searchPointers);
+				this.Core.ReadTextArchivesFile(path, update, searchPointers, allowFallback);
 			} else if (manualFormat == null) {
 				Console.WriteLine("ERROR: Unknown text archive extension \"" + format + "\". Change the file extension or specify the format manually.");
 			} else {

@@ -248,8 +248,9 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="path">The path to the file.</param>
 		/// <param name="updateIndex">If true, the attributes of any currently loaded file index entries will be updated after successfully reading the corresponding text archive.</param>
-		/// /// <param name="searchPointers">If true, the pointers of any currently loaded file index entries will be updated after successfully reading the corresponding text archive.</param>
-		public void ReadTextArchivesFile(string path, bool updateIndex, bool searchPointers) {
+		/// <param name="searchPointers">If true, the pointers of any currently loaded file index entries will be updated after successfully reading the corresponding text archive.</param>
+		/// <param name="allowFallback">If true, allows fallback parameters.</param>
+		public void ReadTextArchivesFile(string path, bool updateIndex, bool searchPointers, bool allowFallback) {
 			if (path == null)
 				throw new ArgumentNullException(nameof(path), "The file path cannot be null.");
 			if (!File.Exists(path))
@@ -265,6 +266,7 @@ namespace TextPet {
 				UpdateFileIndex = updateIndex,
 				SearchPointers = searchPointers
 			};
+			reader.TextArchiveReader.ScriptReader.AcceptMostCompatibleFallback = allowFallback;
 
 			List<TextArchive> textArchives = new List<TextArchive>(this.FileIndex.Count);
 			foreach (FileIndexEntry entry in this.FileIndex) {
