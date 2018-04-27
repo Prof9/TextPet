@@ -287,6 +287,9 @@
     <None Include="plugins\rnr1-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="plugins\rnr2-utf8.tbl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="plugins\sf1-utf8.tbl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
