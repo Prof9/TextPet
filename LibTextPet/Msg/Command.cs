@@ -202,7 +202,10 @@ namespace LibTextPet.Msg {
 				return false;
 			}
 
-			if (this.Definition != otherCmd.Definition) {
+			if (this.Definition != otherCmd.Definition &&
+				this.Definition != otherCmd.Definition.Parent &&
+				this.Definition.Parent != otherCmd.Definition &&
+				this.Definition.Parent != otherCmd.Definition.Parent) {
 				return false;
 			}
 
