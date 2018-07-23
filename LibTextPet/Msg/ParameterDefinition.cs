@@ -89,7 +89,8 @@ namespace LibTextPet.Msg {
 		/// <param name="valueEncoding">The name of the encoding to use for this parameter's value.</param>
 		/// <param name="dataGroupSizes">The list of data group sizes for this parameter's sub-parameters, or null.</param>
 		public ParameterDefinition(string name, string description, int offset, int shift, int bits, long add, bool isJump,
-			OffsetType offsetType, string label, string valueEncoding, IList<int> dataGroupSizes, StringSubDefinition stringDef) {
+			OffsetType offsetType, string label, string valueEncoding, IList<long> jumpContVals, IList<int> dataGroupSizes,
+			StringSubDefinition stringDef) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The name cannot be null.");
 			if (name.Length <= 0)
@@ -112,6 +113,7 @@ namespace LibTextPet.Msg {
 			this.RelativeLabel = label?.Trim();
 			this.ValueEncodingName = valueEncoding?.Trim();
 			this.ValueEncoding = null;
+			this.JumpContinueValues = new ReadOnlyCollection<long>(jumpContVals ?? new List<long>(0));
 			this.DataGroupSizes = new ReadOnlyCollection<int>(dataGroupSizes ?? new List<int>(0));
 			this.StringDefinition = stringDef;
 		}
@@ -311,6 +313,7 @@ namespace LibTextPet.Msg {
 				this.Add, this.IsJump,
 				this.OffsetType, this.RelativeLabel,
 				this.ValueEncodingName,
+				new List<long>(this.JumpContinueValues),
 				new List<int>(this.DataGroupSizes),
 				this.StringDefinition?.Clone() ?? null
 			);

@@ -197,8 +197,7 @@ namespace LibTextPet.Msg {
 		}
 
 		public bool Equals(IScriptElement other) {
-			Command otherCmd = other as Command;
-			if (otherCmd == null) {
+			if (!(other is Command otherCmd)) {
 				return false;
 			}
 

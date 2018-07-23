@@ -277,7 +277,7 @@ namespace LibTextPet.Plugins {
 				// Create the parameter.
 				bool isJump = parType == "JUMP";
 				ParameterDefinition parDef = new ParameterDefinition(
-					parNameMain, parDesc, offset, shift, parBits, parAddV, isJump, offsetType, parRela, parValN, parDgrp, strDef
+					parNameMain, parDesc, offset, shift, parBits, parAddV, isJump, offsetType, parRela, parValN, jumpContVals, parDgrp, strDef
 				);
 
 				// Set jump continue values.
