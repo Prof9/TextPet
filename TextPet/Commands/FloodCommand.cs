@@ -32,7 +32,7 @@ namespace TextPet.Commands {
 							continue;
 						}
 
-						string[] lines = textElem.Text.Split(new string[] { "\\n" }, StringSplitOptions.None);
+						string[] lines = textElem.Text.Split(new string[] { "\n" }, StringSplitOptions.None);
 						for (int i = 0; i < lines.Length; i++) {
 							char[] l = new string('W', lines[i].Length).ToCharArray();
 
@@ -42,7 +42,7 @@ namespace TextPet.Commands {
 
 							lines[i] = new string(l);
 						}
-						textElem.Text = String.Join("\\n", lines);
+						textElem.Text = String.Join("\n", lines);
 					}
 				}
 			}

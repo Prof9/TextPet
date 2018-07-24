@@ -59,11 +59,11 @@ namespace LibTextPet.IO.TextBox {
 				return ProcessResult.ConsumeAndContinue;
 			case (int)TextBoxTokenType.Text:
 				obj.Add(new TextElement(token.Value
+					// TODO: This sucks
 					.Replace("\\<", "<")
 					.Replace("\\>", ">")
 					.Replace("\\\\", "\\")
 					.Replace("\r", "")
-					.Replace("\n", "\\n")
 				));
 				return ProcessResult.ConsumeAndContinue;
 			case (int)TextBoxTokenType.Comment:

@@ -43,14 +43,11 @@ namespace TextPet.Commands {
 					if (filter != null && script.DatabaseName != filter) {
 						continue;
 					}
-
+					
 					foreach (IScriptElement elem in script) {
-						TextElement textElem = elem as TextElement;
-						if (textElem == null) {
-							continue;
+						if (elem is TextElement textElem) {
+							textElem.Text = regex.Replace(textElem.Text, replacement);
 						}
-
-						textElem.Text = regex.Replace(textElem.Text, replacement);
 					}
 				}
 			}

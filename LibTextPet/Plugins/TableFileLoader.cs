@@ -35,7 +35,7 @@ namespace LibTextPet.Plugins {
 				// Parse the key as hex string.
 				if (NumberParser.TryParseHexString(pair.Key, out bytes)) {
 					// Map the character(s) to the byte sequence.
-					dict.Add(bytes.ToArray(), pair.Value);
+					dict.Add(bytes.ToArray(), pair.Value.Replace("\\n", "\n"));
 				} else {
 					switch (pair.Key.ToUpperInvariant()) {
 						case "NAME":

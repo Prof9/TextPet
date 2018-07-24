@@ -78,8 +78,8 @@ namespace LibTextPet.IO.TPL {
 			case (int)TPLTokenType.String:
 				// Create a new text element.
 				obj.Add(new TextElement(
-					// Unescape \" and \\.
-					Regex.Replace(token.Value, @"\\([\\""])", "$1")
+					// Unescape \", \\ and \n.
+					UnescapeString(token.Value)
 				));
 				return ProcessResult.ConsumeAndContinue;
 			case (int)TPLTokenType.Heredoc:
@@ -131,6 +131,26 @@ namespace LibTextPet.IO.TPL {
 				}
 			}
 			throw new ArgumentException("Unrecognized token.", nameof(token));
+		}
+
+		private static string UnescapeString(string str) {
+			StringBuilder builder = new StringBuilder(str.Length);
+			bool isEscape = false;
+			foreach (char c in str) {
+				if (isEscape) {
+					if (c == 'n') {
+						builder.Append("\n");
+					} else if (c != 'r') {
+						builder.Append(c);
+					}
+					isEscape = false;
+				} else if (c == '\\') {
+					isEscape = true;
+				} else {
+					builder.Append(c);
+				}
+			}
+			return builder.ToString();
 		}
 	}
 }

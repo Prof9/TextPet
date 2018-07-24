@@ -54,7 +54,7 @@ namespace LibTextPet.Text {
 		}
 
 		private List<Path> prevPaths;
-		private char[] byteParseBuffer;
+		private readonly char[] byteParseBuffer;
 
 		private LookupTree<char, byte[]> StringToBytesLookup { get; set; }
 
