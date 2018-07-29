@@ -78,10 +78,10 @@ namespace LibTextPet.IO.TPL {
 			}
 
 			// Determine whether to write heredoc or regular string.
-			if (Regex.IsMatch(value, @"\S\\n\S")) {
+			if (Regex.IsMatch(value, @"\S\n\S")) {
 				// Write heredoc for strings that contain a line split with text before/after it.
 				this.TextWriter.WriteLine("\t\"\"\"");
-				foreach (string line in value.Split(new string[] { "\\n" }, StringSplitOptions.None)) {
+				foreach (string line in value.Split(new char[] { '\n' }, StringSplitOptions.None)) {
 					// Indent every line.
 					this.TextWriter.Write('\t');
 					base.WriteText(line);

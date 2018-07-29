@@ -104,7 +104,7 @@ namespace LibTextPet.IO.TPL {
 				// Create a new text element.
 				obj.Add(new TextElement(
 					// Join the heredoc lines with a \n.
-					String.Join(@"\n", lines)
+					String.Join("\n", lines)
 				));
 				// Read the end of the heredoc.
 				ReadToken((int)TPLTokenType.HeredocEnd);
@@ -139,7 +139,10 @@ namespace LibTextPet.IO.TPL {
 			foreach (char c in str) {
 				if (isEscape) {
 					if (c == 'n') {
-						builder.Append("\n");
+						builder.Append('\n');
+					} else if (c == '[' || c == ']') {
+						builder.Append('\\');
+						builder.Append(c);
 					} else if (c != 'r') {
 						builder.Append(c);
 					}
