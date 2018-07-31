@@ -227,6 +227,7 @@ namespace LibTextPet.Text {
 						// Check if this is raw byte syntax.
 						if (doRawByte()) {
 							// Successfully encoded raw byte, continue.
+							i = -1;
 							continue;
 						}
 					}
@@ -256,14 +257,17 @@ namespace LibTextPet.Text {
 					} else if (path.CodePointLength > 0) {
 						// Could not step on this char but we have a valid code point.
 						doCodePoint();
+						i = -1;
 					} else {
 						// Could not step on this char and no valid code point read.
 						if (doRawByte()) {
 							// This was a raw byte, so continue.
+							i = -1;
 							continue;
 						} else if (path.IsCritical) {
 							// Path is critical (new code points were read), so do a fallback.
 							doFallback();
+							i = -1;
 						} else {
 							// Path is not critical path (no new code points read), so dismiss it.
 							return false;
