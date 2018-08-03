@@ -9,6 +9,7 @@ namespace TextPet {
 #if !DEBUG
 			try {
 #endif
+				string originalConsoleTitle = Console.Title;
 				Console.Title = "TextPet CLI";
 				Console.WriteLine("TextPet " + Version + " by Prof. 9");
 				Console.WriteLine();
@@ -23,6 +24,7 @@ namespace TextPet {
 #else
 			Console.ReadKey();
 #endif
+			Console.Title = originalConsoleTitle;
 		}
 	}
 }
