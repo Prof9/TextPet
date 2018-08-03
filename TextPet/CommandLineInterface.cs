@@ -126,7 +126,8 @@ namespace TextPet {
 		/// Runs the specified commands in this command line interface.
 		/// </summary>
 		/// <param name="args">The commands to run, and their arguments.</param>
-		public void Run(IList<string> args) {
+		/// <returns>An error level (0 means no error).</returns>
+		public int Run(IList<string> args) {
 			bool suppressDone = false;
 
 			// Print usage if no arguments were provided.
@@ -137,7 +138,7 @@ namespace TextPet {
 				suppressDone = true;
 			}
 
-			Run(args, suppressDone);
+			return Run(args, suppressDone);
 		}
 
 		/// <summary>
@@ -145,8 +146,9 @@ namespace TextPet {
 		/// </summary>
 		/// <param name="args">The commands to run, and their arguments.</param>
 		/// <param name="suppressDone">Whether the "done" message at the end should be suppressed.</param>
+		/// <returns>An error level (0 means no error).</returns>
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1303:Do not pass literals as localized parameters", MessageId = "System.Console.WriteLine(System.String)")]
-		private void Run(IList<string> args, bool suppressDone) {
+		private int Run(IList<string> args, bool suppressDone) {
 			if (args == null) {
 				args = new string[0];
 			}
@@ -167,7 +169,7 @@ namespace TextPet {
 
 					if (!terminated) {
 						Console.WriteLine("ERROR: Non-terminated comment.");
-						break;
+						return 1;
 					}
 				}
 
@@ -183,7 +185,7 @@ namespace TextPet {
 				// No commands found?
 				if (cmd == null) {
 					Console.WriteLine("ERROR: Unknown command \"" + args[i] + "\".");
-					break;
+					return 1;
 				}
 
 				if (cmd.RunString != null) {
@@ -193,7 +195,7 @@ namespace TextPet {
 				// Just in case.
 				if (j <= i) {
 					Console.WriteLine("FATAL: Loop detected.");
-					break;
+					return 1;
 				}
 				i = j;
 			}
@@ -201,6 +203,7 @@ namespace TextPet {
 			if (!suppressDone) {
 				Console.WriteLine("Done.");
 			}
+			return 0;
 		}
 
 		/// <summary>
