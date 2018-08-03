@@ -35,7 +35,7 @@ namespace LibTextPet.Msg {
 		/// <summary>
 		/// Gets the script snippet used for splitting text boxes.
 		/// </summary>
-		public Script TextBoxSplitSnippet { get; internal set; }
+		public IList<Command> TextBoxSplitSnippet { get; internal set; }
 
 		/// <summary>
 		/// Gets the name of this command database.

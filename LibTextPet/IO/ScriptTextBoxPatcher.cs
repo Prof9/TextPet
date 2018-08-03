@@ -54,7 +54,8 @@ namespace LibTextPet.IO {
 			Script newBox;
 
 			// Load the text box split script, if there is one.
-			Script splitSnippet = GetTextBoxSplitSnippet(baseObj);
+			IList<Command> splitSnippet = GetTextBoxSplitSnippet(baseObj);
+			IList<string> splitCmdNames = splitSnippet?.Select(cmd => cmd.Name).ToList();
 
 			int a = 0;
 			int b = 0;
@@ -77,6 +78,8 @@ namespace LibTextPet.IO {
 				// Extract text box from B.
 				newBox = RemoveSplitTextBox(patchObj, b);
 
+
+
 				// If box B is empty, merge the current and next text box in the base script.
 				if (!newBox.Any()) {
 					// Do we have a split script?
@@ -84,7 +87,13 @@ namespace LibTextPet.IO {
 						throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box merging is not supported.", nameof(patchObj));
 					}
 
-					MergeNextTextBox(baseObj, splitSnippet, a);
+					MergeNextTextBox(baseObj, splitCmdNames, a);
+				} else if (newBox.Count == 1 &&
+					newBox[0] is DirectiveElement dirElem &&
+					dirElem.DirectiveType == DirectiveType.TextBoxUnsplit) {
+
+					string[] removedCmdNames = dirElem.Value.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+					MergeNextTextBox(baseObj, removedCmdNames, a);
 				} else {
 					// Remove the old text box from A.
 					RemoveTextBoxCommands(baseObj, a);
@@ -160,7 +169,8 @@ namespace LibTextPet.IO {
 					boxB.Add(elem);
 				}
 				if (elem is DirectiveElement dirElem && (
-					dirElem.DirectiveType == DirectiveType.Command
+					dirElem.DirectiveType == DirectiveType.Command ||
+					dirElem.DirectiveType == DirectiveType.TextBoxUnsplit
 				)) {
 					// Also add directives that should be here.
 					boxB.Add(elem);
@@ -181,38 +191,32 @@ namespace LibTextPet.IO {
 		/// <param name="script">The script to modify.</param>
 		/// <param name="splitSnippet">The text box split commands to use.</param>
 		/// <param name="index">The index at which to begin merging.</param>
-		private static void MergeNextTextBox(Script script, Script splitSnippet, int index) {
+		private static void MergeNextTextBox(Script script, IList<string> splitCmds, int index) {
 			// Do we have a split script?
-			if (splitSnippet == null) {
-				throw new ArgumentNullException(nameof(splitSnippet), "The text box split script snippet cannot be null.");
-			}
-
-			// Extract the next few commands from the base object.
-			Script nextCommands = new Script(script.DatabaseName);
-			for (int i = 0, j = 0; i < splitSnippet.Count && (i + j + index) < script.Count; i++) {
-				// Skip printed commands (j is used as skipped counter).
-				if (IsPrinted(script[i + j + index])) {
-					j++;
-					i--;
-					continue;
-				}
-				nextCommands.Add(script[i + j + index]);
-			}
-
-			// Check if equal.
-			if (!Enumerable.SequenceEqual(nextCommands, splitSnippet)) {
-				throw new ArgumentException("Next commands following empty text box do not match text box split script. Could not merge text boxes.", nameof(script));
+			if (splitCmds == null) {
+				throw new ArgumentNullException(nameof(splitCmds), "The text box split script snippet cannot be null.");
 			}
 
 			// Merge with the next text box by removing the split script commands.
-			for (int i = 0, j = 0; i < splitSnippet.Count; i++) {
-				// Don't discard printed commands.
-				if (IsPrinted(script[index + j])) {
-					j++;
-					i--;
-				} else {
-					script.RemoveAt(index + j);
+			for (int i = 0, j = 0; i < splitCmds.Count;) {
+				if (j + index >= script.Count) {
+					throw new ArgumentException("Not enough commands following empty text box. Could not merge text boxes.", nameof(script));
 				}
+
+				IScriptElement elem = script[j + index];
+
+				// Skip printed commands (j is used as skipped counter).
+				if (IsPrinted(script[j + index])) {
+					j++;
+					continue;
+				}
+
+				if (!(elem is Command cmd && cmd.Name.Equals(splitCmds[i], StringComparison.OrdinalIgnoreCase))) {
+					throw new ArgumentException("Next commands following empty text box do not match text box split script. Could not merge text boxes.", nameof(script));
+				}
+
+				script.RemoveAt(index + j);
+				i++;
 			}
 		}
 
@@ -228,7 +232,10 @@ namespace LibTextPet.IO {
 					break;
 				}
 
-				if (script[start] is DirectiveElement directive && directive.DirectiveType == DirectiveType.TextBoxSeparator) {
+				if (script[start] is DirectiveElement directive && (
+					directive.DirectiveType == DirectiveType.TextBoxSeparator ||
+					directive.DirectiveType == DirectiveType.TextBoxUnsplit
+				)) {
 					break;
 				}
 
@@ -243,8 +250,8 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <param name="script">The script to get the text box split script snippet for.</param>
 		/// <returns>The text box split script snippet, or null if none were found.</returns>
-		private Script GetTextBoxSplitSnippet(Script script) {
-			Script snippet = null;
+		private IList<Command> GetTextBoxSplitSnippet(Script script) {
+			IList<Command> snippet = null;
 			if (this.Databases.Contains(script.DatabaseName)) {
 				// Load the database.
 				CommandDatabase db = this.Databases[script.DatabaseName];
@@ -262,7 +269,7 @@ namespace LibTextPet.IO {
 		/// <param name="box">The text box.</param>
 		/// <param name="commands">The commands to replace with.</param>
 		/// <param name="splitSnippet">The text box split script snippet to use.</param>
-		private static void PatchTextBox(Script box, IList<Command> commands, Script splitSnippet) {
+		private static void PatchTextBox(Script box, IList<Command> commands, IList<Command> splitSnippet) {
 			for (int b = 0; b < box.Count; b++) {
 				if (box[b] is DirectiveElement dirB && dirB.DirectiveType == DirectiveType.TextBoxSplit) {
 					box.RemoveAt(b);
@@ -315,6 +322,8 @@ namespace LibTextPet.IO {
 						cmds.Add(cmd);
 					}
 					break;
+				case DirectiveType.TextBoxUnsplit:
+					throw new ArgumentException(nameof(DirectiveType.TextBoxUnsplit) + " directive must appear standalone in the text box.", nameof(directives));
 				}
 			}
 		}

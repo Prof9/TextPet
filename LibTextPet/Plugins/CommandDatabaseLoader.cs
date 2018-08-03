@@ -89,8 +89,12 @@ namespace LibTextPet.Plugins {
 					}
 				}
 
+				if (splitScript.Any(elem => !(elem is Command))) {
+					throw new InvalidDataException("A split script may only contain commands.");
+				}
+
 				splitScript.DatabaseName = db.Name;
-				db.TextBoxSplitSnippet = splitScript;
+				db.TextBoxSplitSnippet = splitScript.Select(elem => (Command)elem).ToList();
 			}
 
 			return db;
