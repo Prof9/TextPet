@@ -38,13 +38,13 @@ namespace LibTextPet.Text {
 					Queue = new List<char>(this.Queue),
 					QueueIndex = this.QueueIndex,
 					CodePointLength = this.CodePointLength,
-					CodePointBytes = new byte[this.CodePointBytes.Length],
+					CodePointBytes = this.CodePointBytes is null ? null : new byte[this.CodePointBytes.Length],
 					LookupPath = this.LookupPath.Clone(),
 					IsCritical = this.IsCritical,
 					DidFallback = this.DidFallback,
 					FallbackChar = this.FallbackChar
 				};
-				this.CodePointBytes.CopyTo(clone.CodePointBytes, 0);
+				this.CodePointBytes?.CopyTo(clone.CodePointBytes, 0);
 				return clone;
 			}
 
@@ -245,8 +245,8 @@ namespace LibTextPet.Text {
 							// Get the code point.
 							path.CodePointBytes = path.LookupPath.CurrentValue;
 							path.CodePointLength = i + 1;
-							if (!this.OptimalPath) {
-								// Apply the code point immediately if using branching paths.
+							if (!this.OptimalPath || path.LookupPath.AtEnd) {
+								// Apply the code point immediately if using branching paths or cannot continue.
 								doCodePoint();
 								i = -1;
 							}
@@ -273,6 +273,11 @@ namespace LibTextPet.Text {
 							return false;
 						}
 					}
+				}
+
+				// If we still have a code point trailing, flush it.
+				if (flush && path.LookupPath.AtValue) {
+					doCodePoint();
 				}
 
 				// At this point, all chars in queue processed.
