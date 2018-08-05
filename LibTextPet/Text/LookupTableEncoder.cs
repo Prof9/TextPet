@@ -71,7 +71,7 @@ namespace LibTextPet.Text {
 			// Initialize the paths.
 			this.Paths = new List<Path>();
 
-			this.OptimalPath = false;
+			this.OptimalPath = true;
 		}
 
 		public override int GetByteCount(char[] chars, int index, int count, bool flush) {
@@ -246,7 +246,7 @@ namespace LibTextPet.Text {
 							path.CodePointBytes = path.LookupPath.CurrentValue;
 							path.CodePointLength = i + 1;
 							if (!this.OptimalPath || path.LookupPath.AtEnd) {
-								// Apply the code point immediately if using branching paths or cannot continue.
+								// Apply the code point immediately if using branching paths.
 								doCodePoint();
 								i = -1;
 							}

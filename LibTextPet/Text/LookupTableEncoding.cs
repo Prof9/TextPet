@@ -43,6 +43,8 @@ namespace LibTextPet.Text {
 
 		public override string EncodingName { get; }
 
+		public bool OptimalPath { get; set; }
+
 		public LookupTableEncoding(string name, IDictionary<byte[], string> dictionary) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The encoding name cannot be null.");
@@ -50,6 +52,7 @@ namespace LibTextPet.Text {
 				throw new ArgumentNullException(nameof(dictionary), "The dictionary cannot be null.");
 
 			this.EncodingName = name;
+			this.OptimalPath = true;
 
 			this.BytesToStringLookup = new LookupTree<byte, string>();
 			this.StringToBytesLookup = new LookupTree<char, byte[]>();
@@ -77,7 +80,8 @@ namespace LibTextPet.Text {
 		}
 		private LookupTableEncoder MakeEncoder() {
 			return new LookupTableEncoder(this.StringToBytesLookup) {
-				Fallback = this.EncoderFallback
+				Fallback = this.EncoderFallback,
+				OptimalPath = this.OptimalPath
 			};
 		}
 		public override Decoder GetDecoder() {

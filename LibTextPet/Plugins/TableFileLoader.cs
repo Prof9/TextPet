@@ -51,7 +51,9 @@ namespace LibTextPet.Plugins {
 				throw new ArgumentException("No encoding name or table ID specified.", nameof(enumerator));
 
 			// Create a new lookup table encoding.
-			return new IgnoreFallbackEncoding(new LookupTableEncoding(name, dict));
+			return new IgnoreFallbackEncoding(new LookupTableEncoding(name, dict) {
+				OptimalPath = true
+			});
 		}
 	}
 }
