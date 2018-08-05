@@ -67,6 +67,7 @@ namespace LibTextPet.Text {
 			int charsRead;
 			int seqsRead;
 			bool success;
+			int totalCharsRead = 0;
 			for (seqsRead = 0; seqsRead < count; seqsRead++) {
 				// Try to encode an increasing number of characters.
 				bytesWritten = 0;
@@ -82,6 +83,7 @@ namespace LibTextPet.Text {
 					// If no errors occurred, encoding was successful.
 					if (this.Encoding.FallbackCount == 0) {
 						success = true;
+						totalCharsRead += charsRead;
 						break;
 					}
 				}
@@ -104,7 +106,7 @@ namespace LibTextPet.Text {
 				destIndex += bytesWritten;
 			}
 
-			return seqsRead;
+			return totalCharsRead;
 		}
 	}
 }
