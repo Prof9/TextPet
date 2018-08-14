@@ -129,6 +129,10 @@ namespace LibTextPet.IO.TPL {
 				throw new InvalidDataException("No script number specified.");
 			}
 
+			if (scriptNum >= ta.Count) {
+				throw new InvalidDataException("Attempted to insert script " + scriptNum + " in archive " + ta.Identifier + " with size of " + ta.Count);
+			}
+
 			// Do we have the command database name?
 			if (dbName == null) {
 				if (this.Databases.Count != 1) {
