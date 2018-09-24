@@ -160,6 +160,9 @@
     <None Include="indexes\exe6cg.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="indexes\exeoss-demo-arm9-jp.tpi">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="indexes\mmbn1-eu.tpi">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
