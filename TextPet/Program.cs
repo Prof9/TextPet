@@ -3,7 +3,7 @@
 [assembly: CLSCompliant(true)]
 namespace TextPet {	
 	class Program {
-		public static string Version => "v1.0-alpha2";
+		public static string Version => "v1.0-alpha3";
 		
 		static int Main(string[] args) {
 			string originalConsoleTitle = Console.Title;
