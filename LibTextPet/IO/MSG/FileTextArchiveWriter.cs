@@ -18,6 +18,13 @@ namespace LibTextPet.IO.Msg {
 		public long FreeSpaceOffset { get; set; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates this file text archive writer will LZ77 compress text archives.
+		/// If set to false, text archives will be LZ77-encoded but not compressed; this is much faster than compressing,
+		/// but results in a larger filesize than simply storing the text archive uncompressed.
+		/// </summary>
+		public bool LZ77Compress { get; set; }
+
+		/// <summary>
 		/// Creates a new file text archive writer that writes to the specified output stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
@@ -30,6 +37,7 @@ namespace LibTextPet.IO.Msg {
 
 			this.UpdateFileIndex = true;
 			this.FreeSpaceOffset = stream.Length;
+			this.LZ77Compress = true;
 		}
 
 		/// <summary>
@@ -74,7 +82,12 @@ namespace LibTextPet.IO.Msg {
 				// TODO: actual compression lol
 				if (entry.Compressed) {
 					rawStream.Position = 0;
-					writeStream = LZ77.Wrap(rawStream, (int)rawStream.Length);
+					writeStream = new MemoryStream(LZ77.GetMaxCompressedSize((int)rawStream.Length));
+					if (this.LZ77Compress) {
+						LZ77.Compress(rawStream, writeStream, (int)rawStream.Length);
+					} else {
+						LZ77.Wrap(rawStream, writeStream, (int)rawStream.Length);
+					}
 				} else {
 					writeStream = rawStream;
 				}

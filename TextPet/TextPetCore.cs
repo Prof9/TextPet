@@ -52,6 +52,13 @@ namespace TextPet {
 		public MemoryStream LoadedFile { get; private set; }
 
 		/// <summary>
+		/// Gets or sets a boolean that indicates binary text archives will be LZ77-compressed.
+		/// If set to false, text archives will be LZ77-encoded but not compressed; this is much faster than compressing,
+		/// but results in a larger filesize than simply storing the text archive uncompressed.
+		/// </summary>
+		public bool LZ77Compress { get; set; }
+
+		/// <summary>
 		/// Initializes a new TextPet instance.
 		/// </summary>
 		public TextPetCore() {
@@ -60,6 +67,7 @@ namespace TextPet {
 
 			this._textArchives = new List<TextArchive>();
 			this.FileIndex = new FileIndexEntryCollection();
+			this.LZ77Compress = true;
 		}
 
 		/// <summary>
@@ -488,7 +496,8 @@ namespace TextPet {
 				// Set up the text archive writer.
 				FileTextArchiveWriter writer = new FileTextArchiveWriter(ms, this.Game, this.FileIndex) {
 					UpdateFileIndex = true,
-					FreeSpaceOffset = freeSpaceOffset > 0 ? freeSpaceOffset : ms.Length
+					FreeSpaceOffset = freeSpaceOffset > 0 ? freeSpaceOffset : ms.Length,
+					LZ77Compress = this.LZ77Compress
 				};
 
 				// Write ALL the text archives!

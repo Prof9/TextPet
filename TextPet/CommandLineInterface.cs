@@ -98,6 +98,7 @@ namespace TextPet {
 				new VerboseCommand(this, this.Core),
 				new WriteFileIndexCommand(this, this.Core),
 				new WriteTextArchivesCommand(this, this.Core),
+				new SetCompressionCommand(this, this.Core),
 			};
 
 			this.Core.BeginLoadingPlugins += Core_BeginReadWriting;

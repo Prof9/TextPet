@@ -89,6 +89,7 @@
     <Compile Include="Commands\RegexCommand.cs" />
     <Compile Include="Commands\RunScriptCommand.cs" />
     <Compile Include="Commands\SearchCommand.cs" />
+    <Compile Include="Commands\SetCompressionCommand.cs" />
     <Compile Include="Commands\SilentCommand.cs" />
     <Compile Include="Commands\TestTextArchivesCommand.cs" />
     <Compile Include="Commands\TrimCommand.cs" />

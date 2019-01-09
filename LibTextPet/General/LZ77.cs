@@ -104,12 +104,36 @@ namespace LibTextPet.General {
 		}
 
 		/// <summary>
+		/// Returns the maximum size after compression for a data stream of a given size.
+		/// </summary>
+		/// <param name="size">The size of the data stream to be compressed.</param>
+		/// <returns>The maximum size of the compressed data stream.</returns>
+		public static int GetMaxCompressedSize(int size) {
+			// Worst case: all blocks are uncompressed; introduces ceil(size / 8) flag bytes. Round up to multiple of 4.
+			return ((size + (size + 7) / 8 + 4) + 3) / 4 * 4;
+		}
+
+		/// <summary>
+		/// Compresses data from the given input stream to LZ77. This compression is VRAM-safe.
+		/// </summary>
+		/// <param name="input">The input stream to read from.</param>
+		/// <param name="output">The output stream to write to.</param>
+		/// <param name="size">The size of the data to compress.</param>
+		/// <returns>The size of the compressed data.</returns>
+		public static int Compress(Stream input, Stream output, int size)
+			=> EncodeLZ77(input, output, size, true);
+
+		/// <summary>
 		/// Converts data from the given input stream to an LZ77 data container by wrapping it in uncompressed data blocks.
 		/// </summary>
 		/// <param name="input">The input stream to read from.</param>
+		/// <param name="output">The output stream to write to.</param>
 		/// <param name="size">The size of the data to wrap.</param>
-		/// <returns>The wrapped data.</returns>
-		public static MemoryStream Wrap(Stream input, int size) {
+		/// <returns>The size of the wrapped data.</returns>
+		public static int Wrap(Stream input, Stream output, int size)
+			=> EncodeLZ77(input, output, size, false);
+
+		private static int EncodeLZ77(Stream input, Stream output, int size, bool compress) {
 			if (input == null)
 				throw new ArgumentNullException(nameof(input), "The input stream cannot be null.");
 			if (!input.CanRead)
@@ -117,42 +141,148 @@ namespace LibTextPet.General {
 			if (size < 0)
 				throw new ArgumentOutOfRangeException(nameof(size), "The size cannot be negative.");
 
-			// Create output stream.
-			MemoryStream output = new MemoryStream(size + (size + 7) / 8 + 4);
+			// Create buffer more than twice the size of sliding window, so next part can be read asynchronously.
+			byte[] wind = new byte[4096 * 4];
+			// Use * 4 to be able to use a mask rather than remainder.
+			int windMask = 4096 * 4 - 1;
+			// Read first block of window.
+			int bytesRead = input.Read(wind, 0, Math.Min(4096 * 1, size));
+			int windEnd = bytesRead;
 
-			try {
-				BinaryWriter writer = new BinaryWriter(output);
+			byte[] bytesToWrite = new byte[1 + 2 * 8];
+			int bytesWritten = 0;
 
-				// Write LZ77 data header.
-				writer.Write((byte)0x10);
+			// Start read of next block of window.
+			IAsyncResult readRes = null;
+			int windReadEnd = windEnd + Math.Min(4096, size - windEnd);
+			if (windReadEnd > windEnd) {
+				readRes = input.BeginRead(wind, windEnd & windMask, windReadEnd - windEnd, null, input);
+			}
 
-				// Write decompressed size.
-				writer.Write((ushort)(size & 0xFFFF));
-				writer.Write((byte)(size >> 16));
+			// Write LZ77 data header.
+			bytesToWrite[0] = 0x10;
+			// Write decompressed size.
+			bytesToWrite[1] = (byte)size;
+			bytesToWrite[2] = (byte)(size >> 8);
+			bytesToWrite[3] = (byte)(size >> 16);
+			output.Write(bytesToWrite, 0, 4);
+			int compressedSize = 4;
 
-				// Start wrapping.
-				while (size > 0) {
-					// Write uncompressed data block flags.
-					writer.Write((byte)0);
+			// Compress data to output stream.
+			int inPos = 0;
+			int blockNum = 0;
+			int flagByte = 0;
+			while (inPos < size) {
+				// If first block, allocate a flag byte.
+				if (blockNum == 0) {
+					flagByte = 0;
+					bytesWritten = 1;
+				}
 
-					// Write 8 data blocks unless all data has been written.
-					for (int i = 0; i < 8 && size > 0; i++, size--) {
-						writer.Write((byte)input.ReadByte());
+				// Finish read if we need to read past end of window.
+				int prefixLen = Math.Min(size - inPos, 18);
+				if (inPos + prefixLen > windEnd) {
+					// Finish previous read.
+					bytesRead = input.EndRead(readRes);
+					windEnd += bytesRead;
+					if (windEnd < windReadEnd) {
+						throw new IOException("Could not read enough bytes from the input stream.");
+					}
+
+					// Start next read.
+					windReadEnd += Math.Min(4096, size - windEnd);
+					if (windReadEnd > windEnd) {
+						readRes = input.BeginRead(wind, windEnd & windMask, windReadEnd - windEnd, null, input);
 					}
 				}
 
-				// Pad the output length to a multiple of 4 bytes.
-				while (output.Length % 4 != 0) {
-					writer.Write((byte)0);
+				// Find longest prefix.
+				int maxMatchLen = 0;
+				int maxMatchLenDisp = -1;
+				if (prefixLen >= 3 && compress) {
+					int curMatchLen = 0;
+					int curMatchOffset = 0;
+					int rewindOffset = -1;
+					// searchOffset > 0 if VRAM safety not needed
+					for (int searchOffset = Math.Min(inPos, 4096); searchOffset > 1 || curMatchLen > 0; searchOffset--) {
+						byte b = wind[(inPos - searchOffset) & windMask];
+
+						// Set rewind offset if possible start of prefix.
+						if (curMatchLen > 0 && rewindOffset == -1 && wind[inPos & windMask] == b) {
+							rewindOffset = searchOffset;
+						}
+						
+						// Check if byte matches prefix.
+						if (wind[(inPos + curMatchLen) & windMask] == b) {
+							// Initialize match offset, if needed.
+							if (curMatchLen == 0) {
+								curMatchOffset = searchOffset;
+							}
+							if (++curMatchLen == prefixLen) {
+								// Cannot match longer than this.
+								maxMatchLen = curMatchLen;
+								maxMatchLenDisp = curMatchOffset - 1;
+								break;
+							}
+						} else {
+							// Set new longest match.
+							if (curMatchLen > maxMatchLen) {
+								maxMatchLen = curMatchLen;
+								maxMatchLenDisp = curMatchOffset - 1;
+							}
+
+							// Reset current match.
+							curMatchLen = 0;
+
+							// Rewind if possible.
+							if (rewindOffset != -1) {
+								searchOffset = rewindOffset + 1;
+								rewindOffset = -1;
+							}
+						}
+					}
 				}
 
-				// Return the wrapped data.
-				output.Position = 0;
-				return output;
-			} catch (Exception) {
-				output.Dispose();
-				throw;
+				// If prefix of sufficient length found, use it.
+				if (maxMatchLen >= 3) {
+					// Mark block as compressed.
+					flagByte |= 0x80 >> blockNum;
+					int block = ((maxMatchLen - 3) << 12) | maxMatchLenDisp;
+					bytesToWrite[bytesWritten++] = (byte)(block >> 8);
+					bytesToWrite[bytesWritten++] = (byte)block;
+					inPos += maxMatchLen;
+				} else {
+					// Write uncompressed byte.
+					bytesToWrite[bytesWritten++] = (byte)wind[inPos & windMask];
+					inPos += 1;
+				}
+
+				if (++blockNum >= 8) {
+					// Finish current block.
+					bytesToWrite[0] = (byte)flagByte;
+					output.Write(bytesToWrite, 0, bytesWritten);
+					compressedSize += bytesWritten;
+
+					// Reset block number.
+					blockNum = 0;
+				}
 			}
+			// Finish current flag byte.
+			if (blockNum > 0) {
+				// Finish current block.
+				bytesToWrite[0] = (byte)flagByte;
+				output.Write(bytesToWrite, 0, bytesWritten);
+				compressedSize += bytesWritten;
+			}
+			
+			// Pad the output length to a multiple of 4 bytes.
+			while (compressedSize % 4 != 0) {
+				output.WriteByte(0);
+				compressedSize++;
+			}
+
+			// Return the compressed data.
+			return compressedSize;
 		}
 	}
 }
