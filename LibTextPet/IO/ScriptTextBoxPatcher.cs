@@ -101,6 +101,9 @@ namespace LibTextPet.IO {
 
 					// Process the directives in boxB.
 					IList<DirectiveElement> directives = ExtractDirectives(newBox);
+					if (!this.CommandReaders.Contains(baseObj.DatabaseName)) {
+						throw new ArgumentException("Base script uses unknown command database \"" + baseObj.DatabaseName + "\".", nameof(baseObj));
+					}
 					ProcessDirectives(cmds, directives, this.CommandReaders[baseObj.DatabaseName]);
 
 					// Patch box B commands with commands in A.
