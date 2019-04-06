@@ -17,25 +17,34 @@ namespace LibTextPet.IO.Msg {
 		/// <summary>
 		/// A script entry that contains the script's number and offset.
 		/// </summary>
-		private struct ScriptEntry {
+		protected struct ScriptEntry {
 			/// <summary>
 			/// The script number of this script entry.
 			/// </summary>
-			public int ScriptNumber;
+			public int ScriptNumber { get; set; }
 
 			/// <summary>
-			/// The offset of this script entry.
+			/// The stream position of this script entry.
 			/// </summary>
-			public int Offset;
+			public long Position { get; set; }
+
+			private int _size;
+			/// <summary>
+			/// The fixed size of this script entry, or -1 if there is no fixed size.
+			/// </summary>
+			public int Size {
+				get => this._size;
+				set => this._size = value >= -1 ? value : throw new ArgumentOutOfRangeException(nameof(value), value, "Size cannot be less than -1.");
+			}
 
 			/// <summary>
-			/// Creates a new script entry with the specified script number and offset.
+			/// Creates a new script entry with the specified script number.
 			/// </summary>
 			/// <param name="scriptNumber">The script number.</param>
-			/// <param name="offset">The script offset.</param>
-			public ScriptEntry(int scriptNumber, int offset) {
+			public ScriptEntry(int scriptNumber) {
 				this.ScriptNumber = scriptNumber;
-				this.Offset = offset;
+				this.Position = 0;
+				this._size = -1;
 			}
 		}
 
@@ -60,27 +69,18 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="game">The game info to use.</param>
 		public BinaryTextArchiveReader(Stream stream, GameInfo game)
-			: this(stream, game?.Encoding, game?.Databases.ToArray()) { }
-
-		/// <summary>
-		/// Creates a new binary text archive reader that reads from the specified input stream, using the specified encoding and command databases.
-		/// </summary>
-		/// <param name="stream">The stream to read from.</param>
-		/// <param name="encoding">The encoding to use.</param>
-		/// <param name="databases">The command databases to use, in order of preference.</param>
-		public BinaryTextArchiveReader(Stream stream, IgnoreFallbackEncoding encoding, params CommandDatabase[] databases)
-			: base(stream, true, FileAccess.Read, encoding, databases) {
-			this.ScriptReader = new FixedSizeScriptReader(stream, encoding, databases);
+			: base(stream, true, FileAccess.Read, game?.Encoding, game?.Databases.ToArray()) {
+			this.ScriptReader = new FixedSizeScriptReader(stream, game?.Encoding, game?.Databases.ToArray());
 			this.IgnorePointerSyncErrors = false;
 			this.AutoSortPointers = true;
 		}
 
 		/// <summary>
-		/// Reads a text archive from the input stream, optionally reading exactly the specified size.
+		/// Reads script entries from the input stream.
 		/// </summary>
 		/// <param name="fixedSize">The fixed size of the text archive in bytes, or 0 to read normally.</param>
-		/// <returns>The text archive that was read, or null if no text archive could be read.</returns>
-		public TextArchive Read(int fixedSize) {
+		/// <returns>The script entries that were read, or null if the script entries were invalid.</returns>
+		protected virtual IList<ScriptEntry> ReadScriptEntries(long fixedSize) {
 			long start = this.BaseStream.Position;
 
 			// Keep track of script entries.
@@ -91,83 +91,101 @@ namespace LibTextPet.IO.Msg {
 			int scriptNum = 0;
 			do {
 				// Read the next offset.
-				int offset = this.ReadOffset();
+				int offset = this.BaseStream.ReadByte() | (this.BaseStream.ReadByte() << 8);
 
 				// If the offset is invalid, the text archive cannot be read.
-				if (offset < 0) {
+				if (offset < 0 || (fixedSize > 0 && offset > fixedSize)) {
 					return null;
 				}
 
-				scriptEntries.Add(new ScriptEntry(scriptNum++, offset));
+				scriptEntries.Add(new ScriptEntry(scriptNum) {
+					Position = offset
+				});
 
 				// Update the offset of the first script.
 				if (offset < firstScriptOffset) {
 					firstScriptOffset = offset;
 				}
+
+				scriptNum++;
 				// Read until the first script is reached.
 			} while (this.BaseStream.Position - start < firstScriptOffset);
 
-			// Check if this is a valid text archive.
-			if (this.BaseStream.Position - start != firstScriptOffset || firstScriptOffset % 2 != 0) {
+			// List and sort script offsets.
+			List<int> scriptOffsets = scriptEntries
+				.Select(entry => (int)entry.Position)
+				.Distinct()
+				.ToList();
+			scriptOffsets.Sort();
+			bool[] scriptOffsetsUsed = new bool[scriptOffsets.Count];
+
+			// Calculate script lengths, resolve offsets.
+			for (int i = scriptEntries.Count - 1; i >= 0; i--) {
+				ScriptEntry entry = scriptEntries[i];
+
+				int offsetIdx = scriptOffsets.BinarySearch((int)entry.Position);
+				if (scriptOffsetsUsed[offsetIdx]) {
+					// A script with higher script number already uses this offset.
+					entry.Size = 0;
+				} else if (offsetIdx == scriptOffsets.Count - 1) {
+					// Last script; length may not exceed fixed size.
+					entry.Size = fixedSize > 0 ? (int)(fixedSize - entry.Position) : -1;
+				} else {
+					// Calculate length from next script offset.
+					entry.Size = scriptOffsets[offsetIdx + 1] - (int)entry.Position;
+				}
+				scriptOffsetsUsed[offsetIdx] = true;
+
+				entry.Position += start;
+				scriptEntries[i] = entry;
+			}
+
+			return scriptEntries;
+		}
+
+		/// <summary>
+		/// Reads a text archive from the input stream, optionally reading exactly the specified size.
+		/// </summary>
+		/// <param name="fixedSize">The fixed size of the text archive in bytes, or 0 to read normally.</param>
+		/// <returns>The text archive that was read, or null if no text archive could be read.</returns>
+		public TextArchive Read(long fixedSize) {
+			long start = this.BaseStream.Position;
+
+			// Load script entries.
+			IList<ScriptEntry> scriptEntries = this.ReadScriptEntries(fixedSize);
+			if (scriptEntries == null) {
 				return null;
 			}
 
 			// Create the text archive.
-			int count = firstScriptOffset / 2;
 			// Use the address of the text archive as the ID.
-			TextArchive ta = new TextArchive(start.ToString("X6", CultureInfo.InvariantCulture), count);
+			TextArchive ta = new TextArchive(start.ToString("X6", CultureInfo.InvariantCulture), scriptEntries.Count);
 
 			// Sort the script entries by offset ascending.
 			// OrderBy must be used, as this produces a stable sort.
+			// If pointers are not sorted, pointer sync errors may occur when reading scripts.
 			if (this.AutoSortPointers) {
-				scriptEntries.OrderBy(entry => entry.Offset);
+				scriptEntries.OrderBy(entry => entry.Position);
 			}
 
-			// Check if the first script pointer is valid.
-			if (count > 0 && scriptEntries[0].Offset / 2 != count) {
-				return null;
-			}
-
-			// Read all scripts.
-			bool isUnknownLengthLastScript = false;
+			// Read all scripts. Note: i may not correspond with script number if pointers are sorted.
 			for (int i = 0; i < scriptEntries.Count; i++) {
 				ScriptEntry entry = scriptEntries[i];
 
 				// Set the length of the script.
-				if (i < count - 1) {
-					// Not the last script.
-					ScriptEntry next = scriptEntries[i + 1];
-					// Set the length to the number of bytes until the next script starts.
-					int length = next.Offset - entry.Offset;
-					// If the number of bytes is negative, this is an invalid text archive.
-					if (length < 0) {
-						return null;
-					}
-					this.ScriptReader.SetFixedLength(length);
-				} else if (fixedSize > 0) {
-					// Last script.
-					// Set the length to the rest of the minimum size.
-					int length = fixedSize - entry.Offset;
-					if (length < 0) {
-						throw new ArgumentException("The size of the text archive exceeds the requested size.", nameof(fixedSize));
-					} else {
-						// Read to the fixed length.
-						this.ScriptReader.SetFixedLength(length);
-					}
-				} else {
-					// Last script.
-					// Stop at the first ending script element, or read an empty script if the script is invalid.
+				if (entry.Size == -1) {
 					this.ScriptReader.ClearFixedLength();
-					isUnknownLengthLastScript = true;
+				} else {
+					this.ScriptReader.SetFixedLength(entry.Size);
 				}
 
 				// Make sure we're at the right position.
-				if (this.BaseStream.Position - start != entry.Offset) {
+				if (this.BaseStream.Position != entry.Position) {
 					if (!this.IgnorePointerSyncErrors) {
-						throw new InvalidDataException("Text archive reading position is off-sync with script offset. This should not happen in a proper text archive."
-							+ "To ignore this error, set the " + nameof(IgnorePointerSyncErrors) + " property to true.");
+						// Text archive reading position is off-sync with script offset; this should not happen in a proper text archive.
+						return null;
 					} else {
-						this.BaseStream.Position = start + entry.Offset;
+						this.BaseStream.Position = entry.Position;
 					}
 				}
 
@@ -176,15 +194,17 @@ namespace LibTextPet.IO.Msg {
 
 				// Check if the script was valid.
 				if (script == null) {
-					if (isUnknownLengthLastScript) {
+					// Check if this was the last script and size was unknown.
+					// If this is the case, this was likely an empty script.
+					if (i == scriptEntries.Count - 1 && entry.Size == -1) {
 						// Set an empty script with the first database name.
 						script = new Script(this.Databases[0].Name);
-						this.BaseStream.Position = start + entry.Offset;
+						this.BaseStream.Position = entry.Position;
 					} else {
 						return null;
 					}
 				}
-				
+
 				ta[entry.ScriptNumber] = script;
 			}
 
@@ -197,24 +217,6 @@ namespace LibTextPet.IO.Msg {
 		/// <returns>The text archive that was read.</returns>
 		public TextArchive Read() {
 			return this.Read(0);
-		}
-
-		/// <summary>
-		/// Reads the next script offset from the input stream.
-		/// </summary>
-		/// <returns>The next script offset, or -1 if no script offset could be read.</returns>
-		private int ReadOffset() {
-			int lower = this.BaseStream.ReadByte();
-			if (lower < 0) {
-				return -1;
-			}
-
-			int upper = this.BaseStream.ReadByte();
-			if (upper < 0) {
-				return -1;
-			}
-
-			return lower + (upper << 8);
 		}
 	}
 }
