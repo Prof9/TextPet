@@ -105,6 +105,7 @@
     <Compile Include="Events\TextArchivesEventArgs.cs" />
     <Compile Include="Events\TestEventArgs.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="MMSF3TextArchiveReader.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TextPetCore.cs" />

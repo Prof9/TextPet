@@ -1,4 +1,5 @@
-﻿using LibTextPet.IO.Msg;
+﻿using LibTextPet.IO;
+using LibTextPet.IO.Msg;
 using LibTextPet.IO.TextBox;
 using LibTextPet.IO.TPL;
 using LibTextPet.Msg;
@@ -40,6 +41,9 @@ namespace TextPet.Commands {
 		};
 		private readonly string[] romFormats = new string[] {
 			"ROM", "READONLYMEMORY", "GBA", "AGB", "GAMEBOYADVANCE",
+		};
+		private readonly string[] mmsf3Formats = new string[] {
+			"GSM", "MMSF3", "SF3", "SSR3", "RNR3"
 		};
 
 		protected bool Recursive { get; set; }
@@ -85,13 +89,15 @@ namespace TextPet.Commands {
 			format = format.ToUpperInvariant().Replace("-", "");
 
 			if (binFormats.Contains(format)) {
-				ReadTextArchivesBinary(path, patchMode);
+				ReadTextArchivesBinary(path, patchMode, false);
 			} else if (tplFormats.Contains(format)) {
 				this.ReadTextArchivesTPL(path, patchMode);
 			} else if (txtFormats.Contains(format)) {
 				this.ReadTextArchivesTextBoxes(path, patchMode);
 			} else if (romFormats.Contains(format)) {
 				this.Core.ReadTextArchivesFile(path, update, searchPointers, allowFallback);
+			} else if (mmsf3Formats.Contains(format)) {
+				ReadTextArchivesBinary(path, patchMode, true);
 			} else if (manualFormat == null) {
 				Console.WriteLine("ERROR: Unknown text archive extension \"" + format + "\". Change the file extension or specify the format manually.");
 			} else {
@@ -118,16 +124,25 @@ namespace TextPet.Commands {
 		/// </summary>
 		/// <param name="path">The path to load from. Can be a file or folder.</param>
 		/// <param name="patchMode">Whether previously loaded text archives should be patched.</param>
-		public void ReadTextArchivesBinary(string path, bool patchMode) {
+		/// <param name="mmsf3">Whether the MMSF3 text archive format should be used.</param>
+		public void ReadTextArchivesBinary(string path, bool patchMode, bool mmsf3) {
 			this.Core.ReadTextArchives(path, this.Recursive, patchMode, delegate (MemoryStream ms, string file) {
-				FileTextArchiveReader reader = new FileTextArchiveReader(ms, this.Core.Game) {
-					CheckGoodTextArchive = false,
-					ReadEntireFile = true,
-					SearchPointers = false,
-					UpdateFileIndex = false
-				};
-				reader.TextArchiveReader.IgnorePointerSyncErrors = true;
-				reader.TextArchiveReader.ScriptReader.AcceptMostCompatibleFallback = true;
+				IReader<TextArchive> reader;
+				if (mmsf3) {
+					reader = new MMSF3TextArchiveReader(ms, this.Core.Game) {
+						StrictHeaderChecks = false
+					};
+				} else {
+					FileTextArchiveReader fileReader = new FileTextArchiveReader(ms, this.Core.Game) {
+						CheckGoodTextArchive = false,
+						ReadEntireFile = true,
+						SearchPointers = false,
+						UpdateFileIndex = false
+					};
+					fileReader.TextArchiveReader.IgnorePointerSyncErrors = true;
+					fileReader.TextArchiveReader.ScriptReader.AcceptMostCompatibleFallback = true;
+					reader = fileReader;
+				}
 
 				TextArchive ta = reader.Read();
 
