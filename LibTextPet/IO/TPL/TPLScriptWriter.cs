@@ -91,7 +91,7 @@ namespace LibTextPet.IO.TPL {
 			} else {
 				// Write regular string.
 				this.TextWriter.Write("\t\"");
-				base.WriteText(value.Replace("\"", "\\\""));
+				base.WriteText(value.Replace("\"", "\\\"").Replace("\n", "\\n"));
 				this.TextWriter.WriteLine("\"");
 			}
 			this.TextWriter.Flush();
