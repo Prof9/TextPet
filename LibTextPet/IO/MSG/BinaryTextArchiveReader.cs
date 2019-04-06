@@ -165,7 +165,7 @@ namespace LibTextPet.IO.Msg {
 			// OrderBy must be used, as this produces a stable sort.
 			// If pointers are not sorted, pointer sync errors may occur when reading scripts.
 			if (this.AutoSortPointers) {
-				scriptEntries.OrderBy(entry => entry.Position);
+				scriptEntries = scriptEntries.OrderBy(entry => entry.Position).ToList();
 			}
 
 			// Read all scripts. Note: i may not correspond with script number if pointers are sorted.
