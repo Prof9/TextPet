@@ -31,7 +31,7 @@ namespace LibTextPet.IO.TextBox {
 						@"|" +
 						@"<(?<" + nameof(TextBoxTokenType.Command) + @">\\\\|\\>|[^>]+)>(\r?\n(?=##))?" +
 						@"|" +
-						@"(?<" + nameof(TextBoxTokenType.Text) + @">(\\\\|\\<|[^<])+?)((\r?\n)?(?=##|$(?!\r?\n))|(?=\r?\n)?(?=<))",
+						@"(?<" + nameof(TextBoxTokenType.Text) + @">(?=\r?\n)|(\\\\|\\<|[^<])+?)((\r?\n)?(?=##|$(?!\r?\n))|(?=\r?\n)?(?=<))",
 						RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.ExplicitCapture);
 				}
 				return PreCompiledTokenizerRegex;
