@@ -16,6 +16,10 @@ namespace LibTextPet.IO.TPL {
 		/// Gets or sets the command element definition for the current data block.
 		/// </summary>
 		private CommandElementDefinition currentDataBlockDefinition;
+		/// <summary>
+		/// Gets or sets a boolean indicating the current data entry is non-empty.
+		/// </summary>
+		private bool currentDataEntryNonEmpty;
 
 		/// <summary>
 		/// Gets a boolean that indicates whether all parameters are required to be set.
@@ -130,6 +134,7 @@ namespace LibTextPet.IO.TPL {
 						// Create first data entry if none exist.
 						if (elemDef.HasMultipleDataEntries && !elem.Any()) {
 							elem.Add(elem.CreateDataEntry());
+							this.currentDataEntryNonEmpty = false;
 						}
 
 						// Read the value.
@@ -144,6 +149,7 @@ namespace LibTextPet.IO.TPL {
 
 						// Set the value.
 						elem[elem.Count - 1][parDef.Name].SetString(value);
+						this.currentDataEntryNonEmpty = true;
 					}
 
 					return ProcessResult.ConsumeAndContinue;
@@ -168,6 +174,7 @@ namespace LibTextPet.IO.TPL {
 						// Add a new data entry.
 						CommandElement elem = obj.Elements[this.currentDataBlockDefinition.Name];
 						elem.Add(elem.CreateDataEntry());
+						this.currentDataEntryNonEmpty = false;
 
 						return ProcessResult.ConsumeAndContinue;
 					} else {
@@ -182,6 +189,10 @@ namespace LibTextPet.IO.TPL {
 					}
 
 					// Read data end.
+					if (!currentDataEntryNonEmpty && obj.Elements.Count > 0) {
+						// Last data is empty, so remove it
+						obj.Elements[this.currentDataBlockDefinition.Name].RemoveAt(obj.Elements[this.currentDataBlockDefinition.Name].Count - 1);
+					}
 					// TODO: Validate current data entry for strict mode.
 					this.currentDataBlockDefinition = null;
 					return ProcessResult.ConsumeAndStop;
