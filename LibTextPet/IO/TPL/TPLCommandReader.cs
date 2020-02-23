@@ -166,7 +166,8 @@ namespace LibTextPet.IO.TPL {
 					return ProcessResult.ConsumeAndStop;
 				case ",":
 					// Are we currently reading data parameters?
-					if (this.currentDataBlockDefinition != null) {
+					// If current data entry empty, user didn't fill in any values for the previous entry; probably a mistake
+					if (this.currentDataBlockDefinition != null && currentDataEntryNonEmpty) {
 						if (obj == null) {
 							throw new ArgumentNullException(nameof(obj), "The command to be modified cannot be null when reading data entries.");
 						}
