@@ -44,6 +44,14 @@ namespace LibTextPet.IO.Msg {
 			foreach (CommandElement elem in obj.Elements) {
 				// Write the length length.
 				if (elem.Definition.HasMultipleDataEntries) {
+					if (elem.Count < elem.Definition.LengthParameterDefinition.Minimum) {
+						throw new InvalidDataException("Parameter \"" + elem.Definition.Name + "\" has a length of " + elem.Count + "; "
+							+ "the minimum is " + elem.Definition.LengthParameterDefinition.Minimum + ".");
+					}
+					if (elem.Count > elem.Definition.LengthParameterDefinition.Maximum) {
+						throw new InvalidDataException("Parameter \"" + elem.Definition.Name + "\" has a length of " + elem.Count + "; "
+							+ "the maximum is " + elem.Definition.LengthParameterDefinition.Maximum + ".");
+					}
 					WriteParameterValueToBytes(elem.Count, bytes, labelDict, elem.Definition.LengthParameterDefinition);
 				}
 
