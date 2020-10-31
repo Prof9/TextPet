@@ -40,14 +40,14 @@ namespace LibTextPet.IO.TPL {
 						// """
 						// Blah blah
 						// """
-						@"(?:(?<" + nameof(TPLTokenType.HeredocStart) + @">^[^\S\r]*?"""""")[^\S\r]*\r?\n" +
+						@"(?:(?<" + nameof(TPLTokenType.HeredocStart) + @">^[^\S\r\n]*?"""""")[^\S\r]*\r?\n" +
 						@"(?<" + nameof(TPLTokenType.Heredoc) + @">^.*?)\r?\n[^\S\r\n]*" +
 						@"(?<" + nameof(TPLTokenType.HeredocEnd) + @">""""""))" +
 						@"|" +
 						// Unterminated heredoc (consumes rest of input):
 						// """
 						// Blah
-						@"(?:^[^\S\r]*?(?<" + nameof(TPLTokenType.UnterminatedHeredoc) + @">""""""[^\S\r]*\r?\n.*))" +
+						@"(?:^[^\S\r\n]*?(?<" + nameof(TPLTokenType.UnterminatedHeredoc) + @">""""""[^\S\r]*\r?\n.*))" +
 						@"|" +
 						// Regular string:
 						// "Blah blah"
