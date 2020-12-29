@@ -171,7 +171,13 @@ namespace TextPet.Commands {
 
 				List<TextArchive> tas = new List<TextArchive>();
 				while (!reader.AtEnd) {
-					IEnumerable<TextArchive> readTAs = reader.Read();
+					IEnumerable<TextArchive> readTAs;
+					try {
+						readTAs = reader.Read();
+					}
+					catch (Exception ex) {
+						throw new InvalidDataException("Failed to parse " + Path.GetFileName(file) + ": " + ex.Message);
+					}
 
 					foreach (TextArchive ta in readTAs) {
 						if (ta == null) {

@@ -87,7 +87,15 @@ namespace LibTextPet.IO.TPL {
 		/// <returns>The extracted tokens.</returns>
 		protected override sealed IEnumerable<Token> Tokenize(string fullText) {
 			foreach (Match match in TokenizerRegex.Matches(fullText)) {
-				foreach (Token token in CreateTokens(match)) {
+				IList<Token> tokens;
+				try {
+					tokens = CreateTokens(match).ToList();
+				}
+				catch {
+					int line = fullText.Take(match.Index).Count(c => c == '\n') + 1;
+					throw new ArgumentException("Parse error on line " + line);
+				}
+				foreach (Token token in tokens) {
 					yield return token;
 				}
 			}
