@@ -31,7 +31,7 @@ namespace LibTextPet.IO.Msg {
 		/// Writes the specified text archive to the output stream.
 		/// </summary>
 		/// <param name="obj">The text archive to write.</param>
-		public void Write(TextArchive obj) {
+		public virtual void Write(TextArchive obj) {
 			if (obj == null)
 				throw new ArgumentNullException(nameof(obj), "The text archive cannot be null.");
 
