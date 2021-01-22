@@ -67,19 +67,9 @@ namespace TextPet {
 					throw new InvalidDataException("Could not encode character " + ex.CharUnknown + " in script " + i + " of text archive " + obj.Identifier + ".", ex);
 				}
 #endif
-				// Check if last bytes are 00 00, otherwise append them.
-				bool writeEnd = true;
-				if (this.DecryptedStream.Position >= 2) {
-					this.DecryptedStream.Position -= 2;
-					this.DecryptedStream.Read(buffer, 0, 2);
-					if (buffer[0] == 0 && buffer[1] == 0) {
-						writeEnd = false;
-					}
-				}
-				if (writeEnd) {
-					buffer[0] = 0;
-					buffer[1] = 0;
-					this.DecryptedStream.Write(buffer, 0, 2);
+				// Pad to minimum size (2)
+				while (this.DecryptedStream.Position < 2) {
+					this.DecryptedStream.WriteByte(0);
 				}
 
 				// Get size of script.
