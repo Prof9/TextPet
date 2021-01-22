@@ -16,18 +16,39 @@ namespace TextPet {
 		/// </summary>
 		public bool StrictHeaderChecks { get; set; }
 
-		public MMSF3TextArchiveReader(MemoryStream stream, GameInfo game)
-			: base(stream, game) {
-			// Enforce MemoryStream so we don't accidentally write to files when decrypting scripts.
+		/// <summary>
+		/// Gets the base stream that is being read from.
+		/// </summary>
+		public new Stream BaseStream => this.EncryptedStream;
+
+		/// <summary>
+		/// Gets the stream that holds the encrypted text archive.
+		/// </summary>
+		protected Stream EncryptedStream { get; }
+		/// <summary>
+		/// Gets the stream that holds the decrypted text archive.
+		/// </summary>
+		protected Stream DecryptedStream => base.BaseStream;
+
+		/// <summary>
+		/// Gets the list of script entries.
+		/// </summary>
+		private List<ScriptEntry> ScriptEntries { get; }
+
+		public MMSF3TextArchiveReader(Stream stream, GameInfo game)
+			: base(new MemoryStream(), game) {
+			this.EncryptedStream = stream;
+			this.ScriptEntries = new List<ScriptEntry>();
 			this.StrictHeaderChecks = false;
 		}
 
-		protected override IList<ScriptEntry> ReadScriptEntries(long fixedSize) {
-			long start = this.BaseStream.Position;
+		public override TextArchive Read(long fixedSize) {
+			// Reset decrypted stream.
+			this.DecryptedStream.Position = 0;
 
 			// Read header.
 			byte[] headerBuffer = new byte[12];
-			if (this.BaseStream.Read(headerBuffer, 0, headerBuffer.Length) != headerBuffer.Length) {
+			if (this.EncryptedStream.Read(headerBuffer, 0, headerBuffer.Length) != headerBuffer.Length) {
 				return null;
 			}
 
@@ -52,22 +73,22 @@ namespace TextPet {
 
 			// Read bytes for script entries.
 			byte[] scriptEntriesBuffer = new byte[scriptCount * 4];
-			if (this.BaseStream.Read(scriptEntriesBuffer, 0, scriptEntriesBuffer.Length) != scriptEntriesBuffer.Length) {
+			if (this.EncryptedStream.Read(scriptEntriesBuffer, 0, scriptEntriesBuffer.Length) != scriptEntriesBuffer.Length) {
 				return null;
 			}
-			int headerEndOffset = (int)(this.BaseStream.Position - start);
+			int headerEndOffset = (int)this.EncryptedStream.Position;
 
 			// Read script entries.
-			List<ScriptEntry> scriptEntries = new List<ScriptEntry>(scriptCount);
+			this.ScriptEntries.Clear();
 			bool encounteredMaxScriptSize = false;
 			for (int i = 0; i < scriptCount; i++) {
 				ScriptEntry entry = new ScriptEntry() {
 					ScriptNumber = i,
 					// Adjust position for new stream.
-					Position = (scriptEntriesBuffer[i * 4 + 0] | (scriptEntriesBuffer[i * 4 + 1] << 8)) - headerEndOffset,
-					Size = ((scriptEntriesBuffer[i * 4 + 2] | (scriptEntriesBuffer[i * 4 + 3] << 8)) + 1) * 2
+					Position =  (scriptEntriesBuffer[i * 4 + 0] | (scriptEntriesBuffer[i * 4 + 1] << 8)),
+					Size     = ((scriptEntriesBuffer[i * 4 + 2] | (scriptEntriesBuffer[i * 4 + 3] << 8)) + 1) * 2
 				};
-				scriptEntries.Add(entry);
+				this.ScriptEntries.Add(entry);
 
 				// Check that position is valid.
 				if (entry.Position < 0) {
@@ -86,34 +107,36 @@ namespace TextPet {
 			}
 
 			// Decrypt the scripts.
-			if (!this.DecryptScripts(scriptEntries, headerEndOffset)) {
+			int scriptsStart = (int)(this.ScriptEntries.Min(entry => entry.Position) - this.EncryptedStream.Position);
+			int scriptsEnd   = (int)(this.ScriptEntries.Max(entry => entry.Position + entry.Size) - this.EncryptedStream.Position);
+			if (this.StrictHeaderChecks && scriptsStart != 0 || this.EncryptedStream.Position + scriptsEnd != this.EncryptedStream.Length) {
 				return null;
 			}
 
-			return scriptEntries;
-		}
-
-		private bool DecryptScripts(IList<ScriptEntry> scriptEntries, int headerEndOffset) {
-			int scriptsStartOffset = (int)scriptEntries.Min(entry => entry.Position);
-			int bufferLength = (int)scriptEntries.Max(entry => entry.Position + entry.Size);
-
 			// Decrypt the scripts in one big block instead of going by script entries,
 			// otherwise we might re-encrypt parts of a script when there is overlap.
-			byte[] scriptsBuffer = new byte[bufferLength];
-			if (this.BaseStream.Read(scriptsBuffer, 0, bufferLength) != bufferLength) {
-				return false;
+			byte[] scriptsBuffer = new byte[this.EncryptedStream.Length - this.EncryptedStream.Position];
+			if (this.EncryptedStream.Read(scriptsBuffer, 0, scriptsBuffer.Length) != scriptsBuffer.Length) {
+				return null;
 			}
-			for (int i = scriptsStartOffset; i < bufferLength; i++) {
+			for (int i = scriptsStart; i < scriptsEnd; i++) {
 				scriptsBuffer[i] ^= 0x55;
 			}
 
-			// MemoryStream should be transient, we can just write into it.
-			this.BaseStream.SetLength(bufferLength);
-			this.BaseStream.Position = 0;
-			this.BaseStream.Write(scriptsBuffer, 0, bufferLength);
-			this.BaseStream.Position = 0;
+			// Write to decrypted stream.
+			this.DecryptedStream.Write(headerBuffer, 0, headerBuffer.Length);
+			this.DecryptedStream.Write(scriptEntriesBuffer, 0, scriptEntriesBuffer.Length);
+			this.DecryptedStream.Write(scriptsBuffer, 0, scriptsBuffer.Length);
+			this.DecryptedStream.SetLength(this.DecryptedStream.Position);
 
-			return true;
+			// Use original reader.
+			this.DecryptedStream.Position = headerBuffer.Length + scriptEntriesBuffer.Length + scriptsStart;
+			return base.Read(fixedSize);
+		}
+
+		protected override IList<ScriptEntry> ReadScriptEntries(long fixedSize) {
+			// We already parsed these, so return them.
+			return this.ScriptEntries;
 		}
 	}
 }

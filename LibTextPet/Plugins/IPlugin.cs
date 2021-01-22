@@ -5,7 +5,7 @@ using System.Text;
 
 namespace LibTextPet.Plugins {
 	/// <summary>
-	/// Marks a class as a plugin for LibMsgBN.
+	/// Marks a class as a plugin for LibTextPet.
 	/// </summary>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1040:AvoidEmptyInterfaces")]
 	public interface IPlugin {

@@ -15,40 +15,6 @@ namespace LibTextPet.IO.Msg {
 	/// </summary>
 	public class BinaryTextArchiveReader : Manager, IReader<TextArchive> {
 		/// <summary>
-		/// A script entry that contains the script's number and offset.
-		/// </summary>
-		protected struct ScriptEntry {
-			/// <summary>
-			/// The script number of this script entry.
-			/// </summary>
-			public int ScriptNumber { get; set; }
-
-			/// <summary>
-			/// The stream position of this script entry.
-			/// </summary>
-			public long Position { get; set; }
-
-			private int _size;
-			/// <summary>
-			/// The fixed size of this script entry, or -1 if there is no fixed size.
-			/// </summary>
-			public int Size {
-				get => this._size;
-				set => this._size = value >= -1 ? value : throw new ArgumentOutOfRangeException(nameof(value), value, "Size cannot be less than -1.");
-			}
-
-			/// <summary>
-			/// Creates a new script entry with the specified script number.
-			/// </summary>
-			/// <param name="scriptNumber">The script number.</param>
-			public ScriptEntry(int scriptNumber) {
-				this.ScriptNumber = scriptNumber;
-				this.Position = 0;
-				this._size = -1;
-			}
-		}
-
-		/// <summary>
 		/// Gets the script reader that is used to read scripts from the input stream.
 		/// </summary>
 		public FixedSizeScriptReader ScriptReader { get; private set; }
@@ -69,7 +35,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="game">The game info to use.</param>
 		public BinaryTextArchiveReader(Stream stream, GameInfo game)
-			: base(stream, true, FileAccess.Read, game?.Encoding, game?.Databases.ToArray()) {
+			: base(stream, true, FileAccess.Read, game) {
 			this.ScriptReader = new FixedSizeScriptReader(stream, game?.Encoding, game?.Databases.ToArray());
 			this.IgnorePointerSyncErrors = false;
 			this.AutoSortPointers = true;
@@ -148,7 +114,7 @@ namespace LibTextPet.IO.Msg {
 		/// </summary>
 		/// <param name="fixedSize">The fixed size of the text archive in bytes, or 0 to read normally.</param>
 		/// <returns>The text archive that was read, or null if no text archive could be read.</returns>
-		public TextArchive Read(long fixedSize) {
+		public virtual TextArchive Read(long fixedSize) {
 			long start = this.BaseStream.Position;
 
 			// Load script entries.

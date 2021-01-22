@@ -9,7 +9,7 @@ using LibTextPet.Text;
 
 namespace LibTextPet.Plugins {
 	/// <summary>
-	/// Provides methods to load LibMsgBN plugins.
+	/// Provides methods to load LibTextPet plugins.
 	/// </summary>
 	public class PluginLoader {
 		private static readonly string[] BUILTIN_PLUGIN_PATHS = new string[] {
@@ -118,7 +118,7 @@ namespace LibTextPet.Plugins {
 		}
 
 		/// <summary>
-		/// Loads LibMsgBN plugins from the specified text reader.
+		/// Loads LibTextPet plugins from the specified text reader.
 		/// </summary>
 		/// <param name="reader">The text reader to read from.</param>
 		/// <returns>The loaded plugins.</returns>

@@ -85,6 +85,7 @@
     <Compile Include="IO\FileIndexEntry.cs" />
     <Compile Include="IO\FileIndexEntryCollection.cs" />
     <Compile Include="IO\FileIndexReader.cs" />
+    <Compile Include="IO\Msg\ScriptEntry.cs" />
     <Compile Include="IO\SingleManager.cs" />
     <Compile Include="IO\Msg\BinaryTextArchiveWriter.cs" />
     <Compile Include="IO\TextArchiveTextBoxPatcher.cs" />
