@@ -7,9 +7,9 @@ using System.Text;
 namespace LibTextPet.Text {
 	internal class LookupTableDecoder : Decoder {
 		private byte[] fallbackBytes;
-		private byte[] prevQueue;
 
 		private List<byte> Queue { get; }
+		private List<byte> PrevQueue { get; }
 		private int QueueIndex { get; set; }
 		private int CodePointLength { get; set; }
 		private string CodePointString { get; set; }
@@ -20,10 +20,10 @@ namespace LibTextPet.Text {
 
 		public LookupTableDecoder(LookupTree<byte, string> bytesToStringLookup) {
 			this.fallbackBytes = new byte[1];
-			this.prevQueue = new byte[bytesToStringLookup.Height];
 
 			// Initialize the queue.
 			this.Queue = new List<byte>(bytesToStringLookup.Height);
+			this.PrevQueue = new List<byte>(bytesToStringLookup.Height);
 			this.LookupPath = bytesToStringLookup.BeginPath();
 			this.ResetSelf();
 
@@ -98,10 +98,10 @@ namespace LibTextPet.Text {
 			// Save the state of the decoder.
 			int prevQueueIndex = this.QueueIndex;
 			int prevCodeLen = this.CodePointLength;
-			int prevQueueSize = this.Queue.Count;
 			string prevCodeStr = null;
 			if (!update) {
-				this.Queue.CopyTo(this.prevQueue);
+				this.PrevQueue.Clear();
+				this.PrevQueue.AddRange(this.Queue);
 				prevCodeStr = this.CodePointString;
 			}
 
@@ -161,9 +161,7 @@ namespace LibTextPet.Text {
 			// Restore decoder state.
 			if (!update) {
 				this.Queue.Clear();
-				for (int i = 0; i < prevQueueSize; i++) {
-					this.Queue.Add(this.prevQueue[i]);
-				}
+				this.Queue.AddRange(this.PrevQueue);
 				this.QueueIndex = prevQueueIndex;
 				this.CodePointLength = prevCodeLen;
 				this.CodePointString = prevCodeStr;
