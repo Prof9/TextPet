@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using LibTextPet.General;
 using LibTextPet.IO.Msg;
 using LibTextPet.Msg;
