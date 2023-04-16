@@ -192,10 +192,15 @@ namespace LibTextPet.IO.Msg {
 
 		private void UpdateEntry(long start, bool compressed, bool sizeHeader, int size, FileIndexEntry entry, IEnumerable<int> pointers) {
 			if (this.FileIndex.Contains(entry)) {
-				// Update the size and compression flags.
+				// Update the size, compression flags, and pointers.
 				this.FileIndex[start].Size = size;
 				this.FileIndex[start].Compressed = compressed;
 				this.FileIndex[start].SizeHeader = sizeHeader;
+				foreach (int pointer in pointers) {
+					if (!this.FileIndex[start].Pointers.Contains(pointer)) {
+						this.FileIndex[start].Pointers.Add(pointer);
+					}
+				}
 			} else {
 				// Create a new file index entry.
 				entry = new FileIndexEntry((int)start, size, compressed, sizeHeader, pointers);
