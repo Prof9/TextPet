@@ -52,58 +52,60 @@ namespace LibTextPet.IO.Msg {
 			// Keep track of script entries.
 			List<ScriptEntry> scriptEntries = new List<ScriptEntry>();
 
-			// Keep track of the offset at which the first script starts.
-			int firstScriptOffset = int.MaxValue;
-			int scriptNum = 0;
-			do {
-				// Read the next offset.
-				int offset = this.BaseStream.ReadByte() | (this.BaseStream.ReadByte() << 8);
+			if (fixedSize != 0) {
+				// Keep track of the offset at which the first script starts.
+				int firstScriptOffset = int.MaxValue;
+				int scriptNum = 0;
+				do {
+					// Read the next offset.
+					int offset = this.BaseStream.ReadByte() | (this.BaseStream.ReadByte() << 8);
 
-				// If the offset is invalid, the text archive cannot be read.
-				if (offset < 0 || (fixedSize > 0 && offset > fixedSize)) {
-					return null;
-				}
+					// If the offset is invalid, the text archive cannot be read.
+					if (offset < 0 || (fixedSize > 0 && offset > fixedSize)) {
+						return null;
+					}
 
-				scriptEntries.Add(new ScriptEntry(scriptNum) {
-					Position = offset
-				});
+					scriptEntries.Add(new ScriptEntry(scriptNum) {
+						Position = offset
+					});
 
-				// Update the offset of the first script.
-				if (offset < firstScriptOffset) {
-					firstScriptOffset = offset;
-				}
+					// Update the offset of the first script.
+					if (offset < firstScriptOffset) {
+						firstScriptOffset = offset;
+					}
 
-				scriptNum++;
-				// Read until the first script is reached.
-			} while (this.BaseStream.Position - start < firstScriptOffset);
+					scriptNum++;
+					// Read until the first script is reached.
+				} while (this.BaseStream.Position - start < firstScriptOffset);
 
-			// List and sort script offsets.
-			List<int> scriptOffsets = scriptEntries
+				// List and sort script offsets.
+				List<int> scriptOffsets = scriptEntries
 				.Select(entry => (int)entry.Position)
 				.Distinct()
 				.ToList();
-			scriptOffsets.Sort();
-			bool[] scriptOffsetsUsed = new bool[scriptOffsets.Count];
+				scriptOffsets.Sort();
+				bool[] scriptOffsetsUsed = new bool[scriptOffsets.Count];
 
-			// Calculate script lengths, resolve offsets.
-			for (int i = scriptEntries.Count - 1; i >= 0; i--) {
-				ScriptEntry entry = scriptEntries[i];
+				// Calculate script lengths, resolve offsets.
+				for (int i = scriptEntries.Count - 1; i >= 0; i--) {
+					ScriptEntry entry = scriptEntries[i];
 
-				int offsetIdx = scriptOffsets.BinarySearch((int)entry.Position);
-				if (scriptOffsetsUsed[offsetIdx]) {
-					// A script with higher script number already uses this offset.
-					entry.Size = 0;
-				} else if (offsetIdx == scriptOffsets.Count - 1) {
-					// Last script; length may not exceed fixed size.
-					entry.Size = fixedSize > 0 ? (int)(fixedSize - entry.Position) : -1;
-				} else {
-					// Calculate length from next script offset.
-					entry.Size = scriptOffsets[offsetIdx + 1] - (int)entry.Position;
+					int offsetIdx = scriptOffsets.BinarySearch((int)entry.Position);
+					if (scriptOffsetsUsed[offsetIdx]) {
+						// A script with higher script number already uses this offset.
+						entry.Size = 0;
+					} else if (offsetIdx == scriptOffsets.Count - 1) {
+						// Last script; length may not exceed fixed size.
+						entry.Size = fixedSize > 0 ? (int)(fixedSize - entry.Position) : -1;
+					} else {
+						// Calculate length from next script offset.
+						entry.Size = scriptOffsets[offsetIdx + 1] - (int)entry.Position;
+					}
+					scriptOffsetsUsed[offsetIdx] = true;
+
+					entry.Position += start;
+					scriptEntries[i] = entry;
 				}
-				scriptOffsetsUsed[offsetIdx] = true;
-
-				entry.Position += start;
-				scriptEntries[i] = entry;
 			}
 
 			return scriptEntries;
