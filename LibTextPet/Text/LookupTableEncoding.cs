@@ -69,7 +69,12 @@ namespace LibTextPet.Text {
 
 				// Add to internal dictionaries.
 				this.BytesToStringLookup.Add(pair.Key, pair.Value);
-				this.StringToBytesLookup.Add(pair.Value.ToCharArray(), pair.Key);	// TODO: reduce unnecessary array copying
+				try {
+					this.StringToBytesLookup.Add(pair.Value.ToCharArray(), pair.Key);   // TODO: reduce unnecessary array copying
+				} catch (ArgumentException ex) {
+					string pairKeyStr = string.Join("", pair.Key.Select(x => x.ToString("X2")));
+					throw new ArgumentException("Cannot add pair " + pairKeyStr + "=" + pair.Value + " because: " + ex.Message);
+				}
 			}
 		}
 
