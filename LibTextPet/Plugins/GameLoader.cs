@@ -49,6 +49,9 @@ namespace LibTextPet.Plugins {
 			// Add default plugins.
 			valNames.Add("bool");
 
+			// Consume the section.
+			enumerator.MoveNext();
+
 			if (fullName != null && fullName.Length > 0) {
 				return new GameInfo(name, fullName, encName, dbNames.ToArray(), valNames);
 			} else {

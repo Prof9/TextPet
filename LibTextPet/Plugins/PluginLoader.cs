@@ -133,7 +133,9 @@ namespace LibTextPet.Plugins {
 			
 			// Start parsing.
 			IEnumerator<IniSection> enumerator = ini.GetEnumerator();
-			while (enumerator.MoveNext()) {
+			enumerator.MoveNext();
+			// Technically Current can be undefined here, but Microsoft will probably never change this behavior
+			while (enumerator.Current != null) {
 				// Find a suitable plugin loader.
 				IniLoader loader = GetPluginLoader(enumerator.Current.Name);
 				if (loader == null) {
