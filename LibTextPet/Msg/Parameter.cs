@@ -115,13 +115,18 @@ namespace LibTextPet.Msg {
 			// Try encoding using value encoding.
 			if (this.Definition.ValueEncoding != null) {
 				byte[] bytes = BitConverter.GetBytes(this.NumberValue);
-				
-				this.Definition.ValueEncoding.ResetFallbackCount();
-				result = this.Definition.ValueEncoding.GetString(bytes, 0, (this.Definition.Bits + 7) / 8);
 
-				// Did we encode it correctly?
-				if (this.Definition.ValueEncoding.FallbackCount != 0) {
-					result = null;
+				// Keep adding more bytes until we have something we can encode
+				for (int l = 1; l <= (this.Definition.Bits + 7) / 8; l++) {
+					this.Definition.ValueEncoding.ResetFallbackCount();
+
+					string encoded = this.Definition.ValueEncoding.GetString(bytes, 0, l);
+
+					// Did we encode it correctly?
+					if (this.Definition.ValueEncoding.FallbackCount == 0) {
+						result = encoded;
+						break;
+					}
 				}
 			}
 			
