@@ -62,7 +62,9 @@ namespace LibTextPet.IO {
 
 			int total = Math.Min(baseObj.Count, patchObj.Count);
 			int scriptNum = 0;
+#if !DEBUG
 			try {
+#endif
 				for (scriptNum = 0; scriptNum < total; scriptNum++) {
 					Script patchScript = patchObj[scriptNum];
 
@@ -100,10 +102,12 @@ namespace LibTextPet.IO {
 						this.ScriptPatcher.Patch(baseObj[scriptNum], patchScriptClone);
 					}
 				}
+#if !DEBUG
 			} catch (Exception ex) {
 				// TODO: THIS BUT NOT AWFUL
 				throw new InvalidOperationException(ex.Message + " (Error occurred in script " + scriptNum + " of text archive " + baseObj.Identifier + ")");
 			}
+#endif
 		}
 
 		private static Script GetImportScript(TextArchive baseObj, TextArchive patchObj, IEnumerable<TextArchive> importableTAs, int scriptNum, DirectiveElement dirElem) {
