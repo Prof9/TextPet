@@ -56,10 +56,20 @@ namespace LibTextPet.IO {
 			// Load the text box split script, if there is one.
 			IList<Command> splitSnippet = GetTextBoxSplitSnippet(baseObj);
 			IList<string> splitCmdNames = splitSnippet?.Select(cmd => cmd.Name).ToList();
+			string mugshot = null;
 
 			int a = 0;
 			int b = 0;
 			while (a < baseObj.Count) {
+				// Update current mugshot
+				if (baseObj[a] is Command cmd) {
+					if (cmd.Definition.MugshotParameterName != null) {
+						mugshot = cmd.Elements[cmd.Definition.MugshotParameterName][0][0].ToString();
+					} else if (cmd.Definition.HidesMugshot) {
+						mugshot = null;
+					}
+				}
+
 				// Skip any elements that are not part of a text box.
 				if (!IsPrinted(baseObj[a])) {
 					a++;
@@ -112,7 +122,7 @@ namespace LibTextPet.IO {
 					}
 
 					// Patch box B commands with commands in A.
-					PatchTextBox(newBox, cmds, splitSnippet);
+					PatchTextBox(newBox, cmds, mugshot, splitSnippet);
 
 					// Re-insert the patched text box in A.
 					foreach (IScriptElement elem in newBox) {
@@ -276,13 +286,20 @@ namespace LibTextPet.IO {
 		/// </summary>
 		/// <param name="box">The text box.</param>
 		/// <param name="commands">The commands to replace with.</param>
+		/// <param name="mugshot">Current active mugshot.</param>
 		/// <param name="splitSnippet">The text box split script snippet to use.</param>
-		private static void PatchTextBox(Script box, IList<Command> commands, IList<Command> splitSnippet) {
+		private static void PatchTextBox(Script box, IList<Command> commands, string mugshot, IList<Command> splitSnippet) {
 			for (int b = 0; b < box.Count; b++) {
 				if (box[b] is DirectiveElement dirB && dirB.DirectiveType == DirectiveType.TextBoxSplit) {
 					box.RemoveAt(b);
 					foreach (Command splitCmd in splitSnippet) {
 						Command cmd = (Command)splitCmd.Clone();
+
+						// If this command sets the mugshot then we need to copy the active mugshot
+						if (cmd.Definition.MugshotParameterName != null && mugshot != null) {
+							cmd.Elements[cmd.Definition.MugshotParameterName][0][0].SetString(mugshot);
+						} 
+
 						box.Insert(b++, cmd);
 					}
 					b--;
