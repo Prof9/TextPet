@@ -9,7 +9,7 @@ namespace LibTextPet.Msg {
 	/// <summary>
 	/// A script command element, being a collection of command data entries containing command parameters.
 	/// </summary>
-	public class CommandElement : Collection<ReadOnlyNamedCollection<Parameter>>, IDefined<CommandElementDefinition>, INameable, IEquatable<CommandElement> {
+	public class CommandElement : Collection<ReadOnlyNamedCollection<Parameter>>, IDefined<CommandElementDefinition>, INameable, IEquatable<CommandElement>, ICloneable {
 		private bool[] parExistsFlags;
 
 		/// <summary>
@@ -153,6 +153,23 @@ namespace LibTextPet.Msg {
 
 			// Definition and data entries match.
 			return true;
+		}
+
+		public object Clone() {
+			CommandElement elem = new CommandElement(this.Definition);
+			for (int i = 0; i < this.Count; i++) {
+				List<Parameter> pars = new List<Parameter>();
+				foreach (Parameter par in this[i]) {
+					pars.Add((Parameter)par.Clone());
+				}
+				ReadOnlyNamedCollection<Parameter> parsReadOnly = new ReadOnlyNamedCollection<Parameter>(pars);
+				if (elem.Definition.HasMultipleDataEntries) {
+					elem.Add(parsReadOnly);
+				} else {
+					elem[i] = parsReadOnly;
+				}
+			}
+			return elem;
 		}
 	}
 }

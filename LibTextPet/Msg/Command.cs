@@ -9,7 +9,7 @@ namespace LibTextPet.Msg {
 	/// <summary>
 	/// A script element that executes a command.
 	/// </summary>
-	public class Command : IScriptElement, IDefined<CommandDefinition> {
+	public class Command : IScriptElement, IDefined<CommandDefinition>, ICloneable {
 		/// <summary>
 		/// Gets the definition of this script command.
 		/// </summary>
@@ -226,6 +226,16 @@ namespace LibTextPet.Msg {
 			}
 
 			return hash;
+		}
+
+		public object Clone() {
+			Command cmd = new Command(this.Definition);
+			cmd.Elements.Locked = false;
+			for (int i = 0; i < this.Elements.Count; i++) {
+				cmd.Elements[i] = (CommandElement)this.Elements[i].Clone();
+			}
+			cmd.Elements.Locked = true;
+			return cmd;
 		}
 	}
 }

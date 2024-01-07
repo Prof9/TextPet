@@ -54,15 +54,24 @@ namespace LibTextPet.General {
 		}
 
 		protected override void ClearItems() {
-			throw new NotSupportedException(exceptionMessage);
+			if (Locked)
+				throw new NotSupportedException(exceptionMessage);
+
+			base.ClearItems();
 		}
 
 		protected override void RemoveItem(int index) {
-			throw new NotSupportedException(exceptionMessage);
+			if (Locked)
+				throw new NotSupportedException(exceptionMessage);
+			
+			base.RemoveItem(index);
 		}
 
 		protected override void SetItem(int index, TValue item) {
-			throw new NotSupportedException(exceptionMessage);
+			if (Locked)
+				throw new NotSupportedException(exceptionMessage);
+
+			base.SetItem(index, item);
 		}
 	}
 }

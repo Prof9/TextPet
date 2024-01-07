@@ -10,7 +10,7 @@ namespace LibTextPet.Msg {
 	/// <summary>
 	/// A parameter of a script command.
 	/// </summary>
-	public class Parameter : IDefined<ParameterDefinition>, INameable, IEquatable<Parameter> {
+	public class Parameter : IDefined<ParameterDefinition>, INameable, IEquatable<Parameter>, ICloneable {
 		/// <summary>
 		/// Gets the definition for this parameter.
 		/// </summary>
@@ -202,6 +202,13 @@ namespace LibTextPet.Msg {
 				return this.stringValue == other.stringValue;
 			}
 			return false;
+		}
+
+		public object Clone() {
+			Parameter par = new Parameter(this.Definition);
+			par.numberValue = this.numberValue;
+			par.stringValue = this.stringValue;
+			return par;
 		}
 
 		public static bool operator ==(Parameter parameter1, Parameter parameter2) {

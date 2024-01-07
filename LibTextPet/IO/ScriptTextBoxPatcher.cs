@@ -277,7 +277,8 @@ namespace LibTextPet.IO {
 				if (box[b] is DirectiveElement dirB && dirB.DirectiveType == DirectiveType.TextBoxSplit) {
 					box.RemoveAt(b);
 					foreach (Command splitCmd in splitSnippet) {
-						box.Insert(b++, splitCmd);
+						Command cmd = (Command)splitCmd.Clone();
+						box.Insert(b++, cmd);
 					}
 					b--;
 					continue;
