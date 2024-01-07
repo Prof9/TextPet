@@ -106,6 +106,11 @@ namespace LibTextPet.IO {
 					}
 					ProcessDirectives(cmds, directives, this.CommandReaders[baseObj.DatabaseName]);
 
+					// If we have no split snippet make sure we don't try to split the box
+					if (splitSnippet == null && newBox.Any(elem => elem is DirectiveElement dir && dir.DirectiveType == DirectiveType.TextBoxSplit)) {
+						throw new ArgumentException("Command database \"" + baseObj.DatabaseName + "\" has no text box split script; text box splitting is not supported.", nameof(patchObj));
+					}
+
 					// Patch box B commands with commands in A.
 					PatchTextBox(newBox, cmds, splitSnippet);
 
