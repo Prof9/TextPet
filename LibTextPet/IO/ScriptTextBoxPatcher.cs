@@ -258,7 +258,7 @@ namespace LibTextPet.IO {
 			if (this.Databases.Contains(script.DatabaseName)) {
 				// Load the database.
 				CommandDatabase db = this.Databases[script.DatabaseName];
-				if (db.TextBoxSplitSnippet != null && db.TextBoxSplitSnippet.Any()) {
+				if (db.TextBoxSplitSnippet != null) {
 					snippet = db.TextBoxSplitSnippet;
 				}
 			}
