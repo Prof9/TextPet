@@ -48,6 +48,20 @@ namespace LibTextPet.IO.TPL {
 		}
 
 		/// <summary>
+		/// Finalizes the text archive that was read.
+		/// </summary>
+		/// <param name="obj">The text archive that was read.</param>
+		/// <param name="db">The command database that was used/</param>
+		/// <returns>The finalized text archive, or null if no valid text archive was read.</returns>
+		protected override TextArchive EndRead(TextArchive obj, CommandDatabase db)
+		{
+            if (!identifierRead) {
+				return null;
+			}
+			return base.EndRead(obj, db);
+		}
+
+		/// <summary>
 		/// Gets the tokenized script reader that matches the specified command database name, using case-insensitive comparison.
 		/// </summary>
 		/// <param name="dbName">The command database name.</param>
@@ -83,6 +97,9 @@ namespace LibTextPet.IO.TPL {
 							return ProcessResult.ConsumeAndContinue;
 						}
 					case "@size":
+						if (!identifierRead) {
+							throw new InvalidDataException("Missing @archive token.");
+						}
 						// Read the size of the text archive.
 						obj.Resize((int)ReadNumber((int)TPLTokenType.Word));
 						return ProcessResult.ConsumeAndContinue;
