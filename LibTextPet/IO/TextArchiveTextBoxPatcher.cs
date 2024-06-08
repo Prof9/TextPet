@@ -58,7 +58,7 @@ namespace LibTextPet.IO {
 			if (patchObj == null)
 				throw new ArgumentNullException(nameof(patchObj), "The patch text archive cannot be null.");
 			if (patchObj.Count > baseObj.Count)
-				throw new ArgumentException("The number of scripts in the patch text archive exceeds the number of scripts in the base text archive.", nameof(patchObj));
+				throw new ArgumentException("The number of scripts in the patch text archive (" + patchObj.Count + ") exceeds the number of scripts in the base text archive (" + baseObj.Count + ") for text archive " + baseObj.Identifier + ".", nameof(patchObj));
 
 			int total = Math.Min(baseObj.Count, patchObj.Count);
 			int scriptNum = 0;
