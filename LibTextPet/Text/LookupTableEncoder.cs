@@ -313,13 +313,14 @@ namespace LibTextPet.Text {
 					// Already tried a fallback and it didn't work.
 					throw new EncoderFallbackException("Could not encode '" + path.FallbackChar + "' or fallback '" + path.Queue[0] + "'.");
 				} else if (this.FallbackBuffer.Fallback(path.Queue[0], 0)) {
+					// If this did not produce chars, that means the current char will be discarded (ignore fallback)
+					path.DidFallback = this.FallbackBuffer.Remaining > 0;
 					// Do a fallback, append all fallback characters.
 					int i = 1;
 					while (this.FallbackBuffer.Remaining > 0) {
 						path.Queue.Insert(i++, this.FallbackBuffer.GetNextChar());
 					}
 					path.FallbackChar = path.Queue[0];
-					path.DidFallback = true;
 					// Remove char from queue.
 					path.Queue.RemoveAt(0);
 				} else {
