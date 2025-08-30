@@ -9,7 +9,6 @@ namespace LibTextPet.Text {
 		private byte[] fallbackBytes;
 
 		private List<byte> Queue { get; }
-		private List<byte> PrevQueue { get; }
 		private int QueueIndex { get; set; }
 		private int CodePointLength { get; set; }
 		private string CodePointString { get; set; }
@@ -23,7 +22,6 @@ namespace LibTextPet.Text {
 
 			// Initialize the queue.
 			this.Queue = new List<byte>(bytesToStringLookup.Height);
-			this.PrevQueue = new List<byte>(bytesToStringLookup.Height);
 			this.LookupPath = bytesToStringLookup.BeginPath();
 			this.ResetSelf();
 
@@ -42,11 +40,25 @@ namespace LibTextPet.Text {
 			if (count < 0 || index + count > bytes.Length)
 				throw new ArgumentOutOfRangeException(nameof(count), count, "Count is out of range.");
 
+			// Save the state of the decoder.
+			int prevQueueIndex = this.QueueIndex;
+			int prevCodeLen = this.CodePointLength;
+			string prevCodeStr = this.CodePointString;
+			int prevQueueCount = this.Queue.Count;
+
 			// Process every byte in the byte array.
 			for (int i = 0; i < count; i++) {
 				this.Queue.Add(bytes[index + i]);
 			}
-			return this.ProcessQueue(flush, false, null, 0);
+			int charCount = this.ProcessQueue(flush, null, 0);
+
+			// Restore the state of the decoder.
+			this.Queue.RemoveRange(prevQueueCount, this.Queue.Count - prevQueueCount);
+			this.CodePointString = prevCodeStr;
+			this.CodePointLength = prevCodeLen;
+			this.QueueIndex = prevQueueIndex;
+
+			return charCount;
 		}
 
 		public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) {
@@ -70,7 +82,7 @@ namespace LibTextPet.Text {
 				this.Queue.Add(bytes[byteIndex + i]);
 			}
 
-			return this.ProcessQueue(flush, true, chars, charIndex);
+			return this.ProcessQueue(flush, chars, charIndex);
 		}
 
 		private void ResetSelf() {
@@ -89,21 +101,11 @@ namespace LibTextPet.Text {
 		/// Processes the current queue.
 		/// </summary>
 		/// <param name="flush">If true, the queue will be flushed by forcing fallbacks and repeating until it is empty.</param>
-		/// <param name="update">If true, updates the state of the decoder.</param>
-		/// <param name="builder">If set, the StringBuilder to append the (partially) decoded string to; if null, not used.</param>
+		/// <param name="chars">If set, the array to store the decoded characters into.</param>
+		/// <param name="charIndex">The index in chars to start storing decoded characters.</param>
 		/// <returns>The amount of characters (partially) decoded from the string.</returns>
-		private int ProcessQueue(bool flush, bool update, char[] chars, int charIndex) {
+		private int ProcessQueue(bool flush, char[] chars, int charIndex) {
 			int charCount = 0;
-
-			// Save the state of the decoder.
-			int prevQueueIndex = this.QueueIndex;
-			int prevCodeLen = this.CodePointLength;
-			string prevCodeStr = null;
-			if (!update) {
-				this.PrevQueue.Clear();
-				this.PrevQueue.AddRange(this.Queue);
-				prevCodeStr = this.CodePointString;
-			}
 
 			// If flushing, keep going until the queue is empty.
 			do {
@@ -157,15 +159,6 @@ namespace LibTextPet.Text {
 					this.QueueIndex = 0;
 				}
 			} while (flush && this.Queue.Count > 0);
-
-			// Restore decoder state.
-			if (!update) {
-				this.Queue.Clear();
-				this.Queue.AddRange(this.PrevQueue);
-				this.QueueIndex = prevQueueIndex;
-				this.CodePointLength = prevCodeLen;
-				this.CodePointString = prevCodeStr;
-			}
 
 			return charCount;
 
