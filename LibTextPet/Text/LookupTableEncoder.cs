@@ -115,7 +115,7 @@ namespace LibTextPet.Text {
 				throw new ArgumentOutOfRangeException(nameof(charIndex), "The index of the first character is out of range.");
 			if (charCount < 0 || charIndex + charCount > chars.Length)
 				throw new ArgumentOutOfRangeException(nameof(charCount), "The number of characters is out of range.");
-			if (byteIndex < 0 || byteIndex >= bytes.Length)
+			if (charCount > 0 && (byteIndex < 0 || byteIndex >= bytes.Length))
 				throw new ArgumentOutOfRangeException(nameof(byteIndex), "The index in the byte array is out of range.");
 
 			if (charCount == 0) {
