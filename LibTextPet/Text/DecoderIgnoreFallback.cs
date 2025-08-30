@@ -23,7 +23,7 @@ namespace LibTextPet.Text {
 
 			public override bool Fallback(byte[] bytesUnknown, int index) {
 				// Record the fallback and do nothing.
-				if (this.FallbackCount < int.MaxValue) {
+				checked {
 					this.FallbackCount++;
 				}
 				return true;

@@ -21,7 +21,7 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// The encoding used for this game.
 		/// </summary>
-		private IgnoreFallbackEncoding loadedTextEncoding;
+		private Encoding loadedTextEncoding;
 		/// <summary>
 		/// The sets of value names used for this game.
 		/// </summary>
@@ -95,7 +95,7 @@ namespace LibTextPet.General {
 			}
 
 			CommandDatabase[] databases = new CommandDatabase[this.DatabaseNames.Count];
-			IgnoreFallbackEncoding encoding = null;
+			Encoding encoding = null;
 			IDictionary<string, IgnoreFallbackEncoding> valueEncodings
 				= new Dictionary<string, IgnoreFallbackEncoding>(StringComparer.OrdinalIgnoreCase);
 
@@ -105,7 +105,7 @@ namespace LibTextPet.General {
 					continue;
 				}
 
-				if (plugin is IgnoreFallbackEncoding pluginAsEncoding) {
+				if (plugin is Encoding pluginAsEncoding) {
 					if (plugin.Name.Equals(this.EncodingName, StringComparison.OrdinalIgnoreCase)) {
 						if (encoding != null)
 							throw new ArgumentException("Encoding name \"" + this.EncodingName + "\" is ambiguous.", nameof(plugins));
@@ -115,7 +115,11 @@ namespace LibTextPet.General {
 						if (valueEncodings.ContainsKey(plugin.Name))
 							throw new ArgumentException("Value encoding name \"" + this.EncodingName + "\" is ambiguous.", nameof(plugins));
 
-						valueEncodings[plugin.Name] = pluginAsEncoding;
+						if (!(pluginAsEncoding is IgnoreFallbackEncoding valueEncoding)) {
+							valueEncoding = new IgnoreFallbackEncoding(pluginAsEncoding);
+						}
+
+						valueEncodings[plugin.Name] = valueEncoding;
 					}
 				}
 			}
@@ -239,7 +243,7 @@ namespace LibTextPet.General {
 		/// <summary>
 		/// Gets the encoding used for the game.
 		/// </summary>
-		public IgnoreFallbackEncoding Encoding {
+		public Encoding Encoding {
 			get {
 				if (this.loadedTextEncoding == null) {
 					throw new InvalidOperationException("The encoding for this game info object has not yet been loaded.");

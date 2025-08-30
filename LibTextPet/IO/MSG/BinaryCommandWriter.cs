@@ -19,7 +19,7 @@ namespace LibTextPet.IO.Msg {
 		/// Creates a binary command writer that writes to the specified output stream.
 		/// </summary>
 		/// <param name="stream">The stream to write to.</param>
-		public BinaryCommandWriter(Stream stream, IgnoreFallbackEncoding encoding)
+		public BinaryCommandWriter(Stream stream, Encoding encoding)
 			: base(stream, true, FileAccess.Write, encoding) {
 			this.CharCodeEncoder = new CharacterCodeEncoder(encoding);
 		}

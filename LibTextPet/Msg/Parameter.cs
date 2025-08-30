@@ -118,12 +118,7 @@ namespace LibTextPet.Msg {
 
 				// Keep adding more bytes until we have something we can encode
 				for (int l = 1; l <= (this.Definition.Bits + 7) / 8; l++) {
-					this.Definition.ValueEncoding.ResetFallbackCount();
-
-					string encoded = this.Definition.ValueEncoding.GetString(bytes, 0, l);
-
-					// Did we encode it correctly?
-					if (this.Definition.ValueEncoding.FallbackCount == 0) {
+					if (this.Definition.ValueEncoding.TryGetString(bytes, 0, l, out string encoded)) {
 						result = encoded;
 						break;
 					}

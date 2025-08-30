@@ -54,9 +54,7 @@ namespace LibTextPet.Plugins {
 			enumerator.MoveNext();
 
 			// Create a new lookup table encoding.
-			return new IgnoreFallbackEncoding(new LookupTableEncoding(name, dict) {
-				OptimalPath = true
-			});
+			return new LookupTableEncoding(name, dict, true);
 		}
 	}
 }

@@ -46,7 +46,7 @@ namespace LibTextPet.IO {
 		/// <param name="database">The command database to use.</param>
 		/// <param name="encoding">The encoding to use.</param>
 		/// <param name="commandReader">The command reader to use.</param>
-		protected ScriptReader(Stream stream, IgnoreFallbackEncoding encoding,
+		protected ScriptReader(Stream stream, Encoding encoding,
 			params T[] commandReaders)
 			: base(stream, true, FileAccess.Read, encoding,
 				// Aggregate databases of all command readers.

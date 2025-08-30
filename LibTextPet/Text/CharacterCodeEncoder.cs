@@ -17,11 +17,15 @@ namespace LibTextPet.Text {
 		/// Creates a new conservative
 		/// </summary>
 		/// <param name="encoding"></param>
-		public CharacterCodeEncoder(IgnoreFallbackEncoding encoding) {
+		public CharacterCodeEncoder(Encoding encoding) {
 			if (encoding == null)
 				throw new ArgumentNullException(nameof(encoding), "The encoding cannot be null.");
 
-			this.Encoding = encoding;
+			if (encoding is IgnoreFallbackEncoding ignoreFallbackEncoding) {
+				this.Encoding = ignoreFallbackEncoding;
+			} else {
+				this.Encoding = new IgnoreFallbackEncoding(encoding);
+			}
 		}
 
 		/// <summary>
@@ -77,12 +81,9 @@ namespace LibTextPet.Text {
 					charBuffer[charsRead - 1] = source[sourceIndex + charsRead - 1];
 
 					// Try to encode.
-					this.Encoding.ResetFallbackCount();
-					bytesWritten = this.Encoding.GetBytes(charBuffer, 0, charsRead, byteBuffer, 0);
-
-					// If no errors occurred, encoding was successful.
-					if (this.Encoding.FallbackCount == 0) {
-						success = true;
+					success = this.Encoding.TryGetBytes(charBuffer, 0, charsRead, byteBuffer, 0, out int byteCount);
+					bytesWritten = byteCount;
+					if (success) {
 						totalCharsRead += charsRead;
 						break;
 					}

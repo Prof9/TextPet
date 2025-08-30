@@ -13,6 +13,7 @@ namespace LibTextPet.Text {
 		private int maxCharCount;
 
 		private Decoder Decoder { get; }
+		private DecoderIgnoreFallback DecoderIgnoreFallback { get; }
 
 		/// <summary>
 		/// Gets the base stream that is being read from.
@@ -22,7 +23,7 @@ namespace LibTextPet.Text {
 		/// <summary>
 		/// Gets the encoding that is being used.
 		/// </summary>
-		public IgnoreFallbackEncoding Encoding { get; private set; }
+		public Encoding Encoding { get; private set; }
 
 		/// <summary>
 		/// Gets the maximum character count that this reader can read for the specified number of code points.
@@ -41,7 +42,7 @@ namespace LibTextPet.Text {
 		/// </summary>
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="encoding">The encoding to use.</param>
-		public ConservativeStreamReader(Stream stream, IgnoreFallbackEncoding encoding) {
+		public ConservativeStreamReader(Stream stream, Encoding encoding) {
 			if (stream == null)
 				throw new ArgumentNullException(nameof(stream), "The input stream cannot be null.");
 			if (!stream.CanRead)
@@ -55,6 +56,7 @@ namespace LibTextPet.Text {
 
 			this.Encoding = encoding;
 			this.Decoder = encoding.GetDecoder();
+			this.DecoderIgnoreFallback = new DecoderIgnoreFallback();
 
 			this.maxByteCount = encoding.GetMaxByteCount(1);
 			this.maxCharCount = encoding.GetMaxCharCount(1);
@@ -88,41 +90,47 @@ namespace LibTextPet.Text {
 			long start = this.BaseStream.Position;
 
 			this.Decoder.Reset();
-			this.Encoding.ResetFallbackCount();
+			DecoderFallback origFallback = this.Decoder.Fallback;
+			this.Decoder.Fallback = this.DecoderIgnoreFallback;
+			this.DecoderIgnoreFallback.ResetFallbackCount();
 
-			// Decode the characters from the stream.
-			bytesUsed = 0;
-			charsUsed = 0;
-			while (bytesUsed < this.maxByteCount) {
-				if (byteIndex + bytesUsed > bytes.Length) {
-					throw new ArgumentException("The byte array is not large enough to hold the required number of bytes.", nameof(bytes));
-				}
-				int b = this.BaseStream.ReadByte();
-				if (b == -1) {
-					// End of stream, unable to read chars.
-					break;
-				}
-				bytes[byteIndex + bytesUsed] = (byte)b;
+			try {
+				// Decode the characters from the stream.
+				bytesUsed = 0;
+				charsUsed = 0;
+				while (bytesUsed < this.maxByteCount) {
+					if (byteIndex + bytesUsed > bytes.Length) {
+						throw new ArgumentException("The byte array is not large enough to hold the required number of bytes.", nameof(bytes));
+					}
+					int b = this.BaseStream.ReadByte();
+					if (b == -1) {
+						// End of stream, unable to read chars.
+						break;
+					}
+					bytes[byteIndex + bytesUsed] = (byte)b;
 
-				// Read characters.
-				// WARNING: If using non-greedy decoder, may read multiple code points and overflow char buffer!!!!
-				charsUsed += this.Decoder.GetChars(bytes, byteIndex + bytesUsed, 1, chars, 0, false);
-				bytesUsed++;
+					// Read characters.
+					// WARNING: If using non-greedy decoder, may read multiple code points and overflow char buffer!!!!
+					charsUsed += this.Decoder.GetChars(bytes, byteIndex + bytesUsed, 1, chars, 0, false);
+					bytesUsed++;
 
-				// If errors occurred, decoding was not successful.
-				if (this.Encoding.FallbackCount > 0) {
-					break;
+					// If errors occurred, decoding was not successful.
+					if (this.DecoderIgnoreFallback.FallbackCount > 0) {
+						break;
+					}
+
+					// If chars read, decoding was successful.
+					if (charsUsed > 0) {
+						return true;
+					}
 				}
 
-				// If chars read, decoding was successful.
-				if (charsUsed > 0) {
-					return true;
-				}
+				// Decoding failed.
+				this.BaseStream.Position = start;
+				return false;
+			} finally {
+				this.Decoder.Fallback = origFallback;
 			}
-
-			// Decoding failed.
-			this.BaseStream.Position = start;
-			return false;
 		}
 	}
 }

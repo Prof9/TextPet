@@ -75,5 +75,35 @@ namespace LibTextPet.Text {
 
 		public override int GetMaxCharCount(int byteCount)
 			=> this.BaseEncoding.GetMaxCharCount(byteCount);
+
+		public bool TryGetBytes(char[] chars, int index, int count, out byte[] bytes) {
+			int fallbackCount = this.FallbackCount;
+			bytes = this.GetBytes(chars, index, count);
+			return this.FallbackCount == fallbackCount;
+		}
+
+		public bool TryGetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, out int byteCount) {
+			int fallbackCount = this.FallbackCount;
+			byteCount = this.GetBytes(chars, charIndex, charCount, bytes, byteIndex);
+			return this.FallbackCount == fallbackCount;
+		}
+
+		public bool TryGetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex, out int charCount) {
+			int fallbackCount = this.FallbackCount;
+			charCount = this.GetChars(bytes, byteIndex, byteCount, chars, charIndex);
+			return this.FallbackCount == fallbackCount;
+		}
+
+		public bool TryGetString(byte[] bytes, out string str) {
+			int fallbackCount = this.FallbackCount;
+			str = this.GetString(bytes);
+			return this.FallbackCount == fallbackCount;
+		}
+
+		public bool TryGetString(byte[] bytes, int index, int count, out string str) {
+			int fallbackCount = this.FallbackCount;
+			str = this.GetString(bytes, index, count);
+			return this.FallbackCount == fallbackCount;
+		}
 	}
 }

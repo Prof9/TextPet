@@ -1,4 +1,5 @@
 ﻿using LibTextPet.General;
+using LibTextPet.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -10,7 +11,10 @@ namespace LibTextPet.Text {
 	/// <summary>
 	/// Represents an encoding that can map a single byte to multiple characters.
 	/// </summary>
-	public class LookupTableEncoding : Encoding {
+	public class LookupTableEncoding : Encoding, IPlugin {
+		public string PluginType => "Encoding";
+		public string Name => this.EncodingName;
+
 		private LookupTree<byte, string> BytesToStringLookup { get; }
 		private LookupTree<char, byte[]> StringToBytesLookup { get; }
 
@@ -43,16 +47,23 @@ namespace LibTextPet.Text {
 
 		public override string EncodingName { get; }
 
-		public bool OptimalPath { get; set; }
+		public bool OptimalPath { get; }
 
-		public LookupTableEncoding(string name, IDictionary<byte[], string> dictionary) {
+		public LookupTableEncoding(string name, IDictionary<byte[], string> dictionary)
+			: this(name, dictionary, true) { }
+
+		public LookupTableEncoding(string name, IDictionary<byte[], string> dictionary, bool optimalPath)
+			: this(name, dictionary, optimalPath, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback) { }
+
+		public LookupTableEncoding(string name, IDictionary<byte[], string> dictionary, bool optimalPath, EncoderFallback encoderFallback, DecoderFallback decoderFallback)
+			: base(0, encoderFallback, decoderFallback) {
 			if (name == null)
 				throw new ArgumentNullException(nameof(name), "The encoding name cannot be null.");
 			if (dictionary == null)
 				throw new ArgumentNullException(nameof(dictionary), "The dictionary cannot be null.");
 
 			this.EncodingName = name;
-			this.OptimalPath = true;
+			this.OptimalPath = optimalPath;
 
 			this.BytesToStringLookup = new LookupTree<byte, string>();
 			this.StringToBytesLookup = new LookupTree<char, byte[]>();

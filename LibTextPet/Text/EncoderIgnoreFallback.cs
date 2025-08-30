@@ -23,7 +23,7 @@ namespace LibTextPet.Text {
 
 			public override bool Fallback(char charUnknown, int index) {
 				// Record the fallback and do nothing.
-				if (this.FallbackCount < int.MaxValue) {
+				checked {
 					this.FallbackCount++;
 				}
 				return true;
@@ -31,7 +31,7 @@ namespace LibTextPet.Text {
 
 			public override bool Fallback(char charUnknownHigh, char charUnknownLow, int index) {
 				// Record the fallback and do nothing.
-				if (this.FallbackCount < int.MaxValue) {
+				checked {
 					this.FallbackCount++;
 				}
 				return true;

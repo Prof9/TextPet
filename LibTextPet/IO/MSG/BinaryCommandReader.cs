@@ -28,7 +28,7 @@ namespace LibTextPet.IO.Msg {
 		/// <param name="stream">The stream to read from.</param>
 		/// <param name="database">The command database to use.</param>
 		/// <param name="encoding">The encoding to use.</param>
-		public BinaryCommandReader(Stream stream, CommandDatabase database, IgnoreFallbackEncoding encoding) 
+		public BinaryCommandReader(Stream stream, CommandDatabase database, Encoding encoding) 
 			: base(stream, true, FileAccess.Read, database) {
 			this.TextReader = new ConservativeStreamReader(stream, encoding);
 			this.BytesLeft = -1;
@@ -232,7 +232,7 @@ namespace LibTextPet.IO.Msg {
 					// Read the next code point.
 					if (!this.TextReader.TryReadSingleCodePoint(this.charBuffer, 0, this.byteBuffer, 0, out int charsUsed, out int bytesUsed)) {
 						// Abort on invalid character.
-						break;
+						return false;
 					}
 
 					this.stringBuilder.Append(this.charBuffer, 0, charsUsed);
@@ -261,14 +261,17 @@ namespace LibTextPet.IO.Msg {
 				}
 
 				// Decode the string.
-				this.TextReader.Encoding.ResetFallbackCount();
-				int charCount = this.TextReader.Encoding.GetChars(buffer, 0, strLen, this.charBuffer, 0);
+				while (strLen > 0) {
+					// Read the next code point.
+					if (!this.TextReader.TryReadSingleCodePoint(this.charBuffer, 0, this.byteBuffer, 0, out int charsUsed, out int bytesUsed)) {
+						// Abort on invalid character.
+						return false;
+					}
 
-				if (this.TextReader.Encoding.FallbackCount != 0) {
-					// Could not properly decode the string.
-					return false;
+					this.stringBuilder.Append(this.charBuffer, 0, charsUsed);
+					strLen -= bytesUsed;
 				}
-				this.stringBuilder.Append(this.charBuffer, 0, charCount);
+				
 				break;
 			}
 
